@@ -14,6 +14,9 @@ jspm_packages/
 .env.production.local
 *.pem
 *.key
+.env.production
+# Ou para garantir todos os arquivos de ambiente:
+.env.*
 
 # --- BUILDS E SAÍDAS ---
 dist/
