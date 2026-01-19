@@ -1,0 +1,51 @@
+# --- DEPENDÊNCIAS ---
+node_modules/
+jspm_packages/
+# Caso use Deno
+.deno/
+
+# --- AMBIENTE E SEGURANÇA (CRÍTICO) ---
+# Nunca suba chaves de API, senhas ou segredos
+.env
+*.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.pem
+*.key
+
+# --- BUILDS E SAÍDAS ---
+dist/
+build/
+out/
+.next/
+.cache/
+# Pasta de build do TypeScript
+*.tsbuildinfo
+
+# --- LOGS ---
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# --- EDITOR / IDE (VS Code, IntelliJ) ---
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# --- TESTES ---
+coverage/
+.nyc_output/
+
+# --- MOBILE (Se houver pasta de apps) ---
+.expo/
+.gradle/

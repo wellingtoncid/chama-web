@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@layer base {
+  :root, body, #root {
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0;
+    padding: 0;
+    text-align: left; 
+  }
+
+  body {
+    min-height: 100vh;
+    overflow-x: hidden; 
+  }
+}
