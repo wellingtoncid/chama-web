@@ -1,80 +1,122 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Zap, MapPin, ChevronDown, Loader2, Globe, X } from 'lucide-react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Search, Zap, MapPin, Globe, X, ArrowRight, Users, Building2, CheckCircle2, Truck } from 'lucide-react';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import FreightCard from '../components/shared/FreightCard';
+import AdCarousel from '../components/shared/AdCarousel';
+import { AdCard } from '../components/shared/AdCard';
 
 const ESTADOS_BR = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 
-const FreightPage = () => {
+export default function FreightPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const [allFreights, setAllFreights] = useState<any[]>([]);
   const [filteredFreights, setFilteredFreights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   
+  const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
+  const [formData, setFormData] = useState({ title: '', contact: '', description: '' });
+  const [isSending, setIsSending] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  // Estados de busca inicializados pela URL (Persistência)
   const [searchTerm, setSearchTerm] = useState(searchParams.get("search") || "");
   const [selectedUF, setSelectedUF] = useState(searchParams.get("uf") || "");
 
-  // 1. Carregamento dos dados com injeção de ID de usuário (se logado)
+  // --- BUSCA DE DADOS VIA BACKEND (Nova Lógica) ---
   const fetchItems = useCallback(async () => {
     try {
       setLoading(true);
-      const userData = localStorage.getItem('@ChamaFrete:user');
-      const user = userData ? JSON.parse(userData) : null;
-
-      const response = await api.get('freights', { 
-        params: { 
-          user_id: user?.id // Importante para verificar favoritos na listagem geral
-        } 
+      // Enviamos os parâmetros para o FreightController.php processar a busca global
+      const response = await api.get('freights', {
+        params: {
+          search: searchTerm,
+          state: selectedUF
+        }
       });
-      
-      setAllFreights(Array.isArray(response.data) ? response.data : []);
+      const data = Array.isArray(response.data) ? response.data : [];
+      setFilteredFreights(data);
     } catch (error) { 
       console.error("Erro ao buscar fretes:", error); 
     } finally { 
       setLoading(false); 
     }
-  }, []);
+  }, [searchTerm, selectedUF]);
 
-  useEffect(() => { 
-    fetchItems(); 
-  }, [fetchItems]);
-
-  // 2. MOTOR DE BUSCA INTELIGENTE (Normalização de acentos + Múltiplas palavras)
+  // Atualiza a URL e busca os dados quando os filtros mudam
   useEffect(() => {
-    const normalize = (text: string) => 
-      text?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || "";
-
-    const searchWords = normalize(searchTerm).trim().split(/\s+/);
-    
-    const results = allFreights.filter(f => {
-      // Filtro de UF
-      const matchUF = !selectedUF || (
-        normalize(f.origin).includes(normalize(selectedUF)) || 
-        normalize(f.destination).includes(normalize(selectedUF))
-      );
-
-      // Super String de busca (inclui campos principais)
-      const dataText = `${f.origin} ${f.destination} ${f.product} ${f.company_name} ${f.vehicleType} ${f.bodyType}`;
-      const searchBase = normalize(dataText);
-
-      // Match se todas as palavras digitadas existirem no frete
-      const matchText = !searchTerm || searchWords.every(word => searchBase.includes(word));
-
-      return matchText && matchUF;
-    });
-
-    setFilteredFreights(results);
-    
-    // Atualiza URL sem recarregar a página
     const params: any = {};
     if (searchTerm) params.search = searchTerm;
     if (selectedUF) params.uf = selectedUF;
-    setSearchParams(params, { replace: true });
+    setSearchParams(params);
 
-  }, [searchTerm, selectedUF, allFreights, setSearchParams]);
+    // Debounce simples para não sobrecarregar a API enquanto digita
+    const delayDebounce = setTimeout(() => {
+      fetchItems();
+    }, 300);
+
+    return () => clearTimeout(delayDebounce);
+  }, [searchTerm, selectedUF, setSearchParams, fetchItems]);
+
+  // --- LÓGICA DE TRACKING DE VIEWS ---
+  const observer = useRef<IntersectionObserver | null>(null);
+  const trackedItems = useRef(new Set());
+
+  const trackViewRef = useCallback((node: HTMLDivElement | null, id: string, type: 'freight' | 'ad' | 'community') => {
+    if (loading || !node || trackedItems.current.has(id)) return;
+    if (observer.current) observer.current.disconnect();
+
+    observer.current = new IntersectionObserver((entries) => {
+      if (entries[0].isIntersecting) {
+        // Envia log para o AdController ou FreightController (conforme o tipo)
+        const endpoint = type === 'freight' ? '/register-freight-view' : '/register-ad-event';
+        api.post(endpoint, { id, type: 'view' }).catch(() => {});
+        trackedItems.current.add(id);
+        if (node) observer.current?.unobserve(node);
+      }
+    }, { threshold: 0.5 });
+
+    if (node) observer.current.observe(node);
+  }, [loading]);
+
+  // --- COMPONENTES NATIVOS ---
+  const CommunityCard = () => (
+    <div 
+      ref={(el) => trackViewRef(el, 'internal_community_card', 'community')}
+      onClick={() => navigate('/comunidade')} 
+      className="cursor-pointer bg-blue-600 rounded-[3rem] p-10 text-white flex flex-col justify-between h-full relative overflow-hidden group shadow-xl hover:scale-[1.02] transition-all border-4 border-blue-500"
+    >
+      <Users className="absolute -right-6 -bottom-6 text-white/10 group-hover:scale-110 transition-transform duration-700" size={200} />
+      <div className="relative z-10">
+        <div className="bg-white/20 w-fit p-3 rounded-2xl mb-6 backdrop-blur-md"><Globe size={24} /></div>
+        <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-[0.9] mb-4">Grupos de <br/><span className="text-blue-200">WhatsApp</span></h3>
+        <p className="text-blue-100 text-[11px] font-bold italic">Receba fretes regionais direto no celular.</p>
+      </div>
+      <button className="w-full bg-white text-blue-600 py-4 rounded-2xl font-black text-[10px] uppercase mt-8 flex items-center justify-center gap-2 group-hover:bg-slate-900 group-hover:text-white transition-all shadow-lg relative z-10">
+        Ver Comunidades <ArrowRight size={14} />
+      </button>
+    </div>
+  );
+
+  const BusinessCard = () => (
+    <div 
+      ref={(el) => trackViewRef(el, 'internal_business_card', 'ad')}
+      onClick={() => setIsBusinessModalOpen(true)} 
+      className="cursor-pointer bg-slate-900 rounded-[3rem] p-10 text-white flex flex-col justify-between h-full relative overflow-hidden group border-4 border-slate-800 shadow-xl hover:scale-[1.02] transition-all"
+    >
+      <Building2 className="absolute -right-6 -bottom-6 text-amber-500/10 group-hover:scale-110 transition-transform duration-700" size={200} />
+      <div className="relative z-10">
+        <div className="bg-amber-500 w-fit p-3 rounded-2xl mb-6 shadow-lg shadow-amber-500/20"><Zap size={24} className="text-slate-900" /></div>
+        <h3 className="text-3xl font-black uppercase italic tracking-tighter leading-[0.9] mb-4 text-amber-500">Sua Empresa <br/><span className="text-white">Aqui</span></h3>
+        <p className="text-slate-400 text-[11px] font-bold italic">Anuncie para milhares de motoristas qualificados.</p>
+      </div>
+      <button className="w-full bg-amber-500 text-slate-900 py-4 rounded-2xl font-black text-[10px] uppercase mt-8 flex items-center justify-center gap-2 group-hover:bg-white transition-all shadow-lg relative z-10">
+        Divulgar Agora <ArrowRight size={14} />
+      </button>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex flex-col font-sans">
@@ -84,101 +126,95 @@ const FreightPage = () => {
         <div className="max-w-6xl mx-auto px-4">
           
           <div className="mb-10 text-center md:text-left">
-            <h1 className="text-4xl md:text-6xl font-[1000] text-slate-900 tracking-tighter uppercase italic leading-none">
+            <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tighter uppercase italic leading-none">
               Portal de <span className="text-blue-600">Cargas</span>
             </h1>
-            <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-4">
-              <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-full shadow-sm border border-slate-100">
-                <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                <p className="text-slate-600 font-black uppercase text-[9px] tracking-widest">
-                   {filteredFreights.length} Cargas Ativas
-                </p>
-              </div>
-              <div className="hidden md:flex items-center gap-2 text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
-                <Globe size={12} className="text-blue-500" />
-                <p className="text-[9px] font-bold uppercase italic">Busca Inteligente Ativada</p>
-              </div>
-            </div>
           </div>
 
-          {/* BARRA DE BUSCA GOOGLE STYLE */}
-          <div className="flex flex-col md:flex-row items-stretch gap-2 bg-white p-2 rounded-[2.5rem] shadow-[0_30px_60px_rgba(31,78,173,0.08)] border border-slate-100 mb-12">
-            
-            <div className="flex-1 relative flex items-center">
+          {/* Barra de Busca que Alimenta o Backend */}
+          <div className="flex flex-col md:flex-row items-stretch gap-2 bg-white p-2 rounded-[2.5rem] shadow-xl mb-12 border border-slate-100">
+             <div className="flex-1 relative flex items-center">
               <Search className="absolute left-6 text-blue-600" size={24} />
               <input 
-                type="text"
-                placeholder="O que você quer carregar hoje?"
-                className="w-full bg-transparent border-none pl-16 pr-12 py-6 text-lg font-bold text-slate-700 outline-none placeholder:text-slate-300"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                type="text" 
+                placeholder="Buscar por produto, empresa, cidade ou carroceria..." 
+                className="w-full bg-transparent border-none pl-16 pr-12 py-6 text-lg font-bold text-slate-700 outline-none" 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
               />
               {searchTerm && (
-                <button onClick={() => setSearchTerm('')} className="absolute right-4 text-slate-300 hover:text-slate-500">
+                <button onClick={() => setSearchTerm("")} className="absolute right-4 p-2 text-slate-300 hover:text-slate-600">
                   <X size={20} />
                 </button>
               )}
             </div>
-
-            <div className="hidden md:block w-px h-10 bg-slate-100 self-center" />
-
             <div className="relative flex items-center min-w-[180px]">
               <MapPin className="absolute left-4 text-blue-500" size={20} />
               <select 
-                className="w-full bg-slate-50 md:bg-transparent border-none pl-12 pr-10 py-6 text-sm font-black uppercase text-slate-600 appearance-none cursor-pointer outline-none rounded-2xl md:rounded-none"
-                value={selectedUF}
+                className="w-full bg-slate-50 md:bg-transparent border-none pl-12 pr-10 py-6 text-sm font-black uppercase text-slate-600 appearance-none outline-none cursor-pointer" 
+                value={selectedUF} 
                 onChange={(e) => setSelectedUF(e.target.value)}
               >
-                <option value="">Todos os Estados</option>
+                <option value="">Brasil (Todos)</option>
                 {ESTADOS_BR.map(uf => <option key={uf} value={uf}>{uf}</option>)}
               </select>
-              <ChevronDown className="absolute right-4 text-slate-300 pointer-events-none" size={18} />
             </div>
           </div>
 
-          {/* LISTAGEM */}
+          <div className="flex flex-col md:flex-row justify-between items-center mb-8 px-4 gap-4">
+            <div className="flex items-center gap-3">
+              <div className="bg-blue-100 text-blue-600 p-2 rounded-xl"><Truck size={20} /></div>
+              <p className="text-sm font-bold text-slate-500 italic">
+                Encontrados <span className="text-blue-600 font-black">{filteredFreights.length} fretes</span> para sua busca
+              </p>
+            </div>
+            <div className="flex items-center gap-2 bg-emerald-50 text-emerald-600 px-4 py-2 rounded-full border border-emerald-100">
+              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Tempo Real</span>
+            </div>
+          </div>
+
+          {/* Banner Rotativo (Agora filtrável por palavra-chave) */}
+          <div className="mb-12 rounded-[2.5rem] overflow-hidden shadow-2xl shadow-blue-900/10">
+              <AdCarousel searchTerm={searchTerm} state={selectedUF} />
+          </div>
+
           <div className="pb-20">
             {loading ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {[1, 2, 3, 4, 5, 6].map(i => (
-                    <div key={i} className="h-[400px] bg-white border border-slate-100 rounded-[3rem] p-8 space-y-4">
-                      <div className="h-6 w-24 bg-slate-100 animate-pulse rounded-full" />
-                      <div className="h-12 w-full bg-slate-50 animate-pulse rounded-2xl" />
-                      <div className="h-24 w-full bg-slate-50 animate-pulse rounded-2xl" />
-                    </div>
-                  ))}
+                {[1,2,3,4,5,6].map(i => <div key={i} className="h-[400px] bg-white rounded-[3rem] animate-pulse" />)}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                 {filteredFreights.length > 0 ? (
                   filteredFreights.map((item, index) => (
                     <React.Fragment key={item.id}>
-                      <FreightCard 
-                        data={item} 
-                        onToggle={fetchItems} // Recarrega para atualizar contadores de clique/view
-                      />
+                      {index === 0 && <CommunityCard />}
+
+                      <div ref={(el) => trackViewRef(el, item.id, 'freight')}>
+                         <FreightCard data={item} onToggle={fetchItems} />
+                      </div>
                       
-                      {/* Banner de Monetização / Destaque */}
+                      {index === 2 && <BusinessCard />}
+
+                      {/* Injeção de Anúncios Dinâmicos a cada 6 itens */}
                       {(index + 1) % 6 === 0 && (
-                        <div className="bg-blue-600 rounded-[3rem] p-10 text-white flex flex-col justify-between h-full relative overflow-hidden shadow-xl shadow-blue-100">
-                          <Zap className="absolute -right-6 -top-6 text-white/10" size={180} />
-                          <div className="relative z-10">
-                            <span className="bg-white/20 px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-widest">Patrocinado</span>
-                            <h3 className="text-3xl font-[1000] uppercase italic tracking-tighter leading-none mt-6 mb-4">Anuncie<br/>Sua Carga</h3>
-                            <p className="text-blue-100 text-xs font-bold leading-relaxed">Sua empresa em destaque para milhares de motoristas qualificados todos os dias.</p>
-                          </div>
-                          <button className="w-full bg-white text-blue-600 py-4 rounded-2xl font-black text-[10px] uppercase mt-8 hover:scale-105 transition-all relative z-10 shadow-lg">
-                            Destaque Agora
-                          </button>
+                        <div className="h-full">
+                           <AdCard position="freight_list" variant="vertical" search={searchTerm} state={selectedUF} />
                         </div>
                       )}
                     </React.Fragment>
                   ))
                 ) : (
-                  <div className="col-span-full py-32 text-center bg-white rounded-[4rem] border-2 border-dashed border-slate-100 shadow-inner">
-                    <Search className="text-slate-200 mx-auto mb-6" size={60} />
-                    <p className="text-slate-400 font-[1000] uppercase tracking-tighter text-xl">Nenhuma carga encontrada</p>
-                    <p className="text-slate-300 text-xs font-bold mt-2">Tente buscar por termos mais simples como "Truck" ou "SP".</p>
+                  <div className="col-span-full py-20 flex flex-col items-center">
+                    <div className="bg-slate-100 p-10 rounded-[3rem] text-center max-w-lg">
+                      <Search size={48} className="text-slate-300 mx-auto mb-4" />
+                      <p className="text-slate-500 font-bold mb-8 italic">Não encontramos resultados exatos, mas confira estas opções:</p>
+                      <div className="grid grid-cols-1 gap-6">
+                        <CommunityCard />
+                        <BusinessCard />
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -187,9 +223,48 @@ const FreightPage = () => {
         </div>
       </main>
 
+      {/* Modal Business mantido conforme original */}
+      {isBusinessModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-xl z-[100] flex items-center justify-center p-4">
+          <div className="bg-white w-full max-w-lg rounded-[3.5rem] p-10 relative">
+            <button onClick={() => setIsBusinessModalOpen(false)} className="absolute top-8 right-8 text-slate-400 hover:text-red-500"><X size={28} /></button>
+            {success ? (
+               <div className="text-center py-10">
+                  <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6"><CheckCircle2 size={40} /></div>
+                  <h3 className="text-2xl font-black uppercase italic mb-2 tracking-tighter">Solicitação Enviada!</h3>
+                  <p className="text-slate-500 font-medium italic text-sm">Entraremos em contato em breve.</p>
+               </div>
+            ) : (
+              <div className="animate-in slide-in-from-bottom-4">
+                <div className="flex items-center gap-3 mb-8">
+                  <div className="p-3 bg-amber-100 text-amber-600 rounded-2xl"><Building2 size={32} /></div>
+                  <h2 className="text-2xl font-black uppercase italic leading-none tracking-tighter">Anunciar minha Empresa</h2>
+                </div>
+                <div className="space-y-4">
+                  <input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold uppercase text-xs outline-none focus:border-amber-500" placeholder="Nome da Empresa" />
+                  <input value={formData.contact} onChange={e => setFormData({...formData, contact: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-bold text-xs outline-none focus:border-amber-500" placeholder="WhatsApp (DDD)" />
+                  <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full p-5 bg-slate-50 border-2 border-slate-100 rounded-2xl font-medium text-xs h-32 resize-none outline-none focus:border-amber-500" placeholder="Fale brevemente sobre o que deseja anunciar..." />
+                  <button 
+                    onClick={async () => {
+                      setIsSending(true);
+                      try {
+                        await api.post('/portal-request', { type: 'business_ad', ...formData });
+                        setSuccess(true);
+                        setTimeout(() => { setIsBusinessModalOpen(false); setSuccess(false); }, 3000);
+                      } catch (e) { alert("Erro ao enviar solicitação."); } finally { setIsSending(false); }
+                    }} 
+                    disabled={isSending || !formData.title || !formData.contact} 
+                    className="w-full bg-slate-900 text-white py-5 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-amber-500 transition-all shadow-xl disabled:opacity-50"
+                  >
+                    {isSending ? 'Enviando...' : 'Solicitar Orçamento'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
       <Footer />
     </div>
   );
-};
-
-export default FreightPage;
+}

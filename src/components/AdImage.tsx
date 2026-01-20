@@ -8,26 +8,33 @@ interface AdImageProps {
 
 export const AdImage = ({ url, className, alt = "" }: AdImageProps) => {
   const getFullUrl = (path: string) => {
-    // 1. Se não houver path, retorna placeholder
-    if (!path || path === "") {
-        return 'https://via.placeholder.com/800x400?text=Sem+Imagem';
+    // 1. Sanitização básica
+    if (!path || typeof path !== 'string' || path.trim() === "") {
+        return 'https://placehold.co/800x400/f1f5f9/64748b?text=Sem+Imagem';
     }
     
-    // 2. Se for uma URL completa (Unsplash, Imgur, etc), retorna direto
-    if (path.startsWith('http')) {
-        return path;
+    const trimmedPath = path.trim();
+
+    // 2. Se for uma URL completa, retorna direto (Prioridade Máxima)
+    if (trimmedPath.startsWith('http')) {
+        return trimmedPath;
     }
     
-    // 3. Limpa a URL Base (remove barra no final se existir)
+    // 3. Limpa a URL Base
     const baseUrl = BASE_URL_API.endsWith('/') 
         ? BASE_URL_API.slice(0, -1) 
         : BASE_URL_API;
 
-    // 4. Limpa o Path (remove barra no início se existir)
-    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    // 4. Limpa o Path interno
+    // Se o path for apenas o nome do arquivo "foto.jpg", 
+    // precisamos garantir que ele aponte para a pasta de uploads correta do seu PHP
+    let cleanPath = trimmedPath.startsWith('/') ? trimmedPath.substring(1) : trimmedPath;
+    
+    // Se não for link externo e não começar com uploads, adicionamos o prefixo da pasta
+    if (!cleanPath.startsWith('uploads/')) {
+        // cleanPath = `uploads/ads/${cleanPath}`; // Ajuste conforme sua estrutura de pastas no servidor
+    }
 
-    // 5. Retorna a concatenação limpa
-    // Ex: http://api.seusite.com.br/storage/ads/imagem.jpg
     return `${baseUrl}/${cleanPath}`;
   };
 
@@ -37,11 +44,13 @@ export const AdImage = ({ url, className, alt = "" }: AdImageProps) => {
       alt={alt}
       className={className}
       loading="lazy"
+      // Melhora a UX: esconde a imagem quebrada até o fallback carregar
       onError={(e) => {
-        // Fallback definitivo para evitar loop de erro
         const target = e.target as HTMLImageElement;
-        if (target.src !== 'https://via.placeholder.com/800x400?text=Erro+no+Servidor') {
-            target.src = 'https://via.placeholder.com/800x400?text=Erro+no+Servidor';
+        const fallback = 'https://placehold.co/800x400/fee2e2/ef4444?text=Erro+ao+Carregar';
+        if (target.src !== fallback) {
+            target.src = fallback;
+            target.className += " opacity-50"; // Feedback visual de erro
         }
       }}
     />

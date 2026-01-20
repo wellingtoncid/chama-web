@@ -1,16 +1,17 @@
 import { 
   Truck, Users, UserCog, Settings as SettingsIcon, 
-  Megaphone, MessageCircle, Loader2, Mail // Adicionado Mail
+  Megaphone, MessageCircle, Loader2, Mail, BarChart3 // Adicionado BarChart3 para o ícone de relatórios
 } from 'lucide-react';
 
-// 1. IMPORTAR O NOVO COMPONENTE
+// 1. IMPORTAR OS COMPONENTES
 import DashboardAdmin from '../admin/DashboardAdmin'; 
 import FreightsManagerView from '../admin/FreightManagerView';
 import UsersManager from '../admin/UsersManagerView';
 import GroupsManager from '../admin/GroupsManagerView'; 
 import AdsManager from '../admin/AdsManager'; 
 import SettingsView from '../admin/SettingsView'; 
-import AdminPortalRequests from '../admin/AdminPortalRequests'; // <-- Novo Componente
+import AdminPortalRequests from '../admin/AdminPortalRequests';
+import { AdsReports } from '../admin/AdsReports'; // Importado
 
 interface AdminViewProps {
   role: string;
@@ -30,11 +31,21 @@ export default function AdminView({ user, role, activeTab }: AdminViewProps) {
     return <div className="p-4"><HeaderTab title="Comunidades WhatsApp" icon={MessageCircle} /><GroupsManager /></div>;
   }
 
+  // Aba Principal de Gestão de Anúncios (Tabela/Edição)
   if (activeTab === 'ads') {
     return <div className="p-4"><HeaderTab title="Publicidade Comercial" icon={Megaphone} /><AdsManager /></div>;
   }
+
+  // NOVA ABA: Relatórios de Performance por Cliente
+  if (activeTab === 'ads_reports') {
+    return (
+      <div className="p-4">
+        <HeaderTab title="Relatórios de Performance" icon={BarChart3} />
+        <AdsReports />
+      </div>
+    );
+  }
   
-  // 2. NOVA ABA DE LEADS/SOLICITAÇÕES
   if (activeTab === 'portal_requests') {
     return (
       <div className="p-4">
@@ -55,7 +66,7 @@ export default function AdminView({ user, role, activeTab }: AdminViewProps) {
   // --- ABA PADRÃO (HOME / DASHBOARD) ---
   return (
     <div className="animate-in fade-in duration-500">
-       <DashboardAdmin />
+      <DashboardAdmin />
     </div>
   );
 }
