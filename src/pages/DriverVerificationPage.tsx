@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckBadgeIcon, ShieldCheckIcon, TruckIcon, StarIcon } from '@heroicons/react/24/solid';
-import {api} from '../api';
+import {api} from '../api/api';
 
 const DriverVerificationPage = () => {
   const [loading, setLoading] = useState(false);

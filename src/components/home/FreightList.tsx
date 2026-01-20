@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from "react";
 import { ChevronDown, ArrowRight, TrendingUp, ShieldCheck, BarChart3 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom"; 
-import FreightCard from "../components/shared/FreightCard";
-import { Button } from "./ui/button";
+import FreightCard from "../../components/shared/FreightCard";
+import { Button } from "../ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "./ui/dropdown-menu";
-import { api } from "../api";
-import { AdCard } from "./shared/AdCard"; 
+} from "../ui/dropdown-menu";
+import { api } from "../../api/api";
+import { AdCard } from "../shared/AdCard"; 
 
 const FreightList = () => {
   const navigate = useNavigate();

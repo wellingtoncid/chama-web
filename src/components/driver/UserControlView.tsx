@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { 
   User, Shield, Mail, Edit2, Check, X, 
   Search, Filter, ArrowUpDown, UserCog 

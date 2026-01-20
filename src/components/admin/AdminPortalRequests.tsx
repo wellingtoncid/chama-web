@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { 
   MessageSquare, Globe, Star, CheckCircle, 
   Clock, ExternalLink, Filter, Search 

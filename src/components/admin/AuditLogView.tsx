@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../../api'; // Verifique se seu axios instance está aqui
+import { api } from '../../api/api'; // Verifique se seu axios instance está aqui
 import { Shield, Clock, User } from 'lucide-react';
 
 // 1. Definição da Interface (Obrigatório para o TS entender o que vem do banco)

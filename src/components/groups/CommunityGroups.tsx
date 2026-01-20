@@ -2,7 +2,7 @@ import { MessageCircle, Users, ArrowRight, Lock, Loader2 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { api } from "../../api"; // Usando sua instância centralizada da API
+import { api } from "../../api/api"; // Usando sua instância centralizada da API
 
 // Interface sincronizada com o banco de dados e o Admin
 interface WhatsAppGroup {

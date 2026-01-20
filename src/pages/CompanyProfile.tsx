@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, MapPin, Phone, Package, Truck, Star } from 'lucide-react';
-import { api } from '../api';
+import { api } from '../api/api';
 
 const CompanyProfile = () => {
   const { companyId } = useParams(); // Pega o ID da URL

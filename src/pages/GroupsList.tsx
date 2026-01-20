@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api';
+import { api } from '../api/api';
 import { 
   Lock, Search, Star, Globe, Users, MessageCircle, X, Zap, Plus, 
   ShieldCheck, ArrowUpRight, BarChart3, ShoppingCart, Truck,

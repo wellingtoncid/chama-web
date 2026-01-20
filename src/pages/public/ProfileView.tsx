@@ -6,7 +6,7 @@ import {
   Loader2, ArrowLeft, Package, MapPinned, 
   Calendar, ChevronRight, AlertCircle
 } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 
 export default function ProfileView() {
   const { slug } = useParams();

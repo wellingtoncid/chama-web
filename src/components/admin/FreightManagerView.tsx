@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; // Adicionado para navegação
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { 
   Search, Trash2, Star, Loader2, 
   ChevronRight, Edit3, PlusCircle 

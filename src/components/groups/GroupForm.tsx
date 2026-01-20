@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { X, Save, Info, ShieldCheck, LayoutGrid } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { Button } from "../../components/ui/button";
 
 const GroupForm = ({ group, onClose, onSave }: any) => {
   const [formData, setFormData] = useState(group || {

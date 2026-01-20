@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, ShieldCheck, Eye, Edit3, CheckCircle2, Lock, User, Mail, Shield, Building2, Phone, Clock, Globe, Megaphone } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 
 export default function ProfilePermissionsModal({ user, onClose, onSave }: any) {
   const isNew = !user.id;

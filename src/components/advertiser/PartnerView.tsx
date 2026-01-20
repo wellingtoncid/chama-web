@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { ShoppingBag, Eye, MousePointer2, Megaphone } from 'lucide-react';
 
 export default function PartnerView() {

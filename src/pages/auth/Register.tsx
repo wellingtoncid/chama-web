@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Truck, Building2, User, Mail, Lock, Phone } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function Register() {

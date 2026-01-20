@@ -5,7 +5,7 @@ import {
   AlertCircle, Loader2, Zap, Trash2, Edit3, 
   Target, DollarSign, UserCircle2, LayoutDashboard 
 } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import CheckoutModal from './CheckoutModal'; 
 import MyProfileEditor from '../../pages/bio/MyProfileEditor'; // Certifique-se que o caminho está correto
 

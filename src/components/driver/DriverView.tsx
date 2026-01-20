@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import FreightCard from '../../components/shared/FreightCard';
 import { Search, Heart, List, History, Activity, Truck, X, Zap, PhoneCall, ChevronRight } from 'lucide-react';
 

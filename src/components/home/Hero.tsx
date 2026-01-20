@@ -1,5 +1,5 @@
 import { Search, MapPin, TrendingUp, Shield, Clock, ArrowRight } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { Button } from "../../components/ui/button";
 import { useState } from "react";
 
 const Hero = () => {

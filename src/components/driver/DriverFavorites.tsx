@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { Heart, Truck, MapPin, Calendar, ArrowRight, Ghost } from 'lucide-react';
 
 export default function DriverFavorites() {

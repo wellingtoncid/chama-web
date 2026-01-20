@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { api, BASE_URL_API } from '../../api'; // Importamos o BASE_URL_API centralizado
+import { api, BASE_URL_API } from '../../api/api'; // Importamos o BASE_URL_API centralizado
 import { 
   Megaphone, Eye, Upload, X, 
   Trash2, Loader2, Plus, MousePointer2, Pencil, 

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Building2, FileText, ArrowRight, ShieldCheck, Loader2 } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 
 export default function WelcomeOnboarding({ user, onComplete }: any) {
   const [loading, setLoading] = useState(false);

@@ -3,7 +3,7 @@ import {
   Truck, MapPin, Heart, Building2, Package, X, 
   Phone, FileText, Lock, AlertCircle, Scale, ChevronRight
 } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 
 const FreightCard = ({ data, aba, onToggle, disabled }: any) => {
   const [isFavorite, setIsFavorite] = useState(false);

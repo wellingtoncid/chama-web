@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Check, MessageCircle, Send, ShieldCheck, Trophy, Crown, Star, ArrowRight } from 'lucide-react';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
-import { api } from '../api';
+import { api } from '../api/api';
 
 const AdvertisingLandingPage = () => {
   // Estados para Ciclo de Pagamento e Plano Selecionado

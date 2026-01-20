@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { 
   Plus, Trash2, Eye, MousePointer2, X, 
   Home, Info, Users, ShieldCheck, Globe, Tag,

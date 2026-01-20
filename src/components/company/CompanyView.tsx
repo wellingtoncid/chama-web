@@ -6,7 +6,7 @@ import {
   Target, DollarSign, UserCircle2, LayoutDashboard, Truck,
   MessageCircle, ShieldCheck
 } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 
 // Componentes integrados
 import CheckoutModal from '../company/CheckoutModal'; 

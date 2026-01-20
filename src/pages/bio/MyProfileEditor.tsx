@@ -4,7 +4,7 @@ import {
   Instagram, Globe, MessageCircle, Save, Loader2, 
   ExternalLink, Camera, MapPinned, Calendar, Info
 } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import confetti from 'canvas-confetti';
 
 interface MyProfileEditorProps {

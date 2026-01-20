@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { MessageCircle } from "lucide-react";
-import { api } from "../../api";
+import { api } from "../../api/api";
 import { AdImage } from "../AdImage";
 
 // Placeholder interno caso não existam anúncios no banco ou a API falhe

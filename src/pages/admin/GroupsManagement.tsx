@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Eye, EyeOff, Lock, Unlock, ShieldAlert } from "lucide-react";
 import { Button } from "../../components/ui/button";
-import { api } from "../../api";
-import GroupForm from "../../components/GroupForm"; // Certifique-se de que o caminho está correto
+import { api } from "../../api/api";
+import GroupForm from "../../components/groups/GroupForm"; // Certifique-se de que o caminho está correto
 
 interface WhatsAppGroup {
   id: number;

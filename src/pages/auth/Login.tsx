@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 import { Phone, Mail, Lock, LogIn, AlertCircle, Loader2 } from 'lucide-react';
 
@@ -44,6 +44,8 @@ export default function Login() {
 
         if (isStaff) {
           navigate('/admin', { replace: true });
+        } else if (role === 'advertiser') {
+          navigate('/anunciante', { replace: true });
         } else {
           navigate('/dashboard', { replace: true });
         }

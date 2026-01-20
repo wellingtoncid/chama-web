@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText } from 'lucide-react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import { VEHICLE_TYPES, BODY_TYPES } from '../../constants/freightOptions';
 

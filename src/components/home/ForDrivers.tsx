@@ -1,5 +1,5 @@
 import { DollarSign, Route, Bell, Star, CheckCircle2, ArrowRight } from "lucide-react";
-import { Button } from "../components/ui/button";
+import { Button } from "../../components/ui/button";
 
 const benefits = [
   { icon: DollarSign, title: "Pagamento Garantido", description: "Receba via Pix assim que confirmar a entrega." },

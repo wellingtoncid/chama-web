@@ -1,4 +1,4 @@
-import { BASE_URL_API } from '../api';
+import { BASE_URL_API } from '../api/api';
 
 interface AdImageProps {
   url: string;

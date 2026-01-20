@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api';
+import { api } from '../../api/api';
 import { 
   Settings, Save, Clock, ShieldAlert, CheckCircle2,
   Loader2, Star, Image, Trash2, Plus, X, DollarSign, Edit3

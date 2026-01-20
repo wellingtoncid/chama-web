@@ -1,14 +1,14 @@
 import Header from "../components/shared/Header";
-import Hero from "../components/Hero";
-import FreightList from "../components/FreightList";
-import CommunityGroups from "../components/home/CommunityGroups";
-import HowItWorks from "../components/HowItWorks";
-import ForDrivers from "../components/ForDrivers";
-import ForCompanies from "../components/ForCompanies";
-import Partners from "../components/Partners";
-import Supporters from "../components/Supporters";
+import Hero from "../components/home/Hero";
+import FreightList from "../components/home/FreightList";
+import CommunityGroups from "../components/groups/CommunityGroups";
+import HowItWorks from "../components/home/HowItWorks";
+import ForDrivers from "../components/home/ForDrivers";
+import ForCompanies from "../components/home/ForCompanies";
+import Partners from "../components/home/Partners";
+import Supporters from "../components/home/Supporters";
 import { AdCard } from "../components/shared/AdCard";
-import CTA from "../components/CTA";
+import CTA from "../components/home/CTA";
 import Footer from "../components/shared/Footer";
 
 const Index = () => {

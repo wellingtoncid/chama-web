@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Search, Zap, MapPin, Globe, X, ArrowRight, Users, Building2, CheckCircle2, Truck } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
-import { api } from '../api';
+import { api } from '../api/api';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import FreightCard from '../components/shared/FreightCard';

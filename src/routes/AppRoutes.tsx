@@ -15,10 +15,11 @@ import Register from '../pages/auth/Register';
 import ForgotPassword from '../pages/auth/ForgotPassword';
 
 // INTERNAS
-import Dashboard from '../pages/Dashboard';
+import Dashboard from '../pages/MainRouter';
 import CreateFreight from '../pages/freights/CreateFreight';
 import AdminPortal from '../pages/admin/AdminPortal';
 import GroupsManagement from '../pages/admin/GroupsManagement';
+import AdvertiserPortal from '../pages/advertiser/AdvertiserPortal';
 
 export default function AppRoutes() {
   return (
@@ -43,6 +44,11 @@ export default function AppRoutes() {
       <Route element={<PrivateRoute allowedRoles={['company', 'admin', 'manager']} />}>
         <Route path="/novo-frete" element={<CreateFreight />} />
       </Route>
+      
+      {/* Rota do Anunciante */}
+        <Route element={<PrivateRoute allowedRoles={['advertiser', 'admin']} />}>
+          <Route path="/anunciante" element={<AdvertiserPortal />} />
+        </Route>
 
       {/* --- ROTAS PRIVADAS (ADMINISTRAÇÃO) --- */}
       <Route element={<PrivateRoute allowedRoles={['admin', 'manager', 'analyst']} />}>
