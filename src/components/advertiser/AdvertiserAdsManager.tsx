@@ -8,21 +8,34 @@ export default function AdvertiserAdsManager({ user }: { user: any }) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // 1. Definição da função fetchMyAds
+  // Função auxiliar para tratar a URL da imagem vinda do PHP
+  const getFullImageUrl = (path: string) => {
+    if (!path) return '';
+    if (path.startsWith('http')) return path;
+    // Remove a barra inicial se existir para evitar barra dupla na concatenação
+    const cleanPath = path.startsWith('/') ? path.substring(1) : path;
+    // Ajuste aqui para a URL base do seu servidor/projeto
+    return `${import.meta.env.VITE_API_URL || 'http://localhost/seu-projeto'}/${cleanPath}`;
+  };
+
   const fetchMyAds = useCallback(async () => {
+    if (!user?.id) return;
+    
     try {
       setLoading(true);
-      // Endpoint que busca apenas os anúncios deste usuário
+      // Usando a estrutura de query params que o seu AdController espera
       const response = await api.get(`?endpoint=get-user-ads&user_id=${user.id}`);
-      setAds(response.data);
+      
+      // Garante que ads seja sempre um array, mesmo que o PHP retorne erro ou vazio
+      setAds(Array.isArray(response.data) ? response.data : []);
     } catch (error) {
       console.error("Erro ao carregar anúncios:", error);
+      setAds([]);
     } finally {
       setLoading(false);
     }
-  }, [user.id]);
+  }, [user?.id]);
 
-  // 2. Carrega os dados assim que o componente monta
   useEffect(() => {
     fetchMyAds();
   }, [fetchMyAds]);
@@ -50,24 +63,33 @@ export default function AdvertiserAdsManager({ user }: { user: any }) {
       ) : ads.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {ads.map((ad) => (
-            <div key={ad.id} className="border border-slate-100 rounded-[2rem] p-6 hover:shadow-xl transition-all">
-              <div className="aspect-video bg-slate-50 rounded-2xl mb-4 overflow-hidden flex items-center justify-center">
-                <img src={ad.image_url} alt={ad.title} className="max-h-full object-contain" />
+            <div key={ad.id} className="border border-slate-100 rounded-[2rem] p-6 hover:shadow-xl transition-all flex flex-col h-full">
+              <div className="aspect-video bg-slate-50 rounded-2xl mb-4 overflow-hidden flex items-center justify-center border border-slate-50">
+                <img 
+                  src={getFullImageUrl(ad.image_url)} 
+                  alt={ad.title} 
+                  className="max-h-full w-full object-contain"
+                  onError={(e) => {
+                    // Fallback caso a imagem falhe
+                    (e.currentTarget as HTMLImageElement).src = 'https://placehold.co/600x400?text=Erro+na+Imagem';
+                  }}
+                />
               </div>
               
-              <div className="flex justify-between items-start">
-                <div>
-                  <h4 className="font-black text-slate-800 uppercase italic text-sm">{ad.title}</h4>
-                  <p className="text-[10px] text-slate-400 font-bold truncate max-w-[200px]">{ad.destination_url}</p>
+              <div className="flex justify-between items-start mt-auto">
+                <div className="flex-1 mr-2">
+                  <h4 className="font-black text-slate-800 uppercase italic text-sm truncate">{ad.title}</h4>
+                  <p className="text-[10px] text-slate-400 font-bold truncate max-w-[180px]">
+                    {ad.destination_url || 'Sem link informado'}
+                  </p>
                 </div>
                 
-                {/* Status vindo do banco */}
-                <span className={`flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase ${
-                  ad.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 
+                <span className={`flex items-center gap-1 px-3 py-1 rounded-full text-[9px] font-black uppercase whitespace-nowrap ${
+                  ad.status === 'active' || ad.is_active == 1 ? 'bg-emerald-100 text-emerald-600' : 
                   ad.status === 'pending' ? 'bg-amber-100 text-amber-600' : 'bg-red-100 text-red-600'
                 }`}>
-                  {ad.status === 'active' ? <CheckCircle2 size={10}/> : ad.status === 'pending' ? <Clock size={10}/> : <XCircle size={10}/>}
-                  {ad.status}
+                  {(ad.status === 'active' || ad.is_active == 1) ? <CheckCircle2 size={10}/> : ad.status === 'pending' ? <Clock size={10}/> : <XCircle size={10}/>}
+                  {ad.status === 'active' || ad.is_active == 1 ? 'Ativo' : ad.status === 'pending' ? 'Análise' : 'Inativo'}
                 </span>
               </div>
             </div>
@@ -80,7 +102,6 @@ export default function AdvertiserAdsManager({ user }: { user: any }) {
         </div>
       )}
 
-      {/* Modal de Cadastro */}
       {isModalOpen && (
         <AdEditorModal 
           userId={user.id} 

@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 
 // Importaremos os componentes da pasta components/advertiser
-import { AdvertiserAdsManager } from '../../components/advertiser/AdvertiserAdsManager';
+import AdvertiserAdsManager from '../../components/advertiser/AdvertiserAdsManager';
 import { AdvertiserReports } from '../../components/advertiser/AdvertiserReports';
 
 export default function AdvertiserPortal() {
@@ -85,7 +85,7 @@ export default function AdvertiserPortal() {
 
         <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
             {activeTab === 'home' && <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* Cards de resumo em breve */} </div>}
-            {activeTab === 'ads' && <AdvertiserAdsManager userId={user.id} />}
+            {activeTab === 'ads' && <AdvertiserAdsManager user={user.id} />}
             {activeTab === 'reports' && <AdvertiserReports userId={user.id} />}
             {activeTab === 'plan' && <div className="bg-white p-10 rounded-[3rem] shadow-sm">Configurações do Plano</div>}
         </section>

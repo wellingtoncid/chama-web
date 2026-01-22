@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
-import AdminPortal from '../components/admin/AdminView';
+import AdminPortal from '../components/AdminView';
 import UserDashboard from '../components/UserDashboard';
 import WelcomeOnboarding from '../components/company/WelcomeOnboarding';
 
