@@ -1,19 +1,22 @@
 import axios from 'axios';
 
-// Detecta automaticamente a URL base (Local ou Produção via .env)
-export const BASE_URL_API = import.meta.env.VITE_API_URL || 'http://127.0.0.1/chama-frete/api';
+export const BASE_URL_API = import.meta.env.VITE_API_URL || 'http://127.0.0.1/chama-frete/api/public';
 
 export const api = axios.create({
   baseURL: BASE_URL_API,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   }
 });
 
-// Interceptor para injetar o token JWT em cada requisição
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('@ChamaFrete:token');
-  const isPublicRoute = config.url?.match(/login|register|reset-password/);
+  
+  // Verifica se a URL termina exatamente com as rotas de auth
+  const publicRoutes = ['/login', '/register', '/reset-password'];
+  const isPublicRoute = publicRoutes.some(route => config.url?.endsWith(route));
   
   if (token && !isPublicRoute) {
     config.headers.Authorization = `Bearer ${token}`;

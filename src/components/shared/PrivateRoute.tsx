@@ -6,44 +6,46 @@ interface PrivateRouteProps {
 
 export const PrivateRoute = ({ allowedRoles }: PrivateRouteProps) => {
   const location = useLocation();
-  const token = localStorage.getItem('@ChamaFrete:token');
-  const storageUser = localStorage.getItem('@ChamaFrete:user');
+  
+  // Use sempre as mesmas constantes para não errar o nome da chave
+  const STORAGE_TOKEN_KEY = '@ChamaFrete:token';
+  const STORAGE_USER_KEY = '@ChamaFrete:user';
+
+  const token = localStorage.getItem(STORAGE_TOKEN_KEY);
+  const storageUser = localStorage.getItem(STORAGE_USER_KEY);
   
   let user = null;
   try {
     user = storageUser ? JSON.parse(storageUser) : null;
   } catch (e) {
+    console.error("Erro ao processar dados do usuário no storage");
     user = null;
   }
 
-  // 1. Se não estiver logado, redireciona para login
+  // 1. Bloqueio por falta de Token ou User
   if (!token || !user?.id) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // 2. Verificação de Permissão Híbrida (Role + Assinatura)
-  const userRole = user.role?.toLowerCase();
-  const isSubscriber = !!user.is_subscriber; // Converte 1/0 do banco para true/false
-
-  if (allowedRoles) {
+  const userRole = String(user.role || '').toLowerCase();
+  
+  // 2. Verificação de permissões
+  if (allowedRoles && allowedRoles.length > 0) {
     const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
     
-    // Verificamos se a rota exige acesso de anunciante
-    const isAdvertiserRoute = normalizedAllowed.includes('advertiser');
-    
-    // O acesso é permitido se:
-    // A) O cargo do usuário está na lista permitida
-    // B) A rota é para anunciantes e o usuário tem assinatura ativa (mesmo sendo motorista/empresa)
-    // C) O usuário é um administrador (sempre tem acesso)
-    const hasRoleAccess = normalizedAllowed.includes(userRole);
-    const hasSubscriptionAccess = isAdvertiserRoute && (isSubscriber || userRole === 'advertiser');
     const isAdmin = userRole === 'admin';
+    const isCompany = userRole === 'company' || userRole === 'transportadora' || userRole === 'advertiser';
+    const isDriver = userRole === 'driver' || userRole === 'motorista';
+    
+    const hasRoleAccess = normalizedAllowed.includes(userRole) || 
+                         (normalizedAllowed.includes('company') && isCompany) ||
+                         (normalizedAllowed.includes('driver') && isDriver);
 
-    if (!hasRoleAccess && !hasSubscriptionAccess && !isAdmin) {
-      return <Navigate to="/" replace />;
+    if (!hasRoleAccess && !isAdmin) {
+      const redirectPath = isCompany ? '/dashboard/company' : isDriver ? '/dashboard/driver' : '/dashboard';
+      return <Navigate to={redirectPath} replace />;
     }
   }
 
-  // 3. Autorizado: Renderiza as rotas filhas (Outlet)
   return <Outlet />;
 };

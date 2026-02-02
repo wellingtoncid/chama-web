@@ -13,6 +13,8 @@
     "skipLibCheck": true,
     "strictNullChecks": false,
     "esModuleInterop": true,
+    "moduleResolution": "node",
+    "allowSyntheticDefaultImports": true
   },
   "files": [],
   "references": [

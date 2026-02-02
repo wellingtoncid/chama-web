@@ -10,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "../ui/dropdown-menu";
 import { api } from "../../api/api";
-import { AdCard } from "../shared/AdCard"; 
+import AdCard from "../shared/AdCard"; 
 
 const FreightList = () => {
   const navigate = useNavigate();

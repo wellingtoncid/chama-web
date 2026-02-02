@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { BarChart3, TrendingUp, MousePointer2, Eye } from 'lucide-react';
 
-export function AdvertiserReports({ userId }: { userId: number }) {
+export default function AdvertiserReports({ userId }: { userId: number }) {
   const [stats, setStats] = useState({ views: 0, clicks: 0, ctr: "0" });
 
   useEffect(() => {

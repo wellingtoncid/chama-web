@@ -7,7 +7,7 @@ import ForDrivers from "../components/home/ForDrivers";
 import ForCompanies from "../components/home/ForCompanies";
 import Partners from "../components/home/Partners";
 import Supporters from "../components/home/Supporters";
-import { AdCard } from "../components/shared/AdCard";
+import AdCard from "../components/shared/AdCard";
 import CTA from "../components/home/CTA";
 import Footer from "../components/shared/Footer";
 

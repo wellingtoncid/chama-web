@@ -1,97 +1,133 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
 import { 
-  LogOut, LayoutDashboard, Megaphone, BarChart3, 
-  CreditCard, Menu, X, PlusCircle 
+  Megaphone, BarChart3, CreditCard, PlusCircle, 
+  LayoutDashboard, Eye, MousePointer2, Loader2 
 } from 'lucide-react';
+import { api } from '../../api/api';
 
-// Importaremos os componentes da pasta components/advertiser
+// Importando seus componentes originais
 import AdvertiserAdsManager from '../../components/advertiser/AdvertiserAdsManager';
-import { AdvertiserReports } from '../../components/advertiser/AdvertiserReports';
+import AdvertiserReports from '../../components/advertiser/AdvertiserReports';
 
-export default function AdvertiserPortal() {
-  const navigate = useNavigate();
-  const [isSidebarOpen, setSidebarOpen] = useState(false);
+// Tornamos o user opcional (?) para matar o erro do AppRoutes
+export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
   const [activeTab, setActiveTab] = useState<'home' | 'ads' | 'reports' | 'plan'>('home');
-  
-  const user = JSON.parse(localStorage.getItem('@ChamaFrete:user') || '{}');
+  const [loading, setLoading] = useState(true);
+  const [realStats, setRealStats] = useState({ views: 0, clicks: 0, ctr: '0%' });
 
-  const handleLogout = () => {
-    localStorage.clear();
-    navigate('/login');
-  };
+  // Fallback: Se não veio por prop, busca no localStorage
+  const user = propUser || JSON.parse(localStorage.getItem('@ChamaFrete:user') || '{}');
+
+  useEffect(() => {
+    async function fetchAdStats() {
+      try {
+        setLoading(true);
+        // Rota real para buscar performance de banners do usuário
+        const res = await api.get('/', { 
+          params: { endpoint: 'get-ad-performance', user_id: user.id } 
+        });
+        
+        if (res.data.success) {
+          setRealStats({
+            views: res.data.total_views || 0,
+            clicks: res.data.total_clicks || 0,
+            ctr: res.data.ctr || '0%'
+          });
+        }
+      } catch (err) {
+        console.error("Erro ao carregar métricas de anúncios");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (user?.id) fetchAdStats();
+  }, [user?.id]);
+
+  const stats = [
+    { label: 'Visualizações', value: realStats.views.toLocaleString(), icon: <Eye className="text-blue-500" /> },
+    { label: 'Cliques', value: realStats.clicks.toLocaleString(), icon: <MousePointer2 className="text-emerald-500" /> },
+    { label: 'CTR', value: realStats.ctr, icon: <Megaphone className="text-orange-500" /> },
+  ];
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row">
+    <div className="space-y-8 animate-in fade-in duration-700">
       
-      {/* Sidebar Mobile */}
-      <header className="lg:hidden bg-slate-900 text-white p-4 flex justify-between items-center shadow-xl">
-         <span className="font-black italic text-orange-500 text-xl tracking-tighter">CHAMA <span className="text-white">ADS</span></span>
-         <button onClick={() => setSidebarOpen(!isSidebarOpen)} className="p-2 bg-slate-800 rounded-lg">
-           {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
-         </button>
-      </header>
-
-      {/* Sidebar Desktop */}
-      <aside className={`fixed lg:static inset-y-0 left-0 z-50 w-64 bg-slate-900 text-white flex flex-col shadow-2xl transition-transform duration-300 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}`}>
-        <div className="p-8 text-2xl font-black text-orange-500 tracking-tighter italic uppercase border-b border-slate-800">
-          CHAMA <span className="text-white font-light">ADS</span>
+      {/* Header do Módulo */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-4xl font-[1000] text-slate-800 tracking-tighter uppercase italic leading-none">
+            {activeTab === 'home' && "Painel de Publicidade"}
+            {activeTab === 'ads' && "Meus Banners"}
+            {activeTab === 'reports' && "Performance"}
+            {activeTab === 'plan' && "Minha Assinatura"}
+          </h1>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">
+            ID Anunciante: #{user.id} • {user.company_name || user.name}
+          </p>
         </div>
         
-        <nav className="flex-1 px-4 space-y-2 mt-6">
-          <button onClick={() => { setActiveTab('home'); setSidebarOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl font-bold transition-all ${activeTab === 'home' ? 'bg-orange-500 text-white shadow-lg shadow-orange-900/20' : 'text-slate-400 hover:bg-slate-800'}`}>
-            <LayoutDashboard size={20}/> Resumo
+        {activeTab === 'ads' && (
+          <button className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs flex items-center gap-2 hover:bg-orange-500 transition-all shadow-xl">
+            <PlusCircle size={18} /> Novo Anúncio
           </button>
+        )}
+      </div>
 
-          <button onClick={() => { setActiveTab('ads'); setSidebarOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl font-bold transition-all ${activeTab === 'ads' ? 'bg-orange-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
-            <Megaphone size={20}/> Meus Banners
+      {/* Navegação Estilo Pílula */}
+      <div className="flex flex-wrap gap-2 p-1.5 bg-slate-200/50 rounded-[2rem] w-fit">
+        {[
+          { id: 'home', label: 'Resumo', icon: <LayoutDashboard size={16}/> },
+          { id: 'ads', label: 'Banners', icon: <Megaphone size={16}/> },
+          { id: 'reports', label: 'Relatórios', icon: <BarChart3 size={16}/> },
+          { id: 'plan', label: 'Plano', icon: <CreditCard size={16}/> },
+        ].map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className={`flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+              activeTab === tab.id 
+                ? 'bg-white text-slate-900 shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            {tab.icon} {tab.label}
           </button>
+        ))}
+      </div>
 
-          <button onClick={() => { setActiveTab('reports'); setSidebarOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl font-bold transition-all ${activeTab === 'reports' ? 'bg-orange-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
-            <BarChart3 size={20}/> Performance
-          </button>
-
-          <button onClick={() => { setActiveTab('plan'); setSidebarOpen(false); }} className={`flex items-center gap-3 w-full p-4 rounded-2xl font-bold transition-all ${activeTab === 'plan' ? 'bg-orange-500 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800'}`}>
-            <CreditCard size={20}/> Meu Plano
-          </button>
-        </nav>
-
-        <div className="p-4 border-t border-slate-800">
-            <button onClick={handleLogout} className="flex items-center gap-2 w-full p-4 text-slate-500 hover:text-white font-black uppercase text-xs transition-colors">
-                <LogOut size={16} /> Encerrar Sessão
-            </button>
-        </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 lg:p-10 max-h-screen overflow-y-auto">
-        <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-black text-slate-800 tracking-tight uppercase italic leading-none">
-                {activeTab === 'home' && "Bem-vindo, " + user.name.split('')[0]}
-                {activeTab === 'ads' && "Gestão de Banners"}
-                {activeTab === 'reports' && "Dados de Cliques"}
-                {activeTab === 'plan' && "Sua Assinatura"}
-            </h1>
-            <p className="text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">Painel de Publicidade Comercial</p>
+      {/* Conteúdo Dinâmico */}
+      <div className="mt-8">
+        {loading && activeTab === 'home' ? (
+          <div className="h-48 flex items-center justify-center"><Loader2 className="animate-spin text-orange-500" /></div>
+        ) : activeTab === 'home' && (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {stats.map((s, i) => (
+              <div key={i} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:border-orange-200 transition-all group">
+                <div className="p-3 bg-slate-50 w-fit rounded-2xl mb-4 group-hover:bg-orange-50 transition-colors">{s.icon}</div>
+                <div className="text-4xl font-[1000] italic tracking-tighter uppercase text-slate-800">{s.value}</div>
+                <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest">{s.label}</div>
+              </div>
+            ))}
           </div>
-          
-          {activeTab === 'ads' && (
-            <button className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black uppercase italic text-xs flex items-center gap-2 hover:bg-orange-500 transition-all shadow-xl shadow-slate-200">
-                <PlusCircle size={18} /> Novo Anúncio
-            </button>
-          )}
-        </header>
+        )}
 
-        <section className="animate-in fade-in slide-in-from-bottom-4 duration-700">
-            {activeTab === 'home' && <div className="grid grid-cols-1 md:grid-cols-3 gap-6"> {/* Cards de resumo em breve */} </div>}
-            {activeTab === 'ads' && <AdvertiserAdsManager user={user.id} />}
-            {activeTab === 'reports' && <AdvertiserReports userId={user.id} />}
-            {activeTab === 'plan' && <div className="bg-white p-10 rounded-[3rem] shadow-sm">Configurações do Plano</div>}
-        </section>
-      </main>
+        {activeTab === 'ads' && (
+          <div className="animate-in slide-in-from-bottom-4 duration-500">
+            <AdvertiserAdsManager user={user.id} />
+          </div>
+        )}
 
-      {isSidebarOpen && <div className="fixed inset-0 bg-black/60 z-40 lg:hidden backdrop-blur-sm" onClick={() => setSidebarOpen(false)} />}
+        {activeTab === 'reports' && <AdvertiserReports userId={user.id} />}
+
+        {activeTab === 'plan' && (
+          <div className="bg-white p-12 rounded-[3rem] border border-slate-100 shadow-sm text-center">
+             <CreditCard size={48} className="mx-auto text-slate-200 mb-4" />
+             <h3 className="text-xl font-black uppercase italic">Assinatura Ativa</h3>
+             <p className="text-slate-400 font-bold italic mt-2">Suas cobranças são processadas via Mercado Pago.</p>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

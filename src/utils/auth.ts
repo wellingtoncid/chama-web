@@ -22,3 +22,8 @@ export const hasPermission = (user: any, permissionKey: string): boolean => {
     return false;
   }
 };
+
+export const getLoggedUser = () => {
+  const user = localStorage.getItem('user');
+  return user ? JSON.parse(user) : null;
+};

@@ -3,7 +3,12 @@ import { api } from '../../api/api';
 import FreightCard from '../../components/shared/FreightCard';
 import { Search, Heart, List, History, Activity, Truck, X, Zap, PhoneCall, ChevronRight } from 'lucide-react';
 
-export default function DriverView({ forceTab }: { forceTab?: string }) {
+interface DriverViewProps {
+  user?: any;
+  forceTab?: string;
+}
+
+export default function DriverView({ forceTab }: DriverViewProps) {
   const [filter, setFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [allFreights, setAllFreights] = useState<any[]>([]);
