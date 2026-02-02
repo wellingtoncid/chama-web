@@ -62,7 +62,7 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
       (entries) => {
         if (entries[0].isIntersecting) {
           viewLogged.current = adToShow.id;
-          api.post('/api/log-ad-view', { id: adToShow.id }).catch(() => {});
+          api.post('/log-ad-view', { id: adToShow.id }).catch(() => {});
           observer.disconnect();
         }
       },
