@@ -13,6 +13,7 @@ import Footer from '../../components/shared/Footer';
 import AuthModal from '../../components/modals/AuthModal';
 import AdCard from '../../components/shared/AdCard'; 
 import FreightCard from '../../components/shared/FreightCard';
+import { useTracker } from '../../services/useTracker';
 
 export default function FreightDetails() {
   const { slug } = useParams(); 
@@ -23,6 +24,7 @@ export default function FreightDetails() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
+  const { trackEvent } = useTracker();
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<'WHATSAPP' | 'CHAT' | null>(null);
@@ -46,7 +48,7 @@ export default function FreightDetails() {
           
           // Registro de View
           if (!viewLogged.current) {
-            api.post(`/freights/${data.id}/view`).catch(() => {});
+            trackEvent(data.id, 'FREIGHT', 'VIEW'); // Usa o novo sistema unificado
             viewLogged.current = true;
           }
 
@@ -97,7 +99,7 @@ export default function FreightDetails() {
   const executeWhatsApp = useCallback(async (currentFreight: any) => {
     const phone = currentFreight?.display_phone?.replace(/\D/g, ''); 
     if (!phone) return alert("Contato indisponível.");
-    api.post(`/freights/${currentFreight.id}/contact`).catch(() => {});
+    trackEvent(currentFreight.id, 'FREIGHT', 'WHATSAPP_CLICK');
     const msg = encodeURIComponent(`Olá, vi sua carga de ${currentFreight.product} no Chama Frete. Ainda está disponível?`);
     window.open(`https://wa.me/55${phone}?text=${msg}`, '_blank');
   }, []);

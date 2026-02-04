@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { MessageCircle, ExternalLink } from "lucide-react";
 import { api } from "../../api/api";
 import { AdImage } from "../AdImage";
+import { useTracker } from "../../services/useTracker";
 
 const DEFAULT_AD = {
   id: 0,
@@ -25,6 +26,7 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
   const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
   const viewLogged = useRef<number | null>(null);
+  const { trackEvent } = useTracker();
 
   useEffect(() => {
     const loadAds = async () => {
@@ -62,7 +64,7 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
       (entries) => {
         if (entries[0].isIntersecting) {
           viewLogged.current = adToShow.id;
-          api.post('/log-ad-view', { id: adToShow.id }).catch(() => {});
+          trackEvent(adToShow.id, 'AD', 'VIEW');
           observer.disconnect();
         }
       },
@@ -71,13 +73,13 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
 
     if (containerRef.current) observer.observe(containerRef.current);
     return () => observer.disconnect();
-  }, [adToShow.id, loading]);
+  }, [adToShow.id, loading, trackEvent]);
 
   const handleAction = () => {
     if (!adToShow || adToShow.id === 0) return;
     
     // Log de Clique
-    api.post('/api/log-ad-click', { id: adToShow.id }).catch(() => {});
+    trackEvent(adToShow.id, 'AD', 'WHATSAPP_CLICK');
 
     const rawLink = adToShow.destination_url || adToShow.link_url || "";
     if (!rawLink) return;
