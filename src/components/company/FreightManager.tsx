@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   PlusCircle, Package, Loader2, Zap, Trash2, Edit3, 
   Truck, Search, AlertCircle, CheckCircle2, TrendingUp,
-  ShieldAlert // 1. Importado
+  ShieldAlert
 } from 'lucide-react';
 import { api } from '../../api/api';
 import CheckoutModal from './CheckoutModal';

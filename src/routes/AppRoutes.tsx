@@ -6,7 +6,6 @@ import HomePortal from '../pages/HomePortal';
 import FreightPage from '../pages/FreightPage';
 import GroupsList from '../pages/GroupsList';
 import ProfileView from '../pages/public/ProfileView';
-import CompanyProfile from '../pages/CompanyProfile';
 import AdvertisingLandingPage from '../pages/AdvertisingLandingPage';
 import Marketplace from '../pages/marketplace/Marketplace'; 
 import FreightDetails from '../pages/freights/FreightDetails';
@@ -46,8 +45,8 @@ export default function AppRoutes() {
       <Route path="/comunidade" element={<GroupsList />} />
       <Route path="/marketplace" element={<Marketplace />} /> 
       
-      <Route path="/p/:slug" element={<ProfileView />} />
-      <Route path="/empresa/:slug" element={<CompanyProfile />} /> 
+      <Route path="/driver/:slug" element={<ProfileView />} />
+      <Route path="/company/:slug" element={<ProfileView />} /> 
       <Route path="/anuncie" element={<AdvertisingLandingPage />} />
 
       {/* --- ÁREA LOGADA (DRIVER, COMPANY, ADMIN) --- */}
