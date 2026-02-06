@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  MessageCircle, Globe, Instagram, Truck, 
-  Building2, MapPin, CheckCircle2, ShieldCheck, 
-  Loader2, ArrowLeft, Package, MapPinned, 
-  ChevronRight, AlertCircle, ExternalLink,
-  Info, Tag, LayoutGrid
+  MessageCircle, Truck, Building2, MapPin, CheckCircle2, 
+  ShieldCheck, Loader2, ArrowLeft, Package, MapPinned, 
+  ChevronRight, AlertCircle, ExternalLink, Tag, LayoutGrid,
+  Award, FileCheck, CheckSquare, Camera, GraduationCap,
+  Globe
 } from 'lucide-react';
 import { api } from '../../api/api';
 
@@ -28,12 +28,12 @@ export default function ProfileView() {
           try {
             extraDetails = typeof data.private_data === 'string' 
               ? JSON.parse(data.private_data) : data.private_data;
-          } catch (e) { console.error(e); }
+          } catch (e) { console.error("Erro parse private_data:", e); }
         }
         
         setProfile({ ...data, details: extraDetails });
 
-        // Busca o conteúdo dependendo do tipo de usuário
+        // Busca conteúdo dinâmico
         const endpoint = data.user_type === 'ADVERTISER' ? '/get-user-ads' : '/get-user-posts';
         const postsRes = await api.get(endpoint, { params: { user_id: data.id } });
         setPosts(Array.isArray(postsRes.data?.data) ? postsRes.data.data : []);
@@ -50,13 +50,11 @@ export default function ProfileView() {
   if (loading) return <LoadingState />;
   if (!profile) return <NotFoundState navigate={navigate} />;
 
-  // --- LÓGICA DE DEFINIÇÃO DE TIPO ---
-  const type = profile.user_type; // DRIVER, COMPANY, SHIPPER, ADVERTISER
+  const type = profile.user_type; 
   const isDriver = type === 'DRIVER';
   const isAdvertiser = type === 'ADVERTISER';
   const isEntity = ['COMPANY', 'SHIPPER'].includes(type);
 
-  // Nome: Prioriza Razão Social para empresas, Nome para motoristas
   const displayTitle = (isEntity && profile.details?.razao_social) 
     ? profile.details.razao_social 
     : profile.name;
@@ -65,9 +63,19 @@ export default function ProfileView() {
                           isAdvertiser ? 'Anunciante Parceiro' : 
                           'Transportadora / Embarcador';
 
+  // Configuração de Cursos para Motoristas
+  const driverCourses = [
+    { key: 'mopp', label: 'MOPP' },
+    { key: 'coletivo', label: 'Transp. Coletivo' },
+    { key: 'escolar', label: 'Transp. Escolar' },
+    { key: 'indivisivel', label: 'Cargas Indivisíveis' },
+    { key: 'emergencia', label: 'Veíc. Emergência' },
+    { key: 'pid', label: 'PID (Internacional)' },
+  ];
+
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-20">
-      {/* HEADER */}
+      {/* HEADER BANNER */}
       <div className="h-64 md:h-[400px] w-full relative bg-slate-900 overflow-hidden">
         {profile.cover_url ? (
           <img src={profile.cover_url} alt="Banner" className="w-full h-full object-cover opacity-60" />
@@ -80,7 +88,7 @@ export default function ProfileView() {
       </div>
 
       <div className="max-w-6xl mx-auto px-4">
-        {/* CARD PRINCIPAL */}
+        {/* CARD PRINCIPAL DE IDENTIDADE */}
         <div className="relative -mt-32 bg-white rounded-[3.5rem] shadow-xl border border-slate-100 z-10 p-8 md:p-16">
           <div className="flex flex-col md:flex-row items-start gap-10">
             {/* AVATAR */}
@@ -101,7 +109,7 @@ export default function ProfileView() {
               </div>
             </div>
 
-            {/* INFO */}
+            {/* INFO TEXTO */}
             <div className="flex-1 text-center md:text-left space-y-4">
                <div className="flex flex-wrap justify-center md:justify-start gap-2">
                   <span className="bg-emerald-50 text-emerald-600 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border border-emerald-100 flex items-center gap-1">
@@ -123,7 +131,7 @@ export default function ProfileView() {
                </div>
             </div>
 
-            {/* CTA */}
+            {/* WHATSAPP CTA */}
             <button 
               onClick={() => window.open(`https://wa.me/55${(profile.whatsapp || '').replace(/\D/g, '')}`, '_blank')}
               className="w-full md:w-auto bg-emerald-500 hover:bg-slate-900 text-white px-8 py-5 rounded-[2rem] font-black uppercase italic transition-all flex items-center justify-center gap-4 shadow-lg shadow-emerald-100"
@@ -136,12 +144,56 @@ export default function ProfileView() {
             </button>
           </div>
 
-          {/* DETALHES TÉCNICOS */}
-          <div className="mt-16 pt-16 border-t border-slate-50 grid lg:grid-cols-3 gap-12">
+          {/* ÁREA EXCLUSIVA PARA MOTORISTAS (Cursos e Categorias) */}
+          {isDriver && (
+            <div className="mt-12 grid md:grid-cols-2 gap-8 py-10 border-t border-slate-50">
+              <div className="bg-orange-50/50 p-8 rounded-[2.5rem] border border-orange-100">
+                <h4 className="text-orange-600 font-black uppercase italic text-xs mb-6 flex items-center gap-2">
+                  <FileCheck size={18} /> Categoria e Documentação
+                </h4>
+                <div className="flex flex-wrap gap-4">
+                  <div className="bg-white px-6 py-3 rounded-2xl shadow-sm border border-orange-100 text-center">
+                    <p className="text-[9px] font-black text-slate-300 uppercase">CNH</p>
+                    <p className="text-2xl font-black text-slate-900 italic">{profile.details?.cnh_category || '---'}</p>
+                  </div>
+                  {profile.details?.pid === 'S' && (
+                    <div className="bg-slate-900 text-white px-6 py-3 rounded-2xl shadow-lg flex items-center gap-3">
+                      <Globe size={18} className="text-orange-500" />
+                      <p className="text-[10px] font-black uppercase italic leading-none">PID<br/>Internacional</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h4 className="text-slate-400 font-black uppercase italic text-[10px] tracking-widest flex items-center gap-2">
+                  <GraduationCap size={16} /> Especializações Profissionais
+                </h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {driverCourses.map(course => (
+                    <div 
+                      key={course.key}
+                      className={`flex items-center gap-2 p-3 rounded-xl border transition-all ${
+                        profile.details?.[course.key] === 'S' 
+                        ? 'bg-white border-emerald-200 text-emerald-600 shadow-sm' 
+                        : 'bg-slate-50 border-slate-100 text-slate-300 opacity-60'
+                      }`}
+                    >
+                      <CheckSquare size={14} className={profile.details?.[course.key] === 'S' ? 'text-emerald-500' : ''} />
+                      <span className="text-[9px] font-black uppercase tracking-tighter">{course.label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* BIO E FICHA TÉCNICA */}
+          <div className="mt-10 pt-10 border-t border-slate-50 grid lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-6">
               <h3 className="text-slate-900 font-black uppercase italic text-sm tracking-widest flex items-center gap-3">
                 <div className="w-8 h-1 bg-orange-500 rounded-full" /> 
-                {isDriver ? 'Sobre o Motorista' : isAdvertiser ? 'Sobre o Parceiro' : 'Sobre a Empresa'}
+                {isDriver ? 'Apresentação' : 'Sobre a Empresa'}
               </h3>
               <p className="text-slate-500 text-xl font-medium leading-relaxed italic">
                 "{profile.bio || 'Profissional verificado pela plataforma Chama Frete.'}"
@@ -149,8 +201,7 @@ export default function ProfileView() {
             </div>
 
             <div className="bg-slate-50/50 p-8 rounded-[2.5rem] border border-slate-100 space-y-5">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center mb-4">Ficha Técnica</p>
-              
+              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center mb-4">Dados Operacionais</p>
               {isDriver ? (
                 <>
                   <InfoItem label="Veículo" value={profile.vehicle_type} />
@@ -160,22 +211,59 @@ export default function ProfileView() {
               ) : (
                 <>
                   <InfoItem label="Tipo" value={type === 'COMPANY' ? 'Transportadora' : isAdvertiser ? 'Anunciante' : 'Embarcador'} />
-                  <InfoItem label="CNPJ/CPF" value={profile.details?.cnpj || profile.details?.cpf || 'Documentado'} />
+                  <InfoItem label="Documento" value={profile.details?.cnpj || profile.details?.cpf || 'Verificado'} />
                   <InfoItem label="Especialidade" value={profile.details?.especialidade || 'Logística'} />
                 </>
               )}
-              <InfoItem label="Membro desde" value={profile.created_at ? new Date(profile.created_at).getFullYear() : '---'} />
+              <InfoItem label="Desde" value={profile.created_at ? new Date(profile.created_at).getFullYear() : '---'} />
             </div>
           </div>
         </div>
 
-        {/* SEÇÃO DINÂMICA (POSTS / ANÚNCIOS / VEÍCULOS) */}
+        {/* VITRINE DO VEÍCULO (Apenas para Motoristas) */}
+        {isDriver && (
+          <div className="mt-20">
+            <h2 className="text-3xl font-black uppercase italic text-slate-900 tracking-tighter mb-8 flex items-center gap-4">
+              <Truck className="text-orange-500" size={32} /> Meu Equipamento
+            </h2>
+            <div className="grid md:grid-cols-2 gap-10 items-center bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm">
+              <div className="relative aspect-video bg-slate-100 rounded-[2.5rem] overflow-hidden group">
+                {profile.details?.vehicle_image ? (
+                  <img src={profile.details.vehicle_image} alt="Veículo" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex flex-col items-center justify-center text-slate-300">
+                     <Camera size={48} className="mb-2 opacity-20" />
+                     <p className="text-[10px] font-black uppercase tracking-widest">Foto do Caminhão</p>
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <SpecCard label="Marca/Modelo" value={profile.details?.veiculo_modelo || '---'} />
+                  <SpecCard label="Ano" value={profile.details?.veiculo_ano || '---'} />
+                  <SpecCard label="Rastreador" value={profile.details?.rastreador === 'S' ? 'Sim' : 'Não'} />
+                  <SpecCard label="Capacidade" value={profile.details?.capacidade_ton ? `${profile.details.capacidade_ton} Ton` : '---'} />
+                </div>
+                <div className="p-6 bg-slate-900 rounded-[2rem] text-white">
+                   <p className="text-[9px] font-black uppercase text-orange-500 mb-2 tracking-widest">Observação Técnica</p>
+                   <p className="text-sm font-medium italic opacity-70">
+                     Equipamento disponível para viagens {profile.details?.atendimento_regiao || 'nacionais'}. 
+                     {profile.details?.seguro === 'S' ? ' Possui seguro de carga.' : ''}
+                   </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* LISTAGEM DINÂMICA (POSTS / ANÚNCIOS) */}
         <div className="mt-20 space-y-10">
           <div className="flex items-center justify-between">
             <h2 className="text-3xl font-black uppercase italic text-slate-900 tracking-tighter">
-              {isDriver ? 'Especialidades' : isAdvertiser ? 'Anúncios Ativos' : 'Cargas Publicadas'}
+              {isDriver ? 'Histórico de Atividade' : isAdvertiser ? 'Anúncios Ativos' : 'Cargas Publicadas'}
             </h2>
-            <div className="bg-white px-4 py-1 rounded-full text-[10px] font-bold text-slate-400 border border-slate-100">
+            <div className="bg-white px-4 py-1 rounded-full text-[10px] font-bold text-slate-400 border border-slate-100 shadow-sm">
               {posts.length} Itens
             </div>
           </div>
@@ -187,7 +275,7 @@ export default function ProfileView() {
               ))}
             </div>
           ) : (
-            <EmptyState message={isDriver ? "Nenhuma especialidade listada" : "Nenhum item ativo no momento"} />
+            <EmptyState message={isDriver ? "Nenhuma carga transportada recentemente" : "Nenhum item ativo no momento"} />
           )}
         </div>
       </div>
@@ -197,9 +285,17 @@ export default function ProfileView() {
 
 // --- SUBCOMPONENTES ---
 
+function SpecCard({ label, value }: any) {
+  return (
+    <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+      <p className="text-[9px] font-black text-slate-300 uppercase mb-1">{label}</p>
+      <p className="text-[11px] font-black text-slate-700 uppercase italic">{value}</p>
+    </div>
+  );
+}
+
 function PostCard({ post, type, navigate }: any) {
   const isAd = type === 'ADVERTISER';
-  
   return (
     <div 
       onClick={() => navigate(isAd ? `/anuncio/${post.id}` : `/frete/${post.slug || post.id}`)}
@@ -211,11 +307,9 @@ function PostCard({ post, type, navigate }: any) {
         </div>
         <span className="text-[10px] font-bold text-slate-300">{new Date(post.created_at).toLocaleDateString()}</span>
       </div>
-      
       <h4 className="font-black text-slate-900 uppercase italic text-md mb-4 group-hover:text-orange-600">
         {post.title || post.product || 'Publicação'}
       </h4>
-
       {!isAd && (
         <div className="space-y-1 mb-6">
           <p className="text-[10px] font-bold text-slate-600 flex items-center gap-2 uppercase">
@@ -227,7 +321,6 @@ function PostCard({ post, type, navigate }: any) {
           </p>
         </div>
       )}
-
       <div className="flex items-center justify-between pt-4 border-t border-slate-50 text-[10px] font-black uppercase text-orange-500">
         Ver detalhes <ExternalLink size={14} />
       </div>
@@ -248,7 +341,7 @@ function LoadingState() {
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-white">
       <Loader2 className="animate-spin text-orange-500 mb-4" size={40} />
-      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando Perfil...</p>
+      <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando Vitrine...</p>
     </div>
   );
 }
@@ -259,7 +352,7 @@ function NotFoundState({ navigate }: any) {
       <div className="bg-white p-12 rounded-[3rem] text-center shadow-xl">
         <AlertCircle size={60} className="text-orange-200 mx-auto mb-4" />
         <h1 className="text-xl font-black uppercase italic">Perfil não encontrado</h1>
-        <button onClick={() => navigate('/')} className="mt-6 bg-slate-900 text-white px-8 py-3 rounded-xl font-bold uppercase text-xs">Voltar</button>
+        <button onClick={() => navigate('/')} className="mt-6 bg-slate-900 text-white px-8 py-3 rounded-xl font-bold uppercase text-xs">Voltar ao Início</button>
       </div>
     </div>
   );
