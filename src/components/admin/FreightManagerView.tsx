@@ -16,7 +16,7 @@ export default function FreightsManagerView() {
   const loadFreights = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/admin-list-freights');
+      const res = await api.get('admin-list-freights');
       setFreights(res.data || []);
     } catch (e) {
       console.error("Erro ao carregar fretes");
@@ -27,27 +27,53 @@ export default function FreightsManagerView() {
 
   useEffect(() => { loadFreights(); }, []);
 
-  const handleToggleFeatured = async (id: number, currentStatus: any) => {
-    const newStatus = currentStatus == "1" ? "0" : "1";
-    try {
-      await api.post('', { id, featured: newStatus, action: 'toggle-featured' }, { params: { endpoint: 'manage-freights-admin' } });
-      setFreights(prev => prev.map(f => f.id === id ? { ...f, isFeatured: newStatus, requested_featured: "0" } : f));
-    } catch (e) {
-      alert("Erro ao atualizar destaque");
-    }
-  };
+ // Função para Alternar Destaque
+const handleToggleFeatured = async (id: number, currentStatus: any) => {
+  const newStatus = currentStatus == "1" ? "0" : "1";
+  try {
+    // Rota direta e limpa
+    await api.post('manage-freights', { 
+      id, 
+      featured: newStatus, 
+      action: 'toggle-featured' 
+    });
+    
+    setFreights(prev => prev.map(f => f.id === id ? { ...f, isFeatured: newStatus, requested_featured: "0" } : f));
+  } catch (e) {
+    alert("Erro ao atualizar destaque");
+  }
+};
 
-  const filtered = freights.filter(f => {
+// Função para Excluir
+const handleDelete = async (id: number) => {
+  if(!confirm("Apagar este frete permanentemente?")) return;
+  
+  try {
+    await api.post('manage-freights', { 
+      id, 
+      action: 'delete' 
+    });
+    loadFreights(); // Recarrega a lista
+  } catch (e) {
+    alert("Erro ao excluir frete");
+  }
+};
+
+  const filtered = (freights || []).filter(f => {
+    if (!f || !f.id) return false;
     const searchLower = searchTerm.toLowerCase();
+    
     const matchesSearch = 
-      f.id.toString().includes(searchTerm) || 
-      f.origin?.toLowerCase().includes(searchLower) || 
-      f.destination?.toLowerCase().includes(searchLower) ||
+      f.id?.toString().includes(searchTerm) || 
+      f.origin_city?.toLowerCase().includes(searchLower) || 
+      f.origin_state?.toLowerCase().includes(searchLower) ||
+      f.destination_city?.toLowerCase().includes(searchLower) ||
+      f.destination_state?.toLowerCase().includes(searchLower) ||
       f.product?.toLowerCase().includes(searchLower) ||
       f.company_name?.toLowerCase().includes(searchLower);
 
-    if (statusFilter === 'featured') return matchesSearch && f.isFeatured == "1";
-    if (statusFilter === 'requested') return matchesSearch && f.requested_featured == "1";
+    if (statusFilter === 'featured') return matchesSearch && String(f.isFeatured) === "1";
+    if (statusFilter === 'requested') return matchesSearch && String(f.requested_featured) === "1";
     return matchesSearch;
   });
 
@@ -112,9 +138,10 @@ export default function FreightsManagerView() {
                       </span>
                       <div>
                         <p className="font-black text-slate-800 text-xs uppercase italic flex items-center gap-1">
-                          {f.origin} <ChevronRight size={10} className="text-blue-500"/> {f.destination}
+                          {f.origin_city} <ChevronRight size={10} className="text-blue-500"/> {f.destination_city}
                         </p>
-                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">{f.product}</p>
+                        <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                          {f.product} | {f.origin_state} | {f.destination_state} </p>
                       </div>
                     </div>
                   </td>
@@ -154,7 +181,7 @@ export default function FreightsManagerView() {
                       </button>
 
                       <button 
-                        onClick={() => { if(confirm("Apagar este frete permanentemente?")) api.post('', {id: f.id, action: 'delete'}, {params: {endpoint: 'manage-freights-admin'}}).then(loadFreights) }}
+                        onClick={() => handleDelete(f.id)}
                         className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
                         title="Excluir Frete"
                       >

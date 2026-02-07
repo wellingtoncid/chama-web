@@ -53,7 +53,7 @@ export default function DashboardHome({ user, refreshUser }: DashboardHomeProps)
       } finally {
         setLoading(false);
       }
-    };
+    };  
     
     if (user?.id) initDashboard();
   }, [user?.id]);

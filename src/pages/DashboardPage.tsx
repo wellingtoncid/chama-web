@@ -62,7 +62,7 @@ export default function DashboardPage() {
 
   // AJUSTE 3: Roles padronizadas (Case Insensitive)
   const role = String(user.role || '').toUpperCase();
-  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'SHIPPER', 'ADMIN'].includes(role);
+  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'SHIPPER'].includes(role);
   const isDriver = ['DRIVER', 'MOTORISTA'].includes(role);
 
   return (
@@ -98,7 +98,7 @@ export default function DashboardPage() {
 
         {/* PERFIL E CHAT */}
         <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
-        <Route path="chat" element={<ChatList user={user} />} />
+        <Route path="chat" element={<ChatList />} />
         
         {/* MÓDULOS EM CONSTRUÇÃO */}
         <Route path="vendas" element={<ModulePlaceholder title="Módulo de Vendas" />} />

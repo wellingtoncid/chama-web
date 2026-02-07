@@ -49,7 +49,7 @@ export default function CompanyCommandCenter({ user, refreshUser }: CompanyComma
       }
     }
     loadDashboardData();
-  }, []);
+  }, [refreshUser]);
 
   const handleAction = () => {
     if (!user.company_name || !user.document || Number(user.is_verified) !== 1) {

@@ -49,11 +49,11 @@ export default function DashboardAdmin() {
   const loadDashboard = useCallback(async () => {
     try {
       setError(false);
-      const response = await api.get('/admin-dashboard-data');
+      const response = await api.get('admin-dashboard-data');
       const result = response.data;
       
-      if (result && result.stats) {
-        setData(result);
+      if (result.success && result.data) {
+      setData(result.data);
       } else {
         setError(true);
       }
