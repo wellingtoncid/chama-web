@@ -13,12 +13,17 @@ export default function GroupsManager() {
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    try {
-      setLoading(true);
-      const res = await api.get('/list-groups');
-      setGroups(res.data || []);
+  try {
+    setLoading(true);
+    const res = await api.get('list-groups');
+      if (res.data && res.data.success) {
+        setGroups(res.data.data || []);
+      } else {
+        setGroups([]);
+      }
     } catch (err) {
       console.error("Erro ao carregar grupos:", err);
+      setGroups([]);
     } finally {
       setLoading(false);
     }
@@ -34,24 +39,30 @@ export default function GroupsManager() {
     const payload = {
       ...rawData,
       id: editingGroup?.id || 0,
-      // Conversão de Checkboxes
+      // Conversão explícita para TinyInt (0 ou 1) que o PHP/MySQL espera
       is_public: rawData.is_public === 'on' ? 1 : 0,
       is_visible_home: rawData.is_visible_home === 'on' ? 1 : 0,
       is_verified: rawData.is_verified === 'on' ? 1 : 0,
       is_premium: rawData.is_premium === 'on' ? 1 : 0,
-      // Números
+      
+      // Garantir que campos numéricos sejam números
       member_count: Number(rawData.member_count) || 0,
       priority_level: Number(rawData.priority_level) || 0,
-      // Strings e Enums
+
+      // Strings (Enums no banco)
       target_role: rawData.target_role || 'all',
       display_location: rawData.display_location || 'both',
       access_type: rawData.access_type || 'public',
       status: rawData.status || 'active',
-      category: rawData.category || 'Geral'
+      
+      // Campos de texto
+      category: rawData.category || 'Geral',
+      group_admin_name: rawData.group_admin_name || '',
+      internal_notes: rawData.internal_notes || ''
     };
 
     try {
-      const res = await api.post('/manage-groups', payload);
+      const res = await api.post('manage-groups', payload);
       if (res.data.success) {
         setIsModalOpen(false);
         setEditingGroup(null);
@@ -67,7 +78,7 @@ export default function GroupsManager() {
   const deleteGroup = async (id: number) => {
     if(!confirm("Mover para a lixeira?")) return;
     try {
-      await api.delete('/manage-groups', { data: { id } });
+      await api.delete('manage-groups', { data: { id } });
       load();
     } catch (err) {
       alert("Erro ao excluir.");
@@ -93,7 +104,7 @@ export default function GroupsManager() {
         <div className="py-20 text-center font-black uppercase italic text-slate-300 animate-pulse">Carregando...</div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-          {groups.map((g: any) => (
+          {Array.isArray(groups) && groups.map((g: any) => (
             <div key={g.id} className={`bg-white p-6 rounded-[2.5rem] border-2 ${g.status === 'inactive' ? 'border-red-50 opacity-75' : 'border-slate-50'} shadow-sm relative group transition-all hover:shadow-xl`}>
               
               <div className="flex justify-between mb-5">
@@ -110,6 +121,19 @@ export default function GroupsManager() {
                   {g.is_premium === 1 && (
                     <span title="Premium" className="bg-amber-50 text-amber-600 text-[9px] font-black px-2 py-1 rounded-lg border border-amber-100"><Star size={10} fill="currentColor"/></span>
                   )}
+                  {g.is_verified === 1 && (
+                    <span title="Verificado" className="bg-blue-50 text-blue-600 text-[9px] font-black px-2 py-1 rounded-lg border border-blue-100 flex items-center gap-1">
+                      <ShieldCheck size={10}/>
+                    </span>
+                  )}
+                  {g.access_type === 'login_required' && (
+                    <span title="Requer Login" className="bg-purple-50 text-purple-600 text-[9px] font-black px-2 py-1 rounded-lg border border-purple-100 flex items-center gap-1">
+                      <Lock size={10}/>
+                    </span>
+                  )}
+                  <span className="bg-slate-50 text-slate-500 text-[9px] font-black px-2 py-1 rounded-lg border border-slate-100 uppercase">
+                    {g.display_location}
+                  </span>
                 </div>
                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                   <button onClick={() => { setEditingGroup(g); setIsModalOpen(true); }} className="p-2 bg-slate-100 text-slate-600 rounded-xl hover:bg-blue-600 hover:text-white transition-all"><Plus size={14} className="rotate-45" /></button>

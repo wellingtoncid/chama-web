@@ -19,7 +19,7 @@ export default function ProfileView() {
   const fetchFullData = useCallback(async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/public-profile`, { params: { slug } });
+      const res = await api.get(`/public-profile`, { params: { slug } }); {/* trocar: api.get(`/profile/page/${slug}`) */}
       
       if (res.data?.success) {
         const data = res.data.data;
@@ -34,7 +34,7 @@ export default function ProfileView() {
         setProfile({ ...data, details: extraDetails });
 
         // Busca conteúdo dinâmico
-        const endpoint = data.user_type === 'ADVERTISER' ? '/get-user-ads' : '/get-user-posts';
+        const endpoint = data.user_type === 'ADVERTISER' ? 'get-user-ads' : 'get-user-posts';
         const postsRes = await api.get(endpoint, { params: { user_id: data.id } });
         setPosts(Array.isArray(postsRes.data?.data) ? postsRes.data.data : []);
       }
