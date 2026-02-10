@@ -10,7 +10,7 @@ export function AdsReports() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const res = await api.get('/ads');
+        const res = await api.get('ads');
         setAds(Array.isArray(res.data) ? res.data : []);
       } catch (error) { console.error(error); } finally { setLoading(false); }
     };

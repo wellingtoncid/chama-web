@@ -71,7 +71,7 @@ export default function DashboardAdmin() {
 
   const handleApprove = async (id: number) => {
     try {
-      const res = await api.post('/approve-freight', { id, status: 'OPEN', approveFeatured: true }); 
+      const res = await api.post('approve-freight', { id, status: 'OPEN', approveFeatured: true }); 
       if (res.data.success) loadDashboard();
     } catch (err) { console.error("Erro ao aprovar:", err); }
   };
@@ -79,7 +79,7 @@ export default function DashboardAdmin() {
   const handleReject = async (id: number) => {
     if (!confirm("Deseja realmente recusar este frete?")) return;
     try {
-      const res = await api.post('/reject-freight', { id, status: 'CLOSED' });
+      const res = await api.post('reject-freight', { id, status: 'CLOSED' });
       if (res.data.success) loadDashboard();
     } catch (err) { console.error("Erro ao recusar:", err); }
   };

@@ -3,31 +3,37 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { api } from '../api/api';
 
-// LAYOUT E COMPONENTES
-import DashboardLayout from '../components/layout/DashboardLayout';
+// COMPONENTES EXTERNOS (CLIENTES)
 import CompanyCommandCenter from '../components/company/CompanyCommandCenter';
-import MyProfile from '../pages/profile/MyProfile';
+import DriverView from '../components/driver/DriverView';
 import FreightManager from '../components/company/FreightManager';
-import ChatList from './chat/ChatList';
 import AdvertiserPortal from '../pages/advertiser/AdvertiserPortal';
-import DriverView from '../components/driver/DriverView'; 
+import MyProfile from '../pages/profile/MyProfile';
+import ChatList from './chat/ChatList';
+
+// COMPONENTES INTERNOS (ADMIN/STAFF) - Importados do antigo AdminView
+import DashboardAdmin from '../components/admin/DashboardAdmin'; 
+import FreightsManagerView from '../components/admin/FreightManagerView';
+import UsersManager from '../components/admin/UsersManagerView';
+import GroupsManager from '../components/admin/GroupsManagerView'; 
+import AdsManager from '../components/admin/AdsManager'; 
+import SettingsView from '../components/admin/SettingsView'; 
+import AdminPortalRequests from '../components/admin/AdminPortalRequests';
+import AdminFinancial from '../components/admin/AdminFinancial'; 
+import PlansManager from '../components/admin/PlansManager';
+import AdminDashboardActivity from '../components/admin/AdminDashboardActivity';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-
-  // AJUSTE 1: Inicializa o estado IMEDIATAMENTE com o que está no cache
-  // Isso evita que o componente comece com user=null e dispare o redirecionamento para /login
   const [user, setUser] = useState<any>(() => {
     const saved = localStorage.getItem('@ChamaFrete:user');
     return saved ? JSON.parse(saved) : null;
   });
-
-  // Só mostra o loading global se realmente não houver nada no localStorage
   const [loading, setLoading] = useState(!user);
 
   const fetchUserData = useCallback(async () => {
     try {
-      const response = await api.get('/get-my-profile'); 
+      const response = await api.get('get-my-profile'); 
       if (response.data.success) {
         const userData = response.data.user || response.data.data;
         setUser(userData);
@@ -44,69 +50,76 @@ export default function DashboardPage() {
     }
   }, [navigate]);
 
-  useEffect(() => { 
-    fetchUserData(); 
-  }, [fetchUserData]);
+  useEffect(() => { fetchUserData(); }, [fetchUserData]);
 
   if (loading) return (
     <div className="h-screen w-full flex flex-col items-center justify-center bg-slate-50">
       <Loader2 className="animate-spin text-orange-500 mb-4" size={48} />
-      <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 italic">
-        Sincronizando Terminal...
-      </span>
+      <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-500 italic">Sincronizando Ecossistema...</span>
     </div>
   );
 
-  // AJUSTE 2: Se não houver usuário nem no storage após o fetch, aí sim expulsa
   if (!user) return <Navigate to="/login" replace />;
 
-  // AJUSTE 3: Roles padronizadas (Case Insensitive)
+  // --- LÓGICA DE PERMISSÕES (RBAC) ---
   const role = String(user.role || '').toUpperCase();
-  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'SHIPPER'].includes(role);
+  
+  // Internos (Staff)
+  const isSuperAdmin = role === 'SUPERADMIN' || role === 'ADMIN';
+  const isInternal = ['ADMIN', 'SUPERADMIN', 'SUPPORT', 'SALES', 'MANAGER'].includes(role);
+  
+  // Externos (Clientes)
+  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'LOGISTICS', 'WAREHOUSE'].includes(role);
+  const isShipper = role === 'SHIPPER';
   const isDriver = ['DRIVER', 'MOTORISTA'].includes(role);
+  
+  // Módulos Contratados
+  const hasAdsModule = !!user.is_advertiser || isInternal || isCompany;
 
   return (
-    <Routes>
-      <Route element={<DashboardLayout user={user} />}>
-        
-        {/* ROTA RAIZ: /dashboard */}
+    <Routes>   
+        {/* 1. HOME DINÂMICA (Ponto de entrada conforme o perfil) */}
         <Route index element={
-          isCompany 
-            ? <CompanyCommandCenter user={user} refreshUser={fetchUserData} /> 
-            : isDriver 
-              ? <DriverView user={user} /> // Renderiza a visão do motorista
-              : <Navigate to="profile" replace />
+          isInternal ? <DashboardAdmin /> : 
+          (isCompany || isShipper) ? <CompanyCommandCenter user={user} refreshUser={fetchUserData} /> : 
+          isDriver ? <DriverView user={user} /> : 
+          <Navigate to="profile" replace />
         } />
 
-        {/* AJUSTE 4: Suporte para sub-rotas explícitas disparadas pelo Login */}
-        {/* Isso evita erro se o navigate('/dashboard/company') for chamado */}
-        <Route path="company" element={<CompanyCommandCenter user={user} refreshUser={fetchUserData} />} />
-        <Route path="driver" element={isDriver ? <DriverView user={user} /> : <Navigate to="/dashboard" />} />
-
-        {/* LOGÍSTICA: Exclusivo Empresa/Admin */}
-        {isCompany && (
-          <Route path="logistica" element={<FreightManager user={user} />} />
-        )}
-
-        {/* ANÚNCIOS */}
-        {isCompany && (
+        {/* 2. MÓDULOS DE STAFF (Rotas de Gerenciamento) */}
+        {isInternal && (
           <>
-            <Route path="anunciante/*" element={<AdvertiserPortal user={user} />} />
-            <Route path="ads" element={<Navigate to="anunciante" replace />} />
+            <Route path="admin/bi" element={<DashboardAdmin />} />
+            <Route path="admin/cargas" element={<FreightsManagerView />} />
+            <Route path="admin/usuarios" element={<UsersManager />} />
+            <Route path="admin/comunidades" element={<GroupsManager />} />
+            <Route path="admin/financeiro" element={<AdminFinancial />} />
+            <Route path="admin/publicidade" element={<AdsManager />} />
+            <Route path="admin/leads" element={<AdminPortalRequests />} />
+            <Route path="admin/configuracoes" element={<SettingsView />} />
+            <Route path="admin/atividade" element={<AdminDashboardActivity />} />
+            {isSuperAdmin && <Route path="admin/planos" element={<PlansManager />} />}
           </>
         )}
 
-        {/* PERFIL E CHAT */}
+        {/* 3. MÓDULOS OPERACIONAIS (Company / Shipper / Internal) */}
+        {(isCompany || isShipper || isInternal) && (
+          <Route path="logistica" element={<FreightManager user={user} />} />
+        )}
+
+        {/* 4. MÓDULO DE ANUNCIANTE (Contratável) */}
+        {hasAdsModule && (
+          <Route path="anunciante/*" element={<AdvertiserPortal user={user} />} />
+        )}
+
+        {/* 5. ROTAS GERAIS (Acessíveis a todos) */}
         <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
         <Route path="chat" element={<ChatList />} />
-        
-        {/* MÓDULOS EM CONSTRUÇÃO */}
-        <Route path="vendas" element={<ModulePlaceholder title="Módulo de Vendas" />} />
-        <Route path="financeiro" element={<ModulePlaceholder title="Módulo Financeiro" />} />
+        <Route path="vendas" element={<ModulePlaceholder title="Marketplace de Insumos" />} />
 
-        {/* FALLBACK INTERNO: Se digitar algo errado dentro do dash, volta pra raiz do dash */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Route>
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="" replace />} />
+      
     </Routes>
   );
 }
@@ -116,7 +129,7 @@ function ModulePlaceholder({ title }: { title: string }) {
     <div className="p-12 flex flex-col items-center justify-center">
       <div className="w-full max-w-2xl p-16 border-[6px] border-dashed border-slate-100 rounded-[4rem] text-center">
         <h2 className="text-4xl font-black uppercase italic text-slate-200 mb-2">{title}</h2>
-        <p className="text-orange-500 font-bold uppercase tracking-widest text-xs">Desenvolvimento Ativo 2026</p>
+        <p className="text-orange-500 font-bold uppercase tracking-widest text-xs">Módulo em Integração 2026</p>
       </div>
     </div>
   );

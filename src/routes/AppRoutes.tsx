@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { PrivateRoute } from '../components/shared/PrivateRoute';
+import DashboardLayout from '../components/layout/DashboardLayout';
+import { useAuth } from '../context/AuthContext';
 
 // PÁGINAS PÚBLICAS
 import HomePortal from '../pages/HomePortal';
@@ -18,8 +20,6 @@ import ForgotPassword from '../pages/auth/ForgotPassword';
 // INTERNAS
 import DashboardPage from '../pages/DashboardPage';
 import CreateFreight from '../pages/freights/CreateFreight';
-import AdminPortal from '../pages/admin/AdminPortal';
-import GroupsManagement from '../pages/admin/GroupsManagement';
 import AdvertiserPortal from '../pages/advertiser/AdvertiserPortal';
 
 // CHATS
@@ -31,6 +31,9 @@ import PaymentSuccess from '../pages/checkout/PaymentSuccess';
 import PaymentFailure from '../pages/checkout/PaymentFailure';
 
 export default function AppRoutes() {
+  const { user, loading } = useAuth();
+  if (loading) return <div>Carregando...</div>;
+  
   return (
     <Routes>
       {/* --- PÚBLICAS --- */}
@@ -49,34 +52,37 @@ export default function AppRoutes() {
       <Route path="/company/:slug" element={<ProfileView />} /> 
       <Route path="/anuncie" element={<AdvertisingLandingPage />} />
 
-      {/* --- ÁREA LOGADA (DRIVER, COMPANY, ADMIN) --- */}
-      <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin']} />}>
-        
-        {/* DASHBOARD CENTRAL: O '/*' é OBRIGATÓRIO aqui para as sub-rotas internas funcionarem */}
-        <Route path="/dashboard/*" element={<DashboardPage />} />
-        
-        {/* Chats fora do Dashboard (Opcional) */}
-        <Route path="/chat" element={<ChatList />} />
-        <Route path="/chat/:roomId" element={<ChatRoom />} />
+      {/* --- ÁREA LOGADA (Com Sidebar/DashboardLayout) --- */}
+      <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin', 'manager', 'partner', 'superadmin', 'shipper']} />}>
+        <Route element={<DashboardLayout user={user} />}>
+          
+          {/* Centralizador de Rotas Internas (Admin, BI, Perfil, etc) */}
+          <Route path="/dashboard/*" element={<DashboardPage />} />
+         
+          {/* CHAT: Dentro do Layout para manter a Sidebar */}
+          <Route path="/chat" element={<ChatList />} />
+          <Route path="/chat/:roomId" element={<ChatRoom />} />
 
+          {/* ANUNCIANTE: Acessível via sidebar/layout */}
+          <Route path="/anunciante/*" element={<AdvertiserPortal user={user} />} />
+        </Route>
+      </Route>
+
+      {/* --- ROTAS ESPECÍFICAS (Sem Sidebar / Foco Total) --- */}
+      
+      {/* Criar Frete: APENAS Empresa, Admin e Shipper (Driver não entra aqui) */}
+      <Route element={<PrivateRoute allowedRoles={['company', 'admin', 'superadmin', 'shipper']} />}>
+        <Route path="/novo-frete" element={<CreateFreight />} />
+      </Route>
+
+      {/* Pagamentos */}
+      <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin', 'shipper']} />}>
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
       </Route>
 
-      {/* --- CRIAÇÃO E ANÚNCIOS --- */}
-      <Route element={<PrivateRoute allowedRoles={['company', 'admin', 'partner']} />}>
-        <Route path="/novo-frete" element={<CreateFreight />} />
-        <Route path="/anunciante/*" element={<AdvertiserPortal />} />
-      </Route>
-
-      {/* --- ADMINISTRAÇÃO --- */}
-      <Route element={<PrivateRoute allowedRoles={['admin', 'manager', 'analyst']} />}>
-        <Route path="/admin/*" element={<AdminPortal />} />
-        <Route path="/admin/groups" element={<GroupsManagement />} />
-      </Route>
-
       {/* FALLBACK */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
     </Routes>
   );
 }

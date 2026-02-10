@@ -17,47 +17,53 @@ export default function FreightsManagerView() {
     try {
       setLoading(true);
       const res = await api.get('admin-list-freights');
-      setFreights(res.data || []);
+      // Verifica se a estrutura é res.data.data (padrão do seu controller) ou res.data (array direto)
+      const data = res.data.success ? res.data.data : res.data;
+      setFreights(data || []);
     } catch (e) {
       console.error("Erro ao carregar fretes");
     } finally {
       setLoading(false);
     }
-  };
+};
 
   useEffect(() => { loadFreights(); }, []);
 
  // Função para Alternar Destaque
-const handleToggleFeatured = async (id: number, currentStatus: any) => {
-  const newStatus = currentStatus == "1" ? "0" : "1";
-  try {
-    // Rota direta e limpa
-    await api.post('manage-freights', { 
-      id, 
-      featured: newStatus, 
-      action: 'toggle-featured' 
-    });
-    
-    setFreights(prev => prev.map(f => f.id === id ? { ...f, isFeatured: newStatus, requested_featured: "0" } : f));
-  } catch (e) {
-    alert("Erro ao atualizar destaque");
-  }
-};
+  const handleToggleFeatured = async (id: number, currentStatus: any) => {
+    const newStatus = currentStatus == "1" ? "0" : "1";
+    try {
+      // Rota direta e limpa
+      await api.post('manage-freights', { 
+        id, 
+        featured: newStatus, 
+        action: 'toggle-featured' 
+      });
+      
+      setFreights(prev => prev.map(f => f.id === id ? { ...f, isFeatured: newStatus, requested_featured: "0" } : f));
+    } catch (e) {
+      alert("Erro ao atualizar destaque");
+    }
+  };
 
 // Função para Excluir
-const handleDelete = async (id: number) => {
-  if(!confirm("Apagar este frete permanentemente?")) return;
-  
-  try {
-    await api.post('manage-freights', { 
-      id, 
-      action: 'delete' 
-    });
-    loadFreights(); // Recarrega a lista
-  } catch (e) {
-    alert("Erro ao excluir frete");
-  }
-};
+  const handleDelete = async (id: number) => {
+    if(!confirm("Apagar este frete permanentemente?")) return;
+    
+    try {
+      const res = await api.post('manage-freights', { 
+        id, 
+        action: 'delete' 
+      });
+      
+      if (res.data.success) {
+        // Em vez de recarregar tudo do banco, remove localmente para ser instantâneo
+        setFreights(prev => prev.filter(f => f.id !== id));
+      }
+    } catch (e) {
+      alert("Erro ao excluir frete");
+    }
+  };
 
   const filtered = (freights || []).filter(f => {
     if (!f || !f.id) return false;
@@ -72,8 +78,9 @@ const handleDelete = async (id: number) => {
       f.product?.toLowerCase().includes(searchLower) ||
       f.company_name?.toLowerCase().includes(searchLower);
 
-    if (statusFilter === 'featured') return matchesSearch && String(f.isFeatured) === "1";
-    if (statusFilter === 'requested') return matchesSearch && String(f.requested_featured) === "1";
+    // Melhora a comparação para aceitar 1 (número) ou "1" (string)
+    if (statusFilter === 'featured') return matchesSearch && Number(f.isFeatured) === 1;
+    if (statusFilter === 'requested') return matchesSearch && Number(f.requested_featured) === 1;
     return matchesSearch;
   });
 

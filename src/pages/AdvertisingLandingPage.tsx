@@ -44,7 +44,7 @@ const AdvertisingLandingPage = () => {
   useEffect(() => {
     const fetchPlans = async () => {
       try {
-        const response = await api.get('?endpoint=get-advertising-plans');
+        const response = await api.get('get-advertising-plans');
         setPlans(response.data);
       } catch (error) { 
         console.error("Erro ao carregar planos:", error); 
@@ -59,7 +59,7 @@ const AdvertisingLandingPage = () => {
     setLoading(true);
     try {
       const planId = plans[selectedPlan].ids[cycle];
-      const response = await api.post('?endpoint=process-checkout', { plan_id: planId });
+      const response = await api.post('process-checkout', { plan_id: planId });
       if (response.data?.checkout_url) {
         window.location.href = response.data.checkout_url;
       }
@@ -82,7 +82,7 @@ const AdvertisingLandingPage = () => {
 
     try {
       // Mapeamento exato com as colunas do seu Banco de Dados
-      await api.post('?endpoint=portal-request', {
+      await api.post('portal-request', {
         type: 'advertising_lead',
         title: `${name} | ${company}`, 
         contact_info: whatsapp,       
