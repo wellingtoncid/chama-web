@@ -8,8 +8,10 @@ export function PostFreight() {
 
   // Estados do formulário baseados na sua tabela SQL
   const [formData, setFormData] = useState({
-    origin: '',
-    destination: '',
+    origin_state: '',
+    origin_city: '',
+    dest_state: '',
+    dest_city: '',
     product: '',
     weight: '',
     vehicleType: '',
@@ -70,12 +72,12 @@ export function PostFreight() {
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Origem (Cidade/UF)</label>
-          <input name="origin" required onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" placeholder="Ex: Itajaí, SC" />
+          <input name="origin_city" required onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" placeholder="Ex: Itajaí, SC" />
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-700">Destino (Cidade/UF)</label>
-          <input name="destination" required onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" placeholder="Ex: São Paulo, SP" />
+          <input name="dest_city" required onChange={handleChange} className="mt-1 block w-full border rounded-md p-2" placeholder="Ex: São Paulo, SP" />
         </div>
 
         <div>

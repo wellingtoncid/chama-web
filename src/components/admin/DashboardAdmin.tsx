@@ -23,8 +23,10 @@ interface DashboardStats {
 interface PendingApproval {
   id: number;
   company_name: string;
-  origin: string;
-  destination: string;
+  origin_state: string;
+  origin_city: string;
+  dest_state: string;
+  dest_city: string;
   created_at: string;
 }
 
@@ -189,9 +191,9 @@ export default function DashboardAdmin() {
                   </span>
                 </div>
                 <div className="mb-4">
-                  <p className="text-xs font-black uppercase italic text-slate-200 truncate">{p.origin}</p>
+                  <p className="text-xs font-black uppercase italic text-slate-200 truncate">{p.origin_city}</p>
                   <div className="h-3 border-l-2 border-dotted border-white/20 ml-1.5 my-1"></div>
-                  <p className="text-xs font-black uppercase italic text-slate-200 truncate">{p.destination}</p>
+                  <p className="text-xs font-black uppercase italic text-slate-200 truncate">{p.dest_city}</p>
                 </div>
                 <div className="flex gap-2">
                   <button onClick={() => handleApprove(p.id)} className="flex-1 bg-white text-slate-900 hover:bg-orange-500 hover:text-white py-2.5 rounded-xl text-[9px] font-black uppercase transition-all">

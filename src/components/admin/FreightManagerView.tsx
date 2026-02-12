@@ -71,12 +71,12 @@ export default function FreightsManagerView() {
     
     const matchesSearch = 
       f.id?.toString().includes(searchTerm) || 
-      f.origin_city?.toLowerCase().includes(searchLower) || 
-      f.origin_state?.toLowerCase().includes(searchLower) ||
-      f.destination_city?.toLowerCase().includes(searchLower) ||
-      f.destination_state?.toLowerCase().includes(searchLower) ||
-      f.product?.toLowerCase().includes(searchLower) ||
-      f.company_name?.toLowerCase().includes(searchLower);
+      (f.origin_city || '').toLowerCase().includes(searchLower) || 
+      (f.origin_state || '').toLowerCase().includes(searchLower) ||
+      (f.dest_city || '').toLowerCase().includes(searchLower) || 
+      (f.dest_state || '').toLowerCase().includes(searchLower) || 
+      (f.product || '').toLowerCase().includes(searchLower) ||
+      (f.company_name || '').toLowerCase().includes(searchLower);
 
     // Melhora a comparação para aceitar 1 (número) ou "1" (string)
     if (statusFilter === 'featured') return matchesSearch && Number(f.isFeatured) === 1;
@@ -145,10 +145,10 @@ export default function FreightsManagerView() {
                       </span>
                       <div>
                         <p className="font-black text-slate-800 text-xs uppercase italic flex items-center gap-1">
-                          {f.origin_city} <ChevronRight size={10} className="text-blue-500"/> {f.destination_city}
+                          {f.origin_city} <ChevronRight size={10} className="text-blue-500"/> {f.dest_city}
                         </p>
                         <p className="text-[9px] font-bold text-slate-400 uppercase tracking-wider">
-                          {f.product} | {f.origin_state} | {f.destination_state} </p>
+                          {f.product} | {f.origin_state} | {f.dest_state} </p>
                       </div>
                     </div>
                   </td>

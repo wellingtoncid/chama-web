@@ -60,7 +60,7 @@ export default function DriverView({ forceTab }: DriverViewProps) {
     if (!search.trim()) return allFreights;
 
     return allFreights.filter(f => {
-      const base = normalize(`${f.origin} ${f.destination} ${f.product} ${f.company_name} ${f.vehicleType}`);
+      const base = normalize(`${f.origin_city} ${f.dest_city} ${f.product} ${f.company_name} ${f.vehicleType}`);
       return words.every(w => base.includes(w));
     });
   }, [search, allFreights]);
@@ -133,7 +133,7 @@ export default function DriverView({ forceTab }: DriverViewProps) {
                        </span>
                     </div>
                     <h4 className="text-[13px] font-black text-slate-800 uppercase truncate flex items-center gap-1">
-                      {f.origin} <ChevronRight size={12} className="text-slate-300" /> {f.destination}
+                      {f.origin_city} <ChevronRight size={12} className="text-slate-300" /> {f.dest_city}
                     </h4>
                     <p className="text-[10px] font-bold text-slate-500 italic truncate">{f.product}</p>
                   </div>

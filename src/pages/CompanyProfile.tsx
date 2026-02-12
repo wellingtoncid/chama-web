@@ -106,7 +106,7 @@ const CompanyProfile = () => {
               <div key={item.id} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-blue-200 transition-all">
                 <p className="text-[10px] font-black text-blue-600 uppercase mb-1">{item.product}</p>
                 <h3 className="font-black text-slate-900 uppercase italic">
-                   {item.origin} {item.destination && `→ ${item.destination}`}
+                   {item.origin_city} {item.dest_city && `→ ${item.dest_city}`}
                 </h3>
                 <div className="mt-4 flex justify-between items-center">
                    <span className="text-green-600 font-black italic">R$ {item.price}</span>

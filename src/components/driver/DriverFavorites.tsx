@@ -70,12 +70,12 @@ export default function DriverFavorites() {
               <div className="flex items-center justify-between bg-slate-50 p-4 rounded-2xl mb-4">
                 <div className="text-center">
                   <p className="text-[8px] font-black text-slate-400 uppercase">Origem</p>
-                  <p className="font-black text-slate-700 text-[11px] uppercase">{f.origin}</p>
+                  <p className="font-black text-slate-700 text-[11px] uppercase">{f.origin_city}</p>
                 </div>
                 <ArrowRight size={14} className="text-slate-300" />
                 <div className="text-center">
                   <p className="text-[8px] font-black text-slate-400 uppercase">Destino</p>
-                  <p className="font-black text-slate-700 text-[11px] uppercase">{f.destination}</p>
+                  <p className="font-black text-slate-700 text-[11px] uppercase">{f.dest_city}</p>
                 </div>
               </div>
 

@@ -317,7 +317,7 @@ function PostCard({ post, type, navigate }: any) {
           </p>
           <div className="ml-1 h-3 w-px bg-slate-100" />
           <p className="text-[10px] font-bold text-slate-600 flex items-center gap-2 uppercase">
-            <ChevronRight size={12} className="text-slate-300"/> {post.destination_city}
+            <ChevronRight size={12} className="text-slate-300"/> {post.dest_city}
           </p>
         </div>
       )}

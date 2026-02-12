@@ -111,7 +111,7 @@ export default function FreightPage() {
     
     const viewObserver = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
-        api.post('/log-event', { id, type, action: 'view' }).catch(() => {});
+        api.post('log-event', { id, type, action: 'view' }).catch(() => {});
         trackedItems.current.add(`${type}-${id}`);
         viewObserver.unobserve(node);
       }
@@ -122,7 +122,7 @@ export default function FreightPage() {
   const handleBusinessSubmit = async () => {
     setIsSending(true);
     try {
-      await api.post('/portal-request', { type: 'business_ad', ...formData });
+      await api.post('portal-request', { type: 'business_ad', ...formData });
       setSuccess(true);
       setTimeout(() => { 
         setIsBusinessModalOpen(false); 
