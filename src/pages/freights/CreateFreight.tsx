@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText, Phone } from 'lucide-react';
+import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText } from 'lucide-react';
 import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import { VEHICLE_TYPES, BODY_TYPES } from '../../constants/freightOptions';
+import Swal from 'sweetalert2';
 
 export default function CreateFreight() {
   const navigate = useNavigate();
   const location = useLocation();
   const editData = location.state?.editData;
-  console.log('Edit Data:', editData);
 
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [originCities, setOriginCities] = useState<string[]>([]);
@@ -34,10 +34,9 @@ export default function CreateFreight() {
     body_type: '',
     price: '',
     description: '',
-    whatsapp: ''
+    contact_preference: 'both' // Padrão conforme sua regra de negócio
   });
 
-  // 1. CARGA INICIAL: Estados e Usuários (se admin)
   useEffect(() => {
     getStates().then(setStates);
 
@@ -51,12 +50,9 @@ export default function CreateFreight() {
     }
   }, [isAdminOrManager]);
 
-  // 2. LÓGICA DE EDIÇÃO: Sincronização rigorosa com o banco
   useEffect(() => {
     if (editData) {
       const initializeEdit = async () => {
-        // ESSENCIAL: Carregar as listas de cidades ANTES de setar o formData
-        // Caso contrário, os selects de cidade ficam vazios porque a opção não existe na lista
         if (editData.origin_state) {
           const cities = await getCitiesByState(editData.origin_state);
           setOriginCities(cities);
@@ -78,23 +74,19 @@ export default function CreateFreight() {
           vehicle_type: editData.vehicle_type || '',
           body_type: editData.body_type || '',
           price: editData.price !== undefined ? String(editData.price) : '',
-          description: editData.description || '', 
-          whatsapp: editData.whatsapp || ''
+          description: editData.description || '',
+          contact_preference: editData.contact_preference || 'both'
         });
       };
-
       initializeEdit();
     } else if (currentUser && !isAdminOrManager) {
-      // Se for novo frete, pré-preencher com dados do usuário logado
       setFormData(prev => ({ 
         ...prev, 
-        user_id: String(currentUser.id),
-        whatsapp: currentUser.whatsapp || ''
+        user_id: String(currentUser.id)
       }));
     }
   }, [editData]);
 
-  // 3. LISTENERS DE TROCA DE ESTADO (UF) - Somente para mudanças Manuais
   const handleStateChange = async (state: string, field: 'origin' | 'dest') => {
     const cities = await getCitiesByState(state);
     if (field === 'origin') {
@@ -113,30 +105,37 @@ export default function CreateFreight() {
     try {
       const endpoint = formData.id ? 'update-freight' : 'create-freight';
       
-      // Montagem do payload respeitando as colunas do seu SQL
       const payload = {
+        ...formData,
         id: formData.id,
         user_id: Number(formData.user_id),
-        origin_city: formData.origin_city,
-        origin_state: formData.origin_state,
-        dest_city: formData.dest_city,
-        dest_state: formData.dest_state,
-        product: formData.product,
-        description: formData.description,
         weight: parseFloat(formData.weight) || 0,
-        price: parseFloat(formData.price) || 0,
-        vehicle_type: formData.vehicle_type,
-        body_type: formData.body_type,
-        whatsapp: formData.whatsapp,
-        status: formData.id ? undefined : 'OPEN'
+        price: parseFloat(formData.price) || 0
+        //status: formData.id ? undefined : 'OPEN'
       };
 
-      await api.post(`/${endpoint}`, payload);
-      alert(formData.id ? "Alterações salvas!" : "Frete publicado!");
+      const response = await api.post(`/${endpoint}`, payload);
+      // Aviso de Sucesso simples e limpo
+      await Swal.fire({
+        icon: 'success',
+        title: formData.id ? 'Salvo!' : 'Publicado!',
+        text: response.data.message,
+        timer: 2500,
+        showConfirmButton: false
+      });
+
       navigate('/dashboard');
-    } catch (error) {
-      console.error(error);
-      alert("Erro ao salvar. Verifique o console.");
+
+    } catch (error: any) {
+      // Captura a mensagem do PHP (ex: conteúdo impróprio ou erro de banco)
+      const msg = error.response?.data?.message || "Erro ao processar requisição.";
+
+      Swal.fire({
+        icon: 'error',
+        title: 'Atenção',
+        text: msg,
+        confirmButtonText: 'ENTENDI'
+      });
     } finally {
       setLoading(false);
     }
@@ -185,21 +184,11 @@ export default function CreateFreight() {
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Origem</label>
                 <div className="flex gap-2">
-                  <select 
-                    required 
-                    className="w-24 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100"
-                    value={formData.origin_state}
-                    onChange={e => handleStateChange(e.target.value, 'origin')}
-                  >
+                  <select required className="w-24 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.origin_state} onChange={e => handleStateChange(e.target.value, 'origin')}>
                     <option value="">UF</option>
                     {states.map(s => <option key={s.sigla} value={s.sigla}>{s.sigla}</option>)}
                   </select>
-                  <select 
-                    required 
-                    className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100"
-                    value={formData.origin_city}
-                    onChange={e => setFormData({...formData, origin_city: e.target.value})}
-                  >
+                  <select required className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.origin_city} onChange={e => setFormData({...formData, origin_city: e.target.value})}>
                     <option value="">Cidade</option>
                     {originCities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -210,21 +199,11 @@ export default function CreateFreight() {
               <div className="space-y-4">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Destino</label>
                 <div className="flex gap-2">
-                  <select 
-                    required 
-                    className="w-24 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100"
-                    value={formData.dest_state}
-                    onChange={e => handleStateChange(e.target.value, 'dest')}
-                  >
+                  <select required className="w-24 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.dest_state} onChange={e => handleStateChange(e.target.value, 'dest')}>
                     <option value="">UF</option>
                     {states.map(s => <option key={s.sigla} value={s.sigla}>{s.sigla}</option>)}
                   </select>
-                  <select 
-                    required 
-                    className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold outline-none border border-slate-100"
-                    value={formData.dest_city}
-                    onChange={e => setFormData({...formData, dest_city: e.target.value})}
-                  >
+                  <select required className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.dest_city} onChange={e => setFormData({...formData, dest_city: e.target.value})}>
                     <option value="">Cidade</option>
                     {destCities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -264,21 +243,24 @@ export default function CreateFreight() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><Phone size={12}/> WhatsApp</label>
-                <input type="text" required value={formData.whatsapp} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, whatsapp: e.target.value})} />
-              </div>
-              <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2"><FileText size={12}/> Descrição</label>
-                <textarea rows={1} value={formData.description} className="w-full p-4 bg-slate-50 rounded-2xl font-medium border border-slate-100" onChange={e => setFormData({...formData, description: e.target.value})}></textarea>
-              </div>
+            {/* DESCRIÇÃO AMPLIADA */}
+            <div className="space-y-2">
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
+                <FileText size={12}/> Observações e Detalhes da Carga
+              </label>
+              <textarea 
+                rows={5} 
+                value={formData.description} 
+                placeholder="Ex: Carga paletizada, exige ajudante para descarga, pagamento 50% na saída..."
+                className="w-full p-4 bg-slate-50 rounded-3xl font-medium border border-slate-100 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
+                onChange={e => setFormData({...formData, description: e.target.value})}
+              />
             </div>
 
             <button 
               type="submit" 
               disabled={loading} 
-              className={`w-full py-6 text-white rounded-[2.5rem] font-black text-xl flex items-center justify-center gap-3 ${isAdminOrManager ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-900 hover:bg-orange-600'}`}
+              className={`w-full py-6 text-white rounded-[2.5rem] font-black text-xl flex items-center justify-center gap-3 transition-colors ${isAdminOrManager ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-900 hover:bg-orange-600'}`}
             >
               {loading ? "Processando..." : (formData.id ? 'SALVAR ALTERAÇÕES' : 'PUBLICAR FRETE')}
             </button>

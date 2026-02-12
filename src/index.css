@@ -14,3 +14,48 @@
     overflow-x: hidden; 
   }
 }
+
+/* --- PADRONIZAÇÃO SWEETALERT2 --- */
+
+/* Modal principal */
+.swal2-popup {
+  border-radius: 2.5rem !important; /* Arredondamento moderno igual aos seus cards */
+  padding: 2rem !important;
+  font-family: inherit !important;
+  border: 1px solid #f1f5f9 !important; /* Cor slate-100 */
+}
+
+/* Título */
+.swal2-title {
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  font-style: italic !important;
+  color: #0f172a !important; /* slate-900 */
+}
+
+/* Texto de descrição */
+.swal2-html-container {
+  font-weight: 600 !important;
+  color: #64748b !important; /* slate-500 */
+}
+
+/* Botão de Confirmação (Estilo o seu botão de publicar) */
+.swal2-confirm {
+  border-radius: 1.5rem !important;
+  padding: 0.8rem 2.5rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  background-color: #0f172a !important; /* slate-900 */
+  transition: all 0.2s !important;
+}
+
+.swal2-confirm:hover {
+  background-color: #f97316 !important; /* orange-500 (igual seu hover do botão) */
+}
+
+/* Botão de Cancelar */
+.swal2-cancel {
+  border-radius: 1.5rem !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+}

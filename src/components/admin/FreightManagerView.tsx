@@ -17,15 +17,17 @@ export default function FreightsManagerView() {
     try {
       setLoading(true);
       const res = await api.get('admin-list-freights');
-      // Verifica se a estrutura é res.data.data (padrão do seu controller) ou res.data (array direto)
-      const data = res.data.success ? res.data.data : res.data;
-      setFreights(data || []);
+      // Tenta pegar o array de dentro de .data.data ou .data
+      const rawData = res.data?.data || res.data;
+      // Garante que o que vai para o estado é um Array
+      setFreights(Array.isArray(rawData) ? rawData : []);
     } catch (e) {
-      console.error("Erro ao carregar fretes");
+      console.error("Erro ao carregar fretes:", e);
+      setFreights([]); // Limpa para evitar erros de loop
     } finally {
       setLoading(false);
     }
-};
+  };
 
   useEffect(() => { loadFreights(); }, []);
 
@@ -40,7 +42,7 @@ export default function FreightsManagerView() {
         action: 'toggle-featured' 
       });
       
-      setFreights(prev => prev.map(f => f.id === id ? { ...f, isFeatured: newStatus, requested_featured: "0" } : f));
+      setFreights(prev => prev.map(f => f.id === id ? { ...f, is_featured: newStatus, requested_featured: "0" } : f));
     } catch (e) {
       alert("Erro ao atualizar destaque");
     }
@@ -66,21 +68,27 @@ export default function FreightsManagerView() {
   };
 
   const filtered = (freights || []).filter(f => {
+    // 1. Se o frete for inválido, ignora
     if (!f || !f.id) return false;
-    const searchLower = searchTerm.toLowerCase();
+
+    // 2. Normaliza o termo de busca
+    const searchLower = searchTerm.toLowerCase().trim();
     
-    const matchesSearch = 
-      f.id?.toString().includes(searchTerm) || 
+    // 3. Se não houver busca, apenas filtra pelo status/destaque
+    const matchesSearch = searchLower === "" || (
+      f.id?.toString().includes(searchLower) || 
       (f.origin_city || '').toLowerCase().includes(searchLower) || 
       (f.origin_state || '').toLowerCase().includes(searchLower) ||
       (f.dest_city || '').toLowerCase().includes(searchLower) || 
       (f.dest_state || '').toLowerCase().includes(searchLower) || 
       (f.product || '').toLowerCase().includes(searchLower) ||
-      (f.company_name || '').toLowerCase().includes(searchLower);
+      (f.company_name || '').toLowerCase().includes(searchLower)
+    );
 
-    // Melhora a comparação para aceitar 1 (número) ou "1" (string)
-    if (statusFilter === 'featured') return matchesSearch && Number(f.isFeatured) === 1;
+    // 4. Filtros de Categoria (Destaque / Pedidos)
+    if (statusFilter === 'featured') return matchesSearch && Number(f.is_featured) === 1;
     if (statusFilter === 'requested') return matchesSearch && Number(f.requested_featured) === 1;
+    
     return matchesSearch;
   });
 
@@ -160,15 +168,15 @@ export default function FreightsManagerView() {
                   </td>
                   <td className="px-6 py-4 text-center">
                     <button 
-                      onClick={() => handleToggleFeatured(f.id, f.isFeatured)}
+                      onClick={() => handleToggleFeatured(f.id, f.is_featured)}
                       className={`relative p-2.5 rounded-2xl transition-all ${
-                        f.isFeatured == "1" 
+                        f.is_featured == "1" 
                         ? 'bg-orange-500 text-white shadow-lg shadow-orange-200 scale-110' 
                         : 'bg-slate-100 text-slate-300 hover:bg-orange-100 hover:text-orange-500'
                       }`}
                     >
-                      <Star size={16} fill={f.isFeatured == "1" ? "currentColor" : "none"} />
-                      {f.requested_featured == "1" && f.isFeatured == "0" && (
+                      <Star size={16} fill={f.is_featured == "1" ? "currentColor" : "none"} />
+                      {f.requested_featured == "1" && f.is_featured == "0" && (
                         <span className="absolute -top-1 -right-1 flex h-3 w-3">
                           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
                           <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
