@@ -30,6 +30,12 @@ import ChatRoom from '../pages/chat/ChatRoom';
 import PaymentSuccess from '../pages/checkout/PaymentSuccess';
 import PaymentFailure from '../pages/checkout/PaymentFailure';
 
+// ADMIN - USUÁRIOS
+import UsersManager from '../components/admin/UsersManagerView';
+import UserDetails from '../components/admin/UserDetails';
+import UserCreate from '../components/admin/UserCreate';
+
+
 export default function AppRoutes() {
   const { user, loading } = useAuth();
   if (loading) return <div>Carregando...</div>;
@@ -58,6 +64,10 @@ export default function AppRoutes() {
           
           {/* Centralizador de Rotas Internas (Admin, BI, Perfil, etc) */}
           <Route path="/dashboard/*" element={<DashboardPage />} />
+
+          <Route path="/dashboard/admin/usuarios" element={<UsersManager />} />
+          <Route path="/dashboard/admin/usuarios/:id" element={<UserDetails />} />
+          <Route path="/dashboard/admin/usuarios/novo" element={<UserCreate />} />
          
           {/* CHAT: Dentro do Layout para manter a Sidebar */}
           <Route path="/chat" element={<ChatList />} />
