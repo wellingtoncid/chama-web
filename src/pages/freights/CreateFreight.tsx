@@ -104,11 +104,15 @@ export default function CreateFreight() {
 
     try {
       const endpoint = formData.id ? 'update-freight' : 'create-freight';
+
+      const storageUser = localStorage.getItem('@ChamaFrete:user');
+      const user = storageUser ? JSON.parse(storageUser) : null;
       
       const payload = {
         ...formData,
         id: formData.id,
         user_id: Number(formData.user_id),
+        account_id: user?.account_id,
         weight: parseFloat(formData.weight) || 0,
         price: parseFloat(formData.price) || 0
         //status: formData.id ? undefined : 'OPEN'

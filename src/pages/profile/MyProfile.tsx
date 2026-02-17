@@ -19,7 +19,7 @@ interface MyProfileProps {
 
 const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const [loading, setLoading] = useState(false);
-  const [formData, setFormData] = useState({ ...user });
+  const [formData, setFormData] = useState<any>({});
   
   // States para Previews e Arquivos
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -51,9 +51,9 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
 
   // Lógica de Diferenciação Visual
   const role = user.role?.toLowerCase();
-  const isDriver = role === 'driver';
+  const isDriver = role === 'driver' || role === 'motorista';
   const isAdvertiser = role === 'advertiser';
-  const isCompany = ['company', 'shipper', 'transportadora'].includes(role);
+  const isCompany = ['company', 'shipper', 'transportadora', 'logistics'].includes(role);
 
   const themeColor = isDriver ? 'orange' : isAdvertiser ? 'purple' : 'blue';
   const themeClasses = {
@@ -61,6 +61,17 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     purple: { bg: 'bg-purple-600', text: 'text-purple-600', border: 'border-purple-100', light: 'bg-purple-50', hover: 'hover:bg-purple-700' },
     blue: { bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-100', light: 'bg-blue-50', hover: 'hover:bg-blue-700' }
   }[themeColor];
+
+  // Cálculo baseado no que o usuário está preenchendo AGORA (formData)
+  const calculateLiveScore = () => {
+      let score = 0;
+      if (formData.name) score += 20;
+      if (formData.whatsapp || formData.phone) score += 20;
+      if (user.avatar_url || avatarPreview) score += 20;
+      if (formData.city) score += 20;
+      if (formData.bio && formData.bio.length > 10) score += 20;
+      return score;
+  };
 
   const generateSlug = (text: string) => {
     return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").trim();
@@ -92,31 +103,98 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         'name', 'slug', 'whatsapp', 'bio', 'city', 'state',
         'vehicle_type', 'body_type', 'cnpj', 'company_name',
         'plate', 'antt', 'anos_experiencia', 'cidades_atendidas',
-        'instagram', 'website', 'phone', 'atendimento_regiao'
+        'instagram', 'website', 'phone', 'atendimento_regiao',
+        'business_type', 'website_url', 'commercial_email', 
+        'specialties', 'certifications', 'coverage_area', 
+        'name_fantasy', 'specific_regions', 'postal_code', 
+        'address'
       ];
 
       fields.forEach(field => {
-        if (formData[field] !== undefined) dataToSend.append(field, String(formData[field]));
+        if (formData[field] !== undefined) {
+          // Se for array (specialties/certifications), converte para JSON
+          const value = Array.isArray(formData[field]) 
+            ? JSON.stringify(formData[field]) 
+            : String(formData[field]);
+            
+          dataToSend.append(field, value);
+        }
       });
 
       if (avatarFile) dataToSend.append('avatar_file', avatarFile);
       if (coverFile) dataToSend.append('cover_file', coverFile);
 
-      const response = await api.post('/update-profile', dataToSend);
+      const response = await api.post('/update-profile', dataToSend, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+      console.log("Resposta do servidor:", response.data);
 
       if (response.data.success) {
         await refreshUser();
         Swal.fire({ icon: 'success', title: 'Perfil Atualizado!', timer: 2000, showConfirmButton: false });
       }
     } catch (error: any) {
-      Swal.fire({ icon: 'error', title: 'Erro ao salvar', text: error.response?.data?.message });
+      console.error("Erro detalhado:", error); 
+      Swal.fire({ 
+        icon: 'error', 
+        title: 'Erro ao salvar', 
+        text: error.response?.data?.message || error.message || 'Erro interno' 
+      });
     } finally {
       setLoading(false);
     }
   };
 
+  const completionScore = () => {
+      let score = 0;
+      if (user.name) score += 20;
+      if (user.whatsapp) score += 20;
+      if (user.avatar_url) score += 20;
+      if (user.city) score += 20;
+      if (user.bio) score += 20;
+      return score;
+  };
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-20 px-4 md:px-0">
+
+      {/* CARD DE FORÇA DO PERFIL */}
+      <div className="bg-white p-6 rounded-[2.5rem] shadow-sm border border-slate-100 flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex items-center gap-4">
+              <div className="relative w-16 h-16">
+                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                      <circle cx="18" cy="18" r="16" className="text-slate-100" strokeWidth="3" fill="none" />
+                      <circle 
+                        cx="18" cy="18" r="16" 
+                        className={`${themeClasses.text} transition-all duration-1000`} 
+                        strokeWidth="3" 
+                        strokeDasharray={`${calculateLiveScore()}, 100`} 
+                        strokeLinecap="round" 
+                        fill="none" 
+                      />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center font-black text-xs text-slate-700">
+                      {calculateLiveScore()}%
+                  </div>
+              </div>
+              <div>
+                  <h4 className="font-black uppercase italic text-slate-800">Força do Perfil</h4>
+                  <p className="text-[10px] uppercase font-bold text-slate-400">Complete 80% para ganhar o selo de verificado</p>
+              </div>
+          </div>
+          
+          {user.is_verified ? (
+              <div className="bg-emerald-50 text-emerald-600 px-6 py-3 rounded-2xl flex items-center gap-2 font-black uppercase italic text-xs border border-emerald-100">
+                  <ShieldCheck size={18} /> Perfil Verificado
+              </div>
+          ) : (
+              <div className="bg-amber-50 text-amber-600 px-6 py-3 rounded-2xl flex items-center gap-2 font-black uppercase italic text-xs border border-amber-100">
+                  <AlertCircle size={18} /> {calculateLiveScore() >= 80 ? 'Aguardando Revisão' : 'Complete seu Perfil'}
+              </div>
+          )}
+      </div>
       
       {/* HEADER: GESTÃO DE BANNER E AVATAR */}
       <div className="relative group">
@@ -274,7 +352,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
           </div>
       </div>
 
-      {/* FOOTER SALVAR */}
+     {/* FOOTER SALVAR (Corrigido para usar as classes de cor do tema) */}
       <div className="bg-slate-900 rounded-[3.5rem] p-8 md:p-10 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-4 text-white/50">
               <ShieldCheck size={32} className="text-emerald-400" />

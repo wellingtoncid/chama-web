@@ -1,17 +1,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { Loader2 } from 'lucide-react';
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../api/api';
 
-// COMPONENTES EXTERNOS (CLIENTES)
+// COMPONENTES EXTERNOS
 import CompanyCommandCenter from '../components/company/CompanyCommandCenter';
 import DriverView from '../components/driver/DriverView';
 import FreightManager from '../components/company/FreightManager';
 import AdvertiserPortal from '../pages/advertiser/AdvertiserPortal';
 import MyProfile from '../pages/profile/MyProfile';
 import ChatList from './chat/ChatList';
+import WelcomeOnboarding from '../components/profile/WelcomeOnboarding';
 
-// COMPONENTES INTERNOS (ADMIN/STAFF) - Importados do antigo AdminView
+// COMPONENTES INTERNOS (ADMIN)
 import DashboardAdmin from '../components/admin/DashboardAdmin'; 
 import FreightsManagerView from '../components/admin/FreightManagerView';
 import UsersManager from '../components/admin/UsersManagerView';
@@ -69,58 +70,88 @@ export default function DashboardPage() {
   const isInternal = ['ADMIN', 'SUPERADMIN', 'SUPPORT', 'SALES', 'MANAGER'].includes(role);
   
   // Externos (Clientes)
-  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'LOGISTICS', 'WAREHOUSE'].includes(role);
-  const isShipper = role === 'SHIPPER';
+  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'LOGISTICS', 'WAREHOUSE', 'SHIPPER'].includes(role);
   const isDriver = ['DRIVER', 'MOTORISTA'].includes(role);
   
   // Módulos Contratados
   const hasAdsModule = !!user.is_advertiser || isInternal || isCompany;
 
+  // LÓGICA DE BLOQUEIO / ONBOARDING
+  // Verifica se faltam dados essenciais para empresas
+  const showOnboarding = isCompany && (!user.company_name || !user.document);
+
   return (
-    <Routes>   
-        {/* 1. HOME DINÂMICA (Ponto de entrada conforme o perfil) */}
-        <Route index element={
-          isInternal ? <DashboardAdmin /> : 
-          (isCompany || isShipper) ? <CompanyCommandCenter user={user} refreshUser={fetchUserData} /> : 
-          isDriver ? <DriverView user={user} /> : 
-          <Navigate to="profile" replace />
-        } />
+    <div className="min-h-screen bg-slate-50">
+      {/* OVERLAY DE ONBOARDING */}
+      {showOnboarding && (
+        <WelcomeOnboarding 
+          user={user} 
+          onComplete={(updatedData: any) => {
+            const newUser = { ...user, ...updatedData };
+            setUser(newUser);
+            localStorage.setItem('@ChamaFrete:user', JSON.stringify(newUser));
+          }} 
+        />
+      )}
 
-        {/* 2. MÓDULOS DE STAFF (Rotas de Gerenciamento) */}
-        {isInternal && (
-          <>
-            <Route path="admin/bi" element={<DashboardAdmin />} />
-            <Route path="admin/cargas" element={<FreightsManagerView />} />
-            <Route path="admin/usuarios" element={<UsersManager />} />
-            <Route path="admin/comunidades" element={<GroupsManager />} />
-            <Route path="admin/financeiro" element={<AdminFinancial />} />
-            <Route path="admin/publicidade" element={<AdsManager />} />
-            <Route path="admin/leads" element={<AdminPortalRequests />} />
-            <Route path="admin/configuracoes" element={<SettingsView />} />
-            <Route path="admin/atividade" element={<AdminDashboardActivity />} />
-            {isSuperAdmin && <Route path="admin/planos" element={<PlansManager />} />}
-          </>
-        )}
+      {/* Alerta de Perfil Incompleto */}
+      {!showOnboarding && user.completion_score < 100 && (
+        <div className="mx-6 mt-6 mb-8 p-4 bg-orange-50 border border-orange-100 rounded-3xl flex items-center justify-between shadow-sm">
+          <div className="flex items-center gap-4">
+            <div className="w-10 h-10 bg-orange-500 rounded-full flex items-center justify-center text-white">
+              <AlertCircle size={20} />
+            </div>
+            <div>
+              <h4 className="text-sm font-black uppercase italic text-orange-800">Seu perfil precisa de atenção!</h4>
+              <p className="text-xs text-orange-600 font-bold">Você completou apenas {user.completion_score}% do seu ecossistema.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('profile')}
+            className="bg-orange-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic hover:bg-orange-600 transition-all"
+          >
+            Finalizar Agora
+          </button>
+        </div>
+      )}
 
-        {/* 3. MÓDULOS OPERACIONAIS (Company / Shipper / Internal) */}
-        {(isCompany || isShipper || isInternal) && (
-          <Route path="logistica" element={<FreightManager user={user} />} />
-        )}
+      <Routes>   
+          <Route index element={
+            isInternal ? <DashboardAdmin /> : 
+            isCompany ? <CompanyCommandCenter user={user} refreshUser={fetchUserData} /> : 
+            isDriver ? <DriverView user={user} /> : 
+            <Navigate to="profile" replace />
+          } />
 
-        {/* 4. MÓDULO DE ANUNCIANTE (Contratável) */}
-        {hasAdsModule && (
-          <Route path="anunciante/*" element={<AdvertiserPortal user={user} />} />
-        )}
+          {isInternal && (
+            <>
+              <Route path="admin/bi" element={<DashboardAdmin />} />
+              <Route path="admin/cargas" element={<FreightsManagerView />} />
+              <Route path="admin/usuarios" element={<UsersManager />} />
+              <Route path="admin/comunidades" element={<GroupsManager />} />
+              <Route path="admin/financeiro" element={<AdminFinancial />} />
+              <Route path="admin/publicidade" element={<AdsManager />} />
+              <Route path="admin/leads" element={<AdminPortalRequests />} />
+              <Route path="admin/configuracoes" element={<SettingsView />} />
+              <Route path="admin/atividade" element={<AdminDashboardActivity />} />
+              {isSuperAdmin && <Route path="admin/planos" element={<PlansManager />} />}
+            </>
+          )}
 
-        {/* 5. ROTAS GERAIS (Acessíveis a todos) */}
-        <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
-        <Route path="chat" element={<ChatList />} />
-        <Route path="vendas" element={<ModulePlaceholder title="Marketplace de Insumos" />} />
+          {(isCompany || isInternal) && (
+            <Route path="logistica" element={<FreightManager user={user} />} />
+          )}
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="" replace />} />
-      
-    </Routes>
+          {hasAdsModule && (
+            <Route path="anunciante/*" element={<AdvertiserPortal user={user} />} />
+          )}
+
+          <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
+          <Route path="chat" element={<ChatList />} />
+          <Route path="vendas" element={<ModulePlaceholder title="Marketplace de Insumos" />} />
+          <Route path="*" element={<Navigate to="" replace />} />
+      </Routes>
+    </div>
   );
 }
 

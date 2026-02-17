@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Truck, Building2, User, Mail, Lock, Phone, Loader2 } from 'lucide-react';
+import { Truck, Building2, User, Mail, Lock, Phone, Loader2, FileText } from 'lucide-react';
 import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -8,6 +8,7 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
+  const [document, setDocument] = useState(''); // Novo campo
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -18,13 +19,15 @@ export default function Register() {
 
     setLoading(true);
 
-    // Sanitização rigorosa do WhatsApp (apenas números)
+    // Sanitização: Apenas números para WhatsApp e Documento
     const cleanWhatsapp = whatsapp.replace(/\D/g, '');
+    const cleanDocument = document.replace(/\D/g, '');
 
     const payload = {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       whatsapp: cleanWhatsapp,
+      document: cleanDocument, // Enviando o documento real
       password,
       role
     };
@@ -36,14 +39,12 @@ export default function Register() {
         alert("Cadastro realizado com sucesso! Agora faça seu login.");
         navigate('/login', { replace: true });
       } else {
-        // Tenta pegar a mensagem específica do erro vindo do backend
-        const errorMsg = response.data.message || response.data.error || "Tente novamente";
+        const errorMsg = response.data.message || "Tente novamente";
         alert("Erro no cadastro: " + errorMsg);
       }
     } catch (error: any) {
-      console.error("Erro no registro:", error.response?.data);
       const backendMessage = error.response?.data?.message;
-      alert(backendMessage || "Erro interno no servidor (500). Verifique se o e-mail ou WhatsApp já estão cadastrados.");
+      alert(backendMessage || "Erro ao conectar com o servidor.");
     } finally {
       setLoading(false);
     }
@@ -61,7 +62,7 @@ export default function Register() {
         <div className="grid grid-cols-2 gap-4 mb-8">
           <button
             type="button"
-            onClick={() => setRole('driver')}
+            onClick={() => { setRole('driver'); setDocument(''); }}
             className={`flex flex-col items-center p-5 rounded-3xl border-2 transition-all duration-300 ${
               role === 'driver' 
                 ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-sm' 
@@ -74,7 +75,7 @@ export default function Register() {
 
           <button
             type="button"
-            onClick={() => setRole('company')}
+            onClick={() => { setRole('company'); setDocument(''); }}
             className={`flex flex-col items-center p-5 rounded-3xl border-2 transition-all duration-300 ${
               role === 'company' 
                 ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm' 
@@ -92,26 +93,25 @@ export default function Register() {
             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
               type="text" 
-              placeholder="Nome ou Razão Social" 
+              placeholder={role === 'driver' ? "Seu Nome Completo" : "Razão Social da Empresa"}
               required
-              autoComplete="name"
               className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
               value={name}
               onChange={(e) => setName(e.target.value)}
             />
           </div>
 
-          {/* E-mail */}
+          {/* CPF / CNPJ - CAMPO DINÂMICO */}
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
             <input
-              type="email" 
-              placeholder="Seu melhor e-mail" 
+              type="text" 
+              placeholder={role === 'driver' ? "Seu CPF (apenas números)" : "CNPJ da Empresa"}
               required
-              autoComplete="email"
               className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={document}
+              onChange={(e) => setDocument(e.target.value.replace(/\D/g, ''))} // Mantém apenas números
+              maxLength={role === 'driver' ? 11 : 14}
             />
           </div>
 
@@ -122,10 +122,22 @@ export default function Register() {
               type="tel" 
               placeholder="WhatsApp (ex: 11999999999)" 
               required
-              autoComplete="tel"
               className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
               value={whatsapp}
-              onChange={(e) => setWhatsapp(e.target.value)}
+              onChange={(e) => setWhatsapp(e.target.value.replace(/\D/g, ''))}
+            />
+          </div>
+
+          {/* E-mail */}
+          <div className="relative">
+            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+            <input
+              type="email" 
+              placeholder="Seu melhor e-mail" 
+              required
+              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
             />
           </div>
 
@@ -136,7 +148,6 @@ export default function Register() {
               type="password" 
               placeholder="Crie uma senha" 
               required
-              autoComplete="new-password"
               className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
