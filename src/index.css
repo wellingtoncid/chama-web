@@ -1,61 +1,225 @@
 @import "tailwindcss";
 
+/* No Tailwind v4, variáveis definidas em @theme tornam-se 
+  automaticamente classes utilitárias (ex: bg-background)
+*/
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-border: hsl(var(--card-border));
+  --color-muted: hsl(var(--muted));
+  --color-primary: hsl(var(--primary));
+}
+
+/* Configuração de variante para garantir suporte ao Dark Mode via classe .dark */
+@variant dark (&:where(.dark, .dark *));
+
 @layer base {
+  :root {
+    color-scheme: light;
+    /* Variáveis Semânticas (HLS para flexibilidade) */
+    --background: 0 0% 99%; /* #FDFDFD */
+    --foreground: 222 47% 11%; /* slate-900 */
+    --card: 0 0% 100%;
+    --card-border: 214 32% 91%;
+    --muted: 215 16% 47%;
+    --primary: 221 83% 53%; /* blue-600 */
+
+    /* Variáveis de Tradutor Global (Hex para override direto) */
+    --bg-main: #f8fafc;
+    --bg-card-hex: #ffffff;
+    --bg-input: #f1f5f9;
+    --text-main: #0f172a;
+    --text-muted-hex: #64748b;
+    --border-base: #e2e8f0;
+  }
+
+  .dark {
+    color-scheme: dark;
+    --background: 222 47% 4%; /* slate-950 */
+    --foreground: 210 40% 98%;
+    --card: 222 47% 11%; /* slate-900 */
+    --card-border: 217 33% 17%;
+    --muted: 215 20% 65%;
+    --primary: 217 91% 60%;
+
+    /* Override para o Tradutor Global */
+    --bg-main: #020617;
+    --bg-card-hex: #0f172a;
+    --bg-input: #1e293b;
+    --text-main: #f8fafc;
+    --text-muted-hex: #94a3b8;
+    --border-base: #1e293b;
+  }
+
+  /* Reset e Configurações Globais */
+  html {
+    scroll-padding-top: 110px;
+    scroll-behavior: smooth;
+  }
+
   :root, body, #root {
-    width: 100% !important;
-    max-width: none !important;
+    width: 100%;
+    max-width: none;
     margin: 0;
     padding: 0;
-    text-align: left; 
+    text-align: left;
   }
 
   body {
     min-height: 100vh;
-    overflow-x: hidden; 
+    overflow-x: hidden;
+    background-color: var(--bg-main);
+    color: var(--text-main);
+    /* No v4, transições complexas no apply podem falhar, usamos CSS nativo: */
+    transition: background-color 300ms, color 300ms;
+  }
+
+  /* --- TRADUTOR GLOBAL DARK MODE --- 
+     Para converter classes utilitárias antigas sem mexer no HTML 
+  */
+  .dark .bg-white {
+    background-color: var(--bg-card-hex) !important;
+    border-color: var(--border-base) !important;
+  }
+
+  .dark .bg-slate-50 {
+    background-color: var(--bg-main) !important;
+  }
+
+  .dark .text-slate-900, 
+  .dark .text-slate-800,
+  .dark .text-slate-700 {
+    color: var(--text-main) !important;
+  }
+
+  .dark .text-slate-600,
+  .dark .text-slate-500,
+  .dark .text-slate-400 {
+    color: var(--text-muted-hex) !important;
+  }
+
+  .dark .border-slate-100,
+  .dark .border-slate-50,
+  .dark .border-transparent {
+    border-color: var(--border-base) !important;
+  }
+
+  .dark input, .dark select, .dark textarea {
+    background-color: var(--bg-input) !important;
+    color: var(--text-main) !important;
+    border-color: var(--border-base) !important;
+  }
+
+  .dark ::placeholder {
+    color: #475569 !important;
+  }
+
+  /* Efeito em Logos/Imagens no Dark Mode */
+  .dark img.logo-partner {
+    filter: grayscale(1) brightness(1.5);
+    mix-blend-mode: screen;
+  }
+
+  /* Suavização de sombras no Dark */
+  .dark .shadow-xl, .dark .shadow-lg, .dark .shadow-sm {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5) !important;
   }
 }
 
-/* --- PADRONIZAÇÃO SWEETALERT2 --- */
+@layer components {
+  /* Classes de componentes padronizadas */
+  .card-base {
+    background-color: var(--bg-card-hex);
+    border: 1px solid var(--border-base);
+    @apply rounded-[2.5rem] p-8 transition-all duration-300;
+  }
 
-/* Modal principal */
-.swal2-popup {
-  border-radius: 2.5rem !important; /* Arredondamento moderno igual aos seus cards */
-  padding: 2rem !important;
-  font-family: inherit !important;
-  border: 1px solid #f1f5f9 !important; /* Cor slate-100 */
+  .input-base {
+    background-color: var(--bg-input);
+    color: var(--text-main);
+    border: 2px solid transparent;
+    @apply rounded-xl p-4 outline-none transition-all focus:border-orange-500/20;
+  }
+
+  .ad-container-fix {
+    touch-action: pan-y !important; /* Permite scroll vertical mas não interfere no clique */
+    user-select: auto !important;
+    cursor: pointer !important;
+  }
+
+  /* Garante que o container do carrossel não quebre o layout flex */
+  .flex-shrink-0 {
+    flex-shrink: 0 !important;
+  }
+
+  /* Suaviza a transição de slides */
+  .ease-in-out {
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
 }
 
-/* Título */
+/* --- PADRONIZAÇÃO SWEETALERT2 (Compatível v4) --- */
+
+.swal2-popup {
+  border-radius: 2.5rem !important;
+  padding: 2rem !important;
+  font-family: inherit !important;
+  border: 1px solid #f1f5f9 !important;
+  background-color: white !important;
+}
+
+.dark .swal2-popup {
+  background-color: #0f172a !important;
+  border-color: #1e293b !important;
+}
+
 .swal2-title {
   font-weight: 900 !important;
   text-transform: uppercase !important;
   font-style: italic !important;
-  color: #0f172a !important; /* slate-900 */
+  color: #0f172a !important;
 }
 
-/* Texto de descrição */
+.dark .swal2-title {
+  color: white !important;
+}
+
 .swal2-html-container {
   font-weight: 600 !important;
-  color: #64748b !important; /* slate-500 */
+  color: #64748b !important;
 }
 
-/* Botão de Confirmação (Estilo o seu botão de publicar) */
+.dark .swal2-html-container {
+  color: #94a3b8 !important;
+}
+
 .swal2-confirm {
   border-radius: 1.5rem !important;
   padding: 0.8rem 2.5rem !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
-  background-color: #0f172a !important; /* slate-900 */
-  transition: all 0.2s !important;
+  background-color: #0f172a !important;
+  color: white !important;
+}
+
+.dark .swal2-confirm {
+  background-color: #f97316 !important; /* Laranja no Dark Mode */
 }
 
 .swal2-confirm:hover {
-  background-color: #f97316 !important; /* orange-500 (igual seu hover do botão) */
+  filter: brightness(1.1);
 }
 
-/* Botão de Cancelar */
 .swal2-cancel {
   border-radius: 1.5rem !important;
   font-weight: 800 !important;
   text-transform: uppercase !important;
+}
+
+.dark .swal2-cancel {
+  background-color: #1e293b !important;
+  color: white !important;
 }

@@ -207,17 +207,19 @@ export default function DriverView({ forceTab }: DriverViewProps) {
 // COMPONENTES AUXILIARES
 function StatCard({ label, value, icon, color }: any) {
   const colors: any = {
-    red: "text-red-500 bg-red-50",
-    blue: "text-blue-500 bg-blue-50",
-    green: "text-green-500 bg-green-50",
-    orange: "text-orange-500 bg-orange-50",
+    // Adicionamos variantes dark para os backgrounds dos ícones
+    red: "text-red-500 bg-red-50 dark:bg-red-900/20",
+    blue: "text-blue-500 bg-blue-50 dark:bg-blue-900/20",
+    green: "text-green-500 bg-green-50 dark:bg-green-900/20",
+    orange: "text-orange-500 bg-orange-50 dark:bg-orange-900/20",
   };
   return (
-    <div className="bg-white p-4 rounded-3xl border border-slate-50 shadow-sm flex items-center gap-3">
+    // Removido bg-white fixo, agora o index.css cuida da inversão
+    <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-50 dark:border-slate-800 shadow-sm flex items-center gap-3 transition-colors">
       <div className={`p-2.5 rounded-xl ${colors[color]}`}>{icon}</div>
       <div>
         <p className="text-[8px] font-black uppercase text-slate-400 tracking-tight">{label}</p>
-        <p className="text-lg font-black text-slate-800 leading-none">{value}</p>
+        <p className="text-lg font-black text-slate-800 dark:text-slate-100 leading-none">{value}</p>
       </div>
     </div>
   );
@@ -225,9 +227,9 @@ function StatCard({ label, value, icon, color }: any) {
 
 function TabButton({ active, onClick, icon, label, color = "orange", count }: any) {
   const activeStyles: any = {
-    orange: "bg-orange-500 text-white shadow-orange-100",
-    red: "bg-red-500 text-white shadow-red-100",
-    blue: "bg-blue-600 text-white shadow-blue-100",
+    orange: "bg-orange-500 text-white shadow-orange-100 dark:shadow-none",
+    red: "bg-red-500 text-white shadow-red-100 dark:shadow-none",
+    blue: "bg-blue-600 text-white shadow-blue-100 dark:shadow-none",
   };
   return (
     <button 
@@ -235,13 +237,13 @@ function TabButton({ active, onClick, icon, label, color = "orange", count }: an
       className={`flex items-center gap-2 px-5 py-3.5 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all shrink-0 border ${
         active 
         ? `${activeStyles[color]} border-transparent shadow-lg -translate-y-0.5` 
-        : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50'
+        : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
       }`}
     >
       {icon} 
       {label}
       {count !== null && (
-        <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'}`}>
+        <span className={`ml-1 px-1.5 py-0.5 rounded-md text-[9px] ${active ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400'}`}>
           {count}
         </span>
       )}

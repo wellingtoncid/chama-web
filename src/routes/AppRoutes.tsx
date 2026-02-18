@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { PrivateRoute } from '../components/shared/PrivateRoute';
 import DashboardLayout from '../components/layout/DashboardLayout';
 import { useAuth } from '../context/AuthContext';
+import { AdPopup } from '../components/shared/AdPopup';
 
 // PÁGINAS PÚBLICAS
 import HomePortal from '../pages/HomePortal';
@@ -41,34 +42,37 @@ export default function AppRoutes() {
   if (loading) return <div>Carregando...</div>;
   
   return (
+    <>
+    <AdPopup />
+    
     <Routes>
       {/* --- PÚBLICAS --- */}
       <Route path="/" element={<HomePortal />} />
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
-      
+
       <Route path="/fretes" element={<FreightPage />} />
-      <Route path="/frete/:slug" element={<FreightDetails />} /> 
+      <Route path="/frete/:slug" element={<FreightDetails />} />
 
       <Route path="/comunidade" element={<GroupsList />} />
-      <Route path="/marketplace" element={<Marketplace />} /> 
-      
+      <Route path="/marketplace" element={<Marketplace />} />
+
       <Route path="/driver/:slug" element={<ProfileView />} />
-      <Route path="/company/:slug" element={<ProfileView />} /> 
+      <Route path="/company/:slug" element={<ProfileView />} />
       <Route path="/anuncie" element={<AdvertisingLandingPage />} />
 
       {/* --- ÁREA LOGADA (Com Sidebar/DashboardLayout) --- */}
       <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin', 'manager', 'partner', 'superadmin', 'shipper']} />}>
         <Route element={<DashboardLayout user={user} />}>
-          
+
           {/* Centralizador de Rotas Internas (Admin, BI, Perfil, etc) */}
           <Route path="/dashboard/*" element={<DashboardPage />} />
 
           <Route path="/dashboard/admin/usuarios" element={<UsersManager />} />
           <Route path="/dashboard/admin/usuarios/:id" element={<UserDetails />} />
           <Route path="/dashboard/admin/usuarios/novo" element={<UserCreate />} />
-         
+
           {/* CHAT: Dentro do Layout para manter a Sidebar */}
           <Route path="/chat" element={<ChatList />} />
           <Route path="/chat/:roomId" element={<ChatRoom />} />
@@ -79,7 +83,7 @@ export default function AppRoutes() {
       </Route>
 
       {/* --- ROTAS ESPECÍFICAS (Sem Sidebar / Foco Total) --- */}
-      
+
       {/* Criar Frete: APENAS Empresa, Admin e Shipper (Driver não entra aqui) */}
       <Route element={<PrivateRoute allowedRoles={['company', 'admin', 'superadmin', 'shipper']} />}>
         <Route path="/novo-frete" element={<CreateFreight />} />
@@ -93,6 +97,6 @@ export default function AppRoutes() {
 
       {/* FALLBACK */}
       <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
-    </Routes>
+    </Routes></>
   );
 }

@@ -30,33 +30,36 @@ const AdvertiserFields = ({ formData, setFormData }: AdvertiserFieldsProps) => {
     setFormData({ ...formData, [field]: value });
   };
 
+  // Padronização de inputs para manter o estilo limpo
+  const inputClass = "w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-[1.5rem] border-2 border-transparent focus:border-purple-500/20 dark:focus:border-purple-500/40 outline-none font-bold text-slate-700 dark:text-slate-200 transition-all placeholder:text-slate-400 dark:placeholder:text-slate-600";
+
   return (
     <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-500">
       
       {/* Categoria do Anunciante */}
       <div className="w-full">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block ml-2">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 block ml-2">
           Segmento de Atuação
         </label>
         <div className="relative">
           <select 
             value={formData.advertiser_category || ''}
             onChange={(e) => handleInputChange('advertiser_category', e.target.value)}
-            className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-purple-500/20 outline-none font-bold text-slate-700 appearance-none cursor-pointer"
+            className={`${inputClass} appearance-none cursor-pointer`}
           >
-            <option value="">Selecione um segmento...</option>
+            <option value="" className="dark:bg-slate-900">Selecione um segmento...</option>
             {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
+              <option key={cat} value={cat} className="dark:bg-slate-900">{cat}</option>
             ))}
           </select>
-          <Tag className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 pointer-events-none" size={20} />
+          <Tag className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 pointer-events-none" size={20} />
         </div>
       </div>
 
       {/* Nome Fantasia / Marca */}
       <div className="grid md:grid-cols-2 gap-4">
         <div className="w-full">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block ml-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 block ml-2">
             Nome da Marca/Empresa
           </label>
           <div className="relative">
@@ -65,14 +68,14 @@ const AdvertiserFields = ({ formData, setFormData }: AdvertiserFieldsProps) => {
               value={formData.company_name || ''}
               onChange={(e) => handleInputChange('company_name', e.target.value)}
               placeholder="Ex: Pneus Online"
-              className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-purple-500/20 outline-none font-bold text-slate-700"
+              className={inputClass}
             />
-            <Megaphone className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+            <Megaphone className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={18} />
           </div>
         </div>
 
         <div className="w-full">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block ml-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 block ml-2">
             CNPJ (Opcional)
           </label>
           <input 
@@ -80,14 +83,14 @@ const AdvertiserFields = ({ formData, setFormData }: AdvertiserFieldsProps) => {
             value={formData.cnpj || ''}
             onChange={(e) => handleInputChange('cnpj', e.target.value)}
             placeholder="00.000.000/0000-00"
-            className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-purple-500/20 outline-none font-bold text-slate-700"
+            className={inputClass}
           />
         </div>
       </div>
 
       {/* Link de Call to Action Principal */}
       <div className="w-full">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3 block ml-2">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 block ml-2">
           Link de Redirecionamento (CTA)
         </label>
         <div className="relative">
@@ -96,20 +99,20 @@ const AdvertiserFields = ({ formData, setFormData }: AdvertiserFieldsProps) => {
             value={formData.cta_link || ''}
             onChange={(e) => handleInputChange('cta_link', e.target.value)}
             placeholder="https://suapagina.com.br/promo"
-            className="w-full p-5 bg-slate-50 rounded-[1.5rem] border-2 border-transparent focus:border-purple-500/20 outline-none font-bold text-slate-700"
+            className={inputClass}
           />
-          <ExternalLink className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+          <ExternalLink className="absolute right-5 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600" size={18} />
         </div>
-        <p className="text-[9px] font-bold text-slate-400 mt-2 ml-2 uppercase">
+        <p className="text-[9px] font-bold text-slate-400 dark:text-slate-600 mt-2 ml-2 uppercase">
           * Este é o link principal para onde seus anúncios apontarão por padrão.
         </p>
       </div>
 
       {/* Público Alvo */}
-      <div className="bg-purple-50/50 p-6 rounded-[2rem] border border-purple-100/50">
+      <div className="bg-purple-50/50 dark:bg-purple-500/5 p-6 rounded-[2rem] border border-purple-100/50 dark:border-purple-500/10">
         <div className="flex items-center gap-2 mb-4">
-          <Target className="text-purple-600" size={18} />
-          <h4 className="text-[10px] font-black uppercase text-purple-900 tracking-tighter">Foco de Público</h4>
+          <Target className="text-purple-600 dark:text-purple-400" size={18} />
+          <h4 className="text-[10px] font-black uppercase text-purple-900 dark:text-purple-300 tracking-tighter">Foco de Público</h4>
         </div>
         <div className="flex flex-wrap gap-2">
           {['Motoristas', 'Transportadoras', 'Embarcadores'].map((target) => {
@@ -127,8 +130,8 @@ const AdvertiserFields = ({ formData, setFormData }: AdvertiserFieldsProps) => {
                 }}
                 className={`px-4 py-2 rounded-full text-[10px] font-black uppercase transition-all ${
                   isSelected 
-                  ? 'bg-purple-600 text-white shadow-lg shadow-purple-200' 
-                  : 'bg-white text-slate-400 border border-slate-100 hover:border-purple-200'
+                  ? 'bg-purple-600 text-white shadow-lg dark:shadow-none' 
+                  : 'bg-white dark:bg-slate-900 text-slate-400 dark:text-slate-500 border border-slate-100 dark:border-slate-800 hover:border-purple-200 dark:hover:border-purple-900'
                 }`}
               >
                 {target}

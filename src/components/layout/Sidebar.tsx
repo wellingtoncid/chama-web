@@ -81,7 +81,7 @@ const Sidebar = ({ user }: { user: any }) => {
 
   return (
     <>
-      <aside className="hidden lg:flex w-64 bg-slate-900 text-white flex-col p-4 shadow-xl h-screen sticky top-0 overflow-y-auto border-r border-white/5 custom-scrollbar">
+      <aside className="hidden lg:flex w-64 bg-slate-900 dark:bg-black text-white flex-col p-4 shadow-xl h-screen sticky top-0 overflow-y-auto border-r border-white/5 custom-scrollbar">
         <div className="p-6 mb-8 flex justify-center">
           <img src="/logo-white.png" alt="Chama Frete" className="w-32 h-auto" />
         </div>
