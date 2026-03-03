@@ -26,6 +26,7 @@ import AdminDashboardActivity from '../components/admin/AdminDashboardActivity';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const [hasDismissedOnboarding, setHasDismissedOnboarding] = useState(false);
   const [user, setUser] = useState<any>(() => {
     const saved = localStorage.getItem('@ChamaFrete:user');
     return saved ? JSON.parse(saved) : null;
@@ -78,7 +79,8 @@ export default function DashboardPage() {
 
   // LÓGICA DE BLOQUEIO / ONBOARDING
   // Verifica se faltam dados essenciais para empresas
-  const showOnboarding = isCompany && (!user.company_name || !user.document);
+  const showOnboarding = isCompany && (!user.company_name || !user.document) && !hasDismissedOnboarding
+  
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-[#020617] text-slate-900 dark:text-slate-100 transition-colors duration-500">
@@ -86,6 +88,7 @@ export default function DashboardPage() {
       {showOnboarding && (
         <WelcomeOnboarding 
           user={user} 
+          onClose={() => setHasDismissedOnboarding(true)}
           onComplete={(updatedData: any) => {
             const newUser = { ...user, ...updatedData };
             setUser(newUser);

@@ -1,4 +1,5 @@
-import { Truck, Instagram, Linkedin, Facebook, Youtube, MapPin, Mail, Phone } from "lucide-react";
+import { Mail, Phone } from "lucide-react";
+import { FaInstagram, FaLinkedin, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
 import AdCard from "../shared/AdCard"; // Certifique-se de que o caminho está correto
 
 const Footer = () => {
@@ -30,16 +31,25 @@ const Footer = () => {
               </span>
             </a>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-sm">
-              A plataforma líder em conexão logística no Brasil. Transformando a quilometragem em lucro para motoristas e empresas desde 2024.
+              A plataforma líder em conexão logística no Brasil. Transformando a quilometragem em lucro para motoristas e empresas desde 2017. 
+              Conectando as melhores empresas e os melhores profissionais.
             </p>
             <div className="flex gap-4">
-              {[Instagram, Linkedin, Facebook, Youtube].map((Icon, i) => (
+              {[
+                { Icon: FaInstagram, url: "https://instagram.com/chamafrete" },
+                { Icon: FaLinkedin, url: "https://linkedin.com/company/chamafrete" },
+                { Icon: FaFacebook, url: "https://www.facebook.com/chamafreteoficial" },
+                { Icon: FaYoutube, url: "https://youtube.com/@chamafrete" },
+                { Icon: FaWhatsapp, url: "https://chat.whatsapp.com/DovUHLwfUK9LgU8MpJ5rYT" },
+              ].map((social, i) => (
                 <a 
                   key={i} 
-                  href="#" 
+                  href={social.url} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
                   className="w-10 h-10 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:text-orange-500 dark:hover:text-orange-400 hover:border-orange-500 dark:hover:border-orange-400 transition-all shadow-sm"
                 >
-                  <Icon size={18} />
+                  <social.Icon size={18} />
                 </a>
               ))}
             </div>
@@ -68,7 +78,7 @@ const Footer = () => {
 
           {/* Coluna Contato - Card VIP */}
           <div className="lg:col-span-4 space-y-6 bg-white dark:bg-slate-900 p-8 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-            <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Atendimento VIP</h4>
+            <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Suporte</h4>
             <div className="space-y-4">
               <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 group cursor-pointer">
                 <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-950 flex items-center justify-center group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 group-hover:text-orange-500 transition-colors">
@@ -80,7 +90,7 @@ const Footer = () => {
                 <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-950 flex items-center justify-center group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 group-hover:text-orange-500 transition-colors">
                   <Phone size={16}/>
                 </div>
-                <span className="text-sm font-bold tracking-tight group-hover:text-slate-900 dark:group-hover:text-white">0800 591 0000</span>
+                <span className="text-sm font-bold tracking-tight group-hover:text-slate-900 dark:group-hover:text-white">+55 (47) 992 717 125</span>
               </div>
             </div>
           </div>
@@ -89,7 +99,7 @@ const Footer = () => {
         {/* Direitos Autorais */}
         <div className="pt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-            © 2026 Chama Frete - Soluções em Logística LTDA. Todos os direitos reservados.
+            © 2026 Chama Frete | Lognetz Tecnologia da Informação Ltda. Todos os direitos reservados. 
           </p>
           <div className="flex gap-8 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
             <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacidade</a>

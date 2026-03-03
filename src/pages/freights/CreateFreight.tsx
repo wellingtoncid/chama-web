@@ -4,6 +4,7 @@ import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText } fro
 import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import { VEHICLE_TYPES, BODY_TYPES } from '../../constants/freightOptions';
+import WelcomeOnboarding from '../../components/profile/WelcomeOnboarding';
 import Swal from 'sweetalert2';
 
 export default function CreateFreight() {
@@ -20,6 +21,16 @@ export default function CreateFreight() {
   const storageUser = localStorage.getItem('@ChamaFrete:user');
   const currentUser = storageUser ? JSON.parse(storageUser) : null;
   const isAdminOrManager = ['admin', 'manager'].includes(currentUser?.role?.toLowerCase());
+
+  // Estado para controlar o usuário localmente após o onboarding
+  const [user, setUser] = useState<any>(() => {
+    const saved = localStorage.getItem('@ChamaFrete:user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
+  // Lógica de verificação: Se for empresa e faltar documento ou nome
+  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'LOGISTICS'].includes(user?.role?.toUpperCase());
+  const needsOnboarding = isCompany && (!user?.document || !user?.company_name);
 
   const [formData, setFormData] = useState({
     id: null,
@@ -147,6 +158,23 @@ export default function CreateFreight() {
 
   return (
     <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+
+      {/* SE PRECISAR DE ONBOARDING, BLOQUEIA A TELA COM O MODAL */}
+      {needsOnboarding && (
+        <WelcomeOnboarding 
+          user={user} 
+          // Aqui não passamos o onClose ou passamos uma função que volta 
+          // para o dashboard se ele tentar fechar sem preencher
+          onClose={() => navigate('/dashboard')} 
+          onComplete={(updatedData: any) => {
+            const newUser = { ...user, ...updatedData };
+            setUser(newUser);
+            localStorage.setItem('@ChamaFrete:user', JSON.stringify(newUser));
+            // O componente re-renderiza e o needsOnboarding vira false
+          }} 
+        />
+      )}
+
       <div className="max-w-4xl mx-auto">
         <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 mb-6 font-black uppercase text-[10px] tracking-widest">
           <ArrowLeft size={16} /> Voltar

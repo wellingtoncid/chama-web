@@ -68,8 +68,6 @@ const FreightCard = ({ data, aba, onToggle, disabled }: any) => {
 
   const companyDisplayName = data.company?.name || data.company_name || data.user?.name || 'Anunciante Particular';
 
-  // ... (imports e lógica permanecem iguais)
-
   return (
     <>
       <div 

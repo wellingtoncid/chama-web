@@ -25,11 +25,11 @@ const Header = () => {
   };
 
   const navLinks = [
-    { name: "Painel de Fretes", href: "#fretes" },
-    { name: "Números", href: "#autoridade" },
+    { name: "Ver Fretes", href: "#fretes" },
+    { name: "Como Funciona", href: "#autoridade" },
     { name: "Comunidades", href: "#comunidades" },
     { name: "Ecossistema", href: "#ecossistema" },
-    { name: "Anunciar & Media", href: "#negocios" }
+    { name: "Anunciar", href: "#negocios" }
   ];
 
   return (

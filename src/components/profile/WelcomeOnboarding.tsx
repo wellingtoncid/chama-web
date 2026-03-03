@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { 
   Building2, ArrowRight, Loader2, Truck, 
   User, ShieldCheck, MapPin, CheckCircle2, 
-  FileText
+  FileText, X
 } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2';
 
-export default function WelcomeOnboarding({ user, onComplete }: any) {
+export default function WelcomeOnboarding({ user, onComplete, onClose }: any) {
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1); // Para futuras expansões de passos
   
@@ -80,6 +80,15 @@ export default function WelcomeOnboarding({ user, onComplete }: any) {
     <div className="fixed inset-0 bg-slate-900/95 z-[999] flex items-center justify-center p-4 backdrop-blur-md">
       <div className="bg-white w-full max-w-xl rounded-[3rem] p-8 md:p-12 shadow-2xl relative overflow-hidden">
         
+        {/* BOTÃO FECHAR (X) */}
+        <button 
+          onClick={onClose}
+          className="absolute top-8 right-8 text-slate-300 hover:text-orange-500 transition-colors z-10"
+        >
+          <span className="text-[10px] font-black uppercase tracking-widest mr-2">Pular</span>
+          <X size={24} className="inline" />
+        </button>
+
         {/* Decoração de Fundo */}
         <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full -mr-16 -mt-16" />
 
@@ -159,7 +168,7 @@ export default function WelcomeOnboarding({ user, onComplete }: any) {
           {loading ? (
             <Loader2 className="animate-spin" />
           ) : (
-            <>Finalizar Configuração <CheckCircle2 size={22} /></>
+            <>Salvar e Ativar Perfil <CheckCircle2 size={22} /></>
           )}
         </button>
 

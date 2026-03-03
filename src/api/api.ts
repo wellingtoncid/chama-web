@@ -14,6 +14,11 @@ export const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('@ChamaFrete:token');
   
+  // FormData: remove Content-Type para o browser definir com boundary
+  if (config.data instanceof FormData) {
+    delete config.headers['Content-Type'];
+  }
+  
   // Verifica se a URL termina exatamente com as rotas de auth
   const publicRoutes = ['/login', '/register', '/reset-password'];
   const isPublicRoute = publicRoutes.some(route => config.url?.endsWith(route));

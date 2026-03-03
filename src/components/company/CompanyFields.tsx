@@ -1,195 +1,118 @@
 import React from 'react';
-import { 
-  Building2, ShieldCheck, Warehouse, Truck, PackageSearch, 
-  Globe2, Briefcase, ShieldAlert, ThermometerSnowflake, 
-  Container, Layers, Boxes, FileCheck, CheckCircle2,
-  Anchor, Plane, HardHat, Zap, MapPinned, Info,
-  Navigation, Award, Scale, Microscope, ShoppingCart
+import {
+  Building2,
+  Truck,
+  Warehouse,
+  PackageSearch,
+  Briefcase,
+  Anchor,
+  Globe,
+  Mail,
+  Info,
 } from 'lucide-react';
 
+const COMPANY_TYPES = [
+  { id: 'transportadora', label: 'Transportadora', desc: 'Frotas e fretes' },
+  { id: 'operador_logistico', label: 'Operador Logístico', desc: '3PL, armazenagem' },
+  { id: 'armazem', label: 'Armazém / CD', desc: 'Estocagem' },
+  { id: 'agente_cargas', label: 'Agente de Cargas', desc: 'Freight forwarder' },
+  { id: 'embarcador', label: 'Embarcador', desc: 'Posta cargas' },
+  { id: 'outros', label: 'Outros', desc: 'Demais segmentos' },
+];
+
 const CompanyFields = ({ formData, setFormData }: any) => {
-  
   const handleInputChange = (field: string, value: any) => {
     setFormData({ ...formData, [field]: value });
   };
 
-  const toggleSelection = (field: string, value: string) => {
-    const current = formData[field] || [];
-    const next = current.includes(value) 
-      ? current.filter((item: string) => item !== value)
-      : [...current, value];
-    handleInputChange(field, next);
+  const getIcon = (id: string) => {
+    const icons: Record<string, React.ReactNode> = {
+      transportadora: <Truck size={20} />,
+      operador_logistico: <PackageSearch size={20} />,
+      armazem: <Warehouse size={20} />,
+      agente_cargas: <Anchor size={20} />,
+      embarcador: <Briefcase size={20} />,
+      outros: <Building2 size={20} />,
+    };
+    return icons[id] || <Building2 size={20} />;
   };
 
-  const businessTypes = [
-    { id: 'transportadora', label: 'Transportadora', icon: <Truck size={22} />, desc: 'Frotas e Fretes' },
-    { id: 'operador_logistico', label: 'Operador Logístico', icon: <PackageSearch size={22} />, desc: 'Gestão 3PL' },
-    { id: 'armazem', label: 'Armazém / CD', icon: <Warehouse size={22} />, desc: 'Estocagem' },
-    { id: 'agente_cargas', label: 'Agente de Cargas', icon: <Anchor size={22} />, desc: 'Freight Forwarder' },
-    { id: 'gerenciadora_risco', label: 'G.R. / Monitoramento', icon: <ShieldAlert size={22} />, desc: 'Segurança' },
-    { id: 'cooperativa', label: 'Cooperativa', icon: <Briefcase size={22} />, desc: 'União de Frotas' },
-  ];
-
-  const verticals = [
-    { id: 'geral', label: 'Carga Geral', icon: <Boxes size={14} /> },
-    { id: 'frio', label: 'Cadeia do Frio', icon: <ThermometerSnowflake size={14} /> },
-    { id: 'quimico', label: 'Químicos (Hazmat)', icon: <HardHat size={14} /> },
-    { id: 'farma', label: 'Saúde / Farma', icon: <Microscope size={14} /> },
-    { id: 'agro', label: 'Agronegócio', icon: <Navigation size={14} /> },
-    { id: 'ecommerce', label: 'E-commerce / Last Mile', icon: <ShoppingCart size={14} /> },
-    { id: 'indivisivel', label: 'Excedentes / Projetos', icon: <Scale size={14} /> },
-    { id: 'container', label: 'Portuário / Container', icon: <Container size={14} /> },
-  ];
-
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-20">
-      
-      {/* HEADER DA SEÇÃO */}
-      <div className="flex flex-col gap-2 border-l-4 border-blue-600 dark:border-blue-500 pl-6 py-2">
-        <h2 className="text-2xl font-black uppercase italic tracking-tighter text-slate-800 dark:text-white">Perfil Corporativo</h2>
-        <p className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Configure sua vitrine para atrair grandes embarcadores</p>
-      </div>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+        <Info size={12} className="text-blue-500" />
+        A apresentação completa fica no campo Apresentação abaixo.
+      </p>
 
-      {/* 1. SELEÇÃO DE CATEGORIA MASTER */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-        {businessTypes.map((type) => (
-          <button
-            key={type.id}
-            type="button"
-            onClick={() => handleInputChange('business_type', type.id)}
-            className={`relative p-6 rounded-[2rem] border-2 text-left transition-all overflow-hidden group ${
-              formData.business_type === type.id 
-              ? 'border-blue-600 bg-blue-600 text-white shadow-2xl shadow-blue-200 dark:shadow-none' 
-              : 'border-slate-100 bg-white dark:bg-slate-900/50 dark:border-slate-800 text-slate-400 hover:border-blue-200 dark:hover:border-blue-900'
-            }`}
-          >
-            <div className={`mb-4 transition-transform group-hover:scale-110 ${formData.business_type === type.id ? 'text-blue-100' : 'text-slate-200 dark:text-slate-700'}`}>
-              {type.icon}
-            </div>
-            <div className="relative z-10">
-              <p className="text-[11px] font-black uppercase tracking-tighter">{type.label}</p>
-              <p className={`text-[9px] font-bold uppercase opacity-60 ${formData.business_type === type.id ? 'text-white' : 'text-slate-400 dark:text-slate-500'}`}>
-                {type.desc}
-              </p>
-            </div>
-          </button>
-        ))}
-      </div>
-
-      {/* 2. INFOS CADASTRAIS + LOCALIZAÇÃO */}
-      <div className="bg-slate-50 dark:bg-slate-800/40 p-10 rounded-[3.5rem] border border-slate-100 dark:border-slate-800 grid md:grid-cols-2 gap-8">
-          <Input label="Nome Fantasia" value={formData.name_fantasy} onChange={(v:any) => handleInputChange('name_fantasy', v)} />
-          <Input label="CNPJ" value={formData.cnpj} onChange={(v:any) => handleInputChange('cnpj', v)} />
-          <Input label="CEP" value={formData.postal_code} onChange={(v:any) => handleInputChange('postal_code', v)} placeholder="00000-000" />
-          <Input label="Logradouro" value={formData.address} onChange={(v:any) => handleInputChange('address', v)} placeholder="Rua, Av..." />
-          <Input label="Site Institucional" value={formData.website_url} onChange={(v:any) => handleInputChange('website_url', v)} />
-          <Input label="E-mail Comercial" value={formData.commercial_email} onChange={(v:any) => handleInputChange('commercial_email', v)} />
-      </div>
-
-      {/* 3. VERTICAIS DE EXPERTISE */}
-      <div className="space-y-6">
-        <div className="flex items-center gap-3">
-          <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-          <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.3em]">Especialidades de Atendimento</h4>
-          <div className="h-px bg-slate-200 dark:bg-slate-800 flex-1" />
-        </div>
-        
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {verticals.map((v) => {
-            const isSelected = (formData.specialties || []).includes(v.id);
-            return (
-              <button
-                key={v.id}
-                type="button"
-                onClick={() => toggleSelection('specialties', v.id)}
-                className={`flex items-center gap-3 p-4 rounded-2xl border-2 transition-all ${
-                  isSelected 
-                  ? 'bg-slate-900 dark:bg-blue-600 border-slate-900 dark:border-blue-600 text-white shadow-lg' 
-                  : 'bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-500 hover:border-slate-200 dark:hover:border-slate-700'
-                }`}
-              >
-                <span className={isSelected ? 'text-blue-400 dark:text-blue-200' : 'text-slate-300 dark:text-slate-700'}>{v.icon}</span>
-                <span className="text-[9px] font-black uppercase">{v.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* 4. COMPLIANCE E CERTIFICAÇÕES */}
-      <div className="bg-emerald-50/40 dark:bg-emerald-500/5 p-10 rounded-[3.5rem] border border-emerald-100/50 dark:border-emerald-500/20">
-        <div className="flex items-center gap-3 mb-8">
-          <Award className="text-emerald-600 dark:text-emerald-500" size={24} />
-          <h4 className="text-sm font-black uppercase italic text-emerald-900 dark:text-emerald-400 tracking-tighter">Compliance e Certificações Técnicas</h4>
-        </div>
-        <div className="flex flex-wrap gap-3">
-          {['ANVISA (Saúde)', 'ANVISA (Alimentos)', 'SASSMAQ', 'ISO 9001', 'ISO 14001', 'OEA', 'ANTT Regular'].map(cert => (
+      {/* Tipo de Empresa */}
+      <div className="space-y-4">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">
+          Tipo de Empresa
+        </label>
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {COMPANY_TYPES.map((t) => (
             <button
-              key={cert}
+              key={t.id}
               type="button"
-              onClick={() => toggleSelection('certifications', cert)}
-              className={`group flex items-center gap-2 px-6 py-3 rounded-full text-[10px] font-black uppercase transition-all ${
-                (formData.certifications || []).includes(cert)
-                ? 'bg-emerald-600 text-white shadow-lg' 
-                : 'bg-white dark:bg-slate-900 text-emerald-600 dark:text-emerald-500 border border-emerald-200 dark:border-emerald-500/30 hover:bg-emerald-50'
+              onClick={() => handleInputChange('business_type', t.id)}
+              className={`flex items-center gap-3 p-4 rounded-2xl border-2 text-left transition-all ${
+                formData.business_type === t.id
+                  ? 'border-blue-600 bg-blue-600 text-white shadow-lg'
+                  : 'border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900/50 text-slate-500 hover:border-blue-200 dark:hover:border-blue-900'
               }`}
             >
-              <FileCheck size={14} />
-              {cert}
+              <span
+                className={
+                  formData.business_type === t.id ? 'text-blue-100' : 'text-slate-300 dark:text-slate-600'
+                }
+              >
+                {getIcon(t.id)}
+              </span>
+              <div>
+                <p className="text-[10px] font-black uppercase">{t.label}</p>
+                <p
+                  className={`text-[9px] font-bold ${
+                    formData.business_type === t.id ? 'text-blue-100' : 'text-slate-400'
+                  }`}
+                >
+                  {t.desc}
+                </p>
+              </div>
             </button>
           ))}
         </div>
       </div>
 
-      {/* 5. COBERTURA GEOGRÁFICA */}
-      <div className="bg-slate-900 dark:bg-[#020617] p-10 rounded-[4rem] text-white shadow-2xl relative overflow-hidden border dark:border-slate-800">
-        <div className="relative z-10 grid md:grid-cols-2 gap-12">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <MapPinned className="text-blue-400" size={24} />
-              <h4 className="font-black uppercase italic tracking-tighter">Raio de Operação</h4>
-            </div>
-            <select 
-              value={formData.coverage_area || 'nacional'} 
-              onChange={(e) => handleInputChange('coverage_area', e.target.value)}
-              className="w-full p-5 bg-slate-800 dark:bg-slate-900 rounded-2xl border border-slate-700 text-white font-black text-xs outline-none focus:ring-2 ring-blue-500/50 appearance-none"
-            >
-              <option value="nacional">Brasil (Nacional)</option>
-              <option value="regional">Regional (Sul/Sudeste/etc)</option>
-              <option value="estadual">Foco Estadual</option>
-              <option value="internacional">Internacional (Mercosul)</option>
-            </select>
-          </div>
-          
-          <div className="space-y-4">
-            <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">Cidades / Rotas Estratégicas</label>
-            <textarea 
-              rows={3}
-              placeholder="Ex: Saídas diárias de SP para todo o Nordeste..."
-              value={formData.specific_regions || ''}
-              onChange={(e) => handleInputChange('specific_regions', e.target.value)}
-              className="w-full p-5 bg-slate-800 dark:bg-slate-900 rounded-3xl border border-slate-700 text-white font-bold text-xs outline-none focus:ring-2 ring-blue-500/50 resize-none placeholder:text-slate-600"
-            />
-          </div>
+      {/* Campos Genéricos */}
+      <div className="grid md:grid-cols-2 gap-6 bg-slate-50 dark:bg-slate-800/30 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <Globe size={12} /> Site
+          </label>
+          <input
+            value={formData.website || formData.website_url || ''}
+            onChange={(e) => {
+              handleInputChange('website', e.target.value);
+              handleInputChange('website_url', e.target.value);
+            }}
+            placeholder="www.empresa.com.br"
+            className="w-full p-4 bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-100 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-200 text-sm outline-none focus:border-blue-500"
+          />
         </div>
-        <Globe2 size={200} className="absolute -right-20 -bottom-20 text-slate-800 dark:text-blue-900 opacity-20 pointer-events-none" />
+        <div className="space-y-2">
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <Mail size={12} /> E-mail Comercial
+          </label>
+          <input
+            value={formData.commercial_email || ''}
+            onChange={(e) => handleInputChange('commercial_email', e.target.value)}
+            placeholder="comercial@empresa.com"
+            className="w-full p-4 bg-white dark:bg-slate-900 rounded-xl border-2 border-slate-100 dark:border-slate-800 font-bold text-slate-700 dark:text-slate-200 text-sm outline-none focus:border-blue-500"
+          />
+        </div>
       </div>
-
     </div>
   );
 };
-
-// Subcomponente de Input (Consistência Visual)
-const Input = ({ label, value, onChange, placeholder }: any) => (
-  <div className="w-full group">
-    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-3 block ml-2 group-focus-within:text-blue-600 transition-colors">{label}</label>
-    <input 
-      value={value || ''} 
-      onChange={(e) => onChange(e.target.value)}
-      placeholder={placeholder}
-      className="w-full p-5 bg-white dark:bg-slate-900 rounded-3xl border-2 border-slate-100 dark:border-slate-800 focus:border-blue-600 dark:focus:border-blue-500 outline-none font-bold text-slate-700 dark:text-slate-200 text-sm transition-all shadow-sm" 
-    />
-  </div>
-);
 
 export default CompanyFields;

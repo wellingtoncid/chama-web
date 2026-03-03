@@ -8,7 +8,7 @@ import { AdPopup } from '../components/shared/AdPopup';
 import HomePortal from '../pages/HomePortal';
 import FreightPage from '../pages/FreightPage';
 import GroupsList from '../pages/GroupsList';
-import ProfileView from '../pages/public/ProfileView';
+  import ProfileView from '../pages/public/ProfileView';
 import AdvertisingLandingPage from '../pages/AdvertisingLandingPage';
 import Marketplace from '../pages/marketplace/Marketplace'; 
 import FreightDetails from '../pages/freights/FreightDetails';
@@ -60,6 +60,7 @@ export default function AppRoutes() {
 
       <Route path="/driver/:slug" element={<ProfileView />} />
       <Route path="/company/:slug" element={<ProfileView />} />
+      <Route path="/perfil/:slug" element={<ProfileView />} />
       <Route path="/anuncie" element={<AdvertisingLandingPage />} />
 
       {/* --- ÁREA LOGADA (Com Sidebar/DashboardLayout) --- */}
