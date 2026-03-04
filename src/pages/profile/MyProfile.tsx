@@ -138,6 +138,40 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     }
   };
 
+  const score = calculateLiveScore();
+
+  const determineProfileStatus = () => {
+    if (user.is_verified) {
+      return { 
+        text: 'Verificado', 
+        Icon: ShieldCheck,
+        className: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-100 dark:border-emerald-500/20' 
+      };
+    }
+    if (score === 100) {
+      return { 
+        text: 'Perfil Concluído', 
+        Icon: ShieldCheck,
+        className: 'bg-green-50 dark:bg-green-500/10 text-green-600 border border-green-100 dark:border-green-500/20'
+      };
+    }
+    if (score >= 80) {
+      return { 
+        text: 'Em Análise', 
+        Icon: AlertCircle,
+        className: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border border-amber-100 dark:border-amber-500/20'
+      };
+    }
+    return { 
+      text: isCompany ? 'Dados Incompletos' : 'Perfil Incompleto', 
+      Icon: AlertCircle,
+      className: 'bg-red-50 dark:bg-red-500/10 text-red-600 border border-red-100 dark:border-red-500/20' 
+    };
+  };
+
+  const profileStatus = determineProfileStatus();
+  const StatusIcon = profileStatus.Icon;
+
   return (
     <div className="max-w-6xl mx-auto space-y-8 pb-24 px-4 md:px-6">
       
@@ -153,19 +187,13 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
               </div>
               <div>
                   <h4 className="font-black uppercase italic text-slate-800 dark:text-white leading-tight">Força do Perfil</h4>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">Complete para o Radar Smart te encontrar</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">{isCompany ? 'Preencha seus dados para habilitar módulos e funcionalidades' : 'Complete para o Radar Smart te encontrar'}</p>
               </div>
           </div>
           <div className="flex items-center gap-3">
-            {user.is_verified ? (
-                <div className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 px-6 py-3 rounded-2xl flex items-center gap-2 font-black uppercase italic text-[10px] border border-emerald-100 dark:border-emerald-500/20">
-                    <ShieldCheck size={16} /> Verificado
-                </div>
-            ) : (
-                <div className="bg-amber-50 dark:bg-amber-500/10 text-amber-600 px-6 py-3 rounded-2xl flex items-center gap-2 font-black uppercase italic text-[10px] border border-amber-100 dark:border-amber-500/20">
-                    <AlertCircle size={16} /> {calculateLiveScore() >= 80 ? 'Em Análise' : 'Perfil Incompleto'}
-                </div>
-            )}
+            <div className={`${profileStatus.className} px-6 py-3 rounded-2xl flex items-center gap-2 font-black uppercase italic text-[10px] border`}>
+                <StatusIcon size={16} /> {profileStatus.text}
+            </div>
           </div>
       </div>
       

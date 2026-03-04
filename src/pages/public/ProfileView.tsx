@@ -86,8 +86,23 @@ export default function ProfileView() {
     if (slug) fetchFullData();
   }, [slug, fetchFullData]);
 
+  const calculateProfileScore = (p: any) => {
+    let score = 0;
+    if (!p) return 0;
+    if (p.trade_name || p.name) score += 20;
+    if (p.avatar_url) score += 20;
+    if (p.city && p.state) score += 20;
+    if (p.bio && p.bio.length > 10) score += 20;
+    // O quinto elemento (WhatsApp) não está disponível na visualização pública,
+    // então a pontuação máxima aqui é 80 para fins da lógica de exibição.
+    return score;
+  };
+
   if (loading) return <LoadingState />;
   if (!profile) return <NotFoundState navigate={navigate} />;
+
+  const profileScore = calculateProfileScore(profile);
+  const shouldShowVerifiedBadge = profile.is_verified !== false && profileScore >= 80;
 
   // Fallback para user_type quando role não vier do backend
   const type = (profile.role || profile.user_type || '').toLowerCase();
@@ -202,7 +217,7 @@ export default function ProfileView() {
                   </div>
                 </div>
               )}
-              {profile.is_verified !== false && (
+              {shouldShowVerifiedBadge && (
                 <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-3 rounded-2xl shadow-lg border-4 border-white dark:border-slate-900">
                   <ShieldCheck size={24} />
                 </div>
@@ -212,7 +227,7 @@ export default function ProfileView() {
             {/* INFO TEXTO */}
             <div className="flex-1 text-center md:text-left space-y-4">
               <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                {profile.is_verified !== false && (
+                {shouldShowVerifiedBadge && (
                   <span className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1.5">
                     <CheckCircle2 size={14} /> Perfil Verificado
                   </span>
