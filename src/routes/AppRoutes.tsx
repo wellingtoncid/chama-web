@@ -33,7 +33,6 @@ import PaymentFailure from '../pages/checkout/PaymentFailure';
 
 // ADMIN - USUÁRIOS
 import UsersManager from '../components/admin/UsersManagerView';
-import UserDetails from '../components/admin/UserDetails';
 import UserCreate from '../components/admin/UserCreate';
 
 
@@ -64,14 +63,13 @@ export default function AppRoutes() {
       <Route path="/anuncie" element={<AdvertisingLandingPage />} />
 
       {/* --- ÁREA LOGADA (Com Sidebar/DashboardLayout) --- */}
-      <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin', 'manager', 'partner', 'superadmin', 'shipper']} />}>
+      <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin', 'manager', 'support', 'finance', 'marketing', 'director', 'coordinator', 'supervisor']} />}>
         <Route element={<DashboardLayout user={user} />}>
 
           {/* Centralizador de Rotas Internas (Admin, BI, Perfil, etc) */}
           <Route path="/dashboard/*" element={<DashboardPage />} />
 
           <Route path="/dashboard/admin/usuarios" element={<UsersManager />} />
-          <Route path="/dashboard/admin/usuarios/:id" element={<UserDetails />} />
           <Route path="/dashboard/admin/usuarios/novo" element={<UserCreate />} />
 
           {/* CHAT: Dentro do Layout para manter a Sidebar */}
@@ -85,13 +83,13 @@ export default function AppRoutes() {
 
       {/* --- ROTAS ESPECÍFICAS (Sem Sidebar / Foco Total) --- */}
 
-      {/* Criar Frete: APENAS Empresa, Admin e Shipper (Driver não entra aqui) */}
-      <Route element={<PrivateRoute allowedRoles={['company', 'admin', 'superadmin', 'shipper']} />}>
+      {/* Criar Frete: APENAS Empresa, Admin (Driver não entra aqui) */}
+      <Route element={<PrivateRoute allowedRoles={['company', 'admin']} />}>
         <Route path="/novo-frete" element={<CreateFreight />} />
       </Route>
 
       {/* Pagamentos */}
-      <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin', 'shipper']} />}>
+      <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin']} />}>
         <Route path="/payment/success" element={<PaymentSuccess />} />
         <Route path="/payment/failure" element={<PaymentFailure />} />
       </Route>

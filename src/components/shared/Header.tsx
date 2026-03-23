@@ -2,6 +2,7 @@ import { Truck, Menu, X, Sun, Moon, ChevronDown, Building2, User } from "lucide-
 import { Button } from "../ui/button";
 import { useState } from "react";
 import AdCard from "../shared/AdCard";
+import logoImg from '../../assets/chama-thumb-blue-rbg.png';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -47,26 +48,36 @@ const Header = () => {
         <div className="container mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-16 lg:h-18">
             
-            {/* Logo */}
-            <a href="/" className="flex items-center gap-2 group transition-transform hover:scale-105">
-              <div className="w-9 h-9 bg-[#1f4ead] rounded-xl flex items-center justify-center shadow-lg shadow-[#1f4ead]/20 group-hover:rotate-3 transition-all">
-                <Truck className="w-5 h-5 text-white" />
+          {/* Logo */}
+            <a href="/" className="flex items-center gap-2.5 group transition-transform hover:scale-[1.02] outline-none">
+              <div className="w-10 h-10 flex items-center justify-center transition-all group-hover:rotate-6">
+                <img 
+                  src={logoImg} 
+                  alt="Logo ChamaFrete" 
+                  className="w-full h-full object-contain" 
+                />
               </div>
-              <span className="text-lg font-[900] text-slate-900 dark:text-white tracking-tighter uppercase italic">
-                Chama<span className="text-[#1f4ead]">Frete</span>
-              </span>
+              
+              <div className="flex flex-col">
+                <h1 className="text-3xl font-[1000] text-slate-900 dark:text-white tracking-tighter uppercase italic leading-none">
+                  <span className="text-orange-500">Chama</span><span className="text-[#1f4ead]">Frete</span>
+                </h1>
+                <span className="text-[8.5px] font-[900] text-slate-400 dark:text-slate-500 uppercase tracking-[0.48em] ml-0.5 -mt-.5 leading-none">
+                  A Coligação Logística
+                </span>
+              </div>
             </a>
 
-            {/* Desktop Navigation */}
+            {/* Desktop Navigation - Ajustado para hover Laranja */}
             <nav className="hidden lg:flex items-center gap-7">
               {navLinks.map((item) => (
                 <a
                   key={item.name}
                   href={item.href}
-                  className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-[#1f4ead] dark:hover:text-white transition-all relative group"
+                  className="text-[10px] font-black uppercase tracking-widest text-slate-500 dark:text-slate-400 hover:text-orange-500 dark:hover:text-orange-400 transition-all relative group"
                 >
                   {item.name}
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#1f4ead] transition-all group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-orange-500 transition-all group-hover:w-full" />
                 </a>
               ))}
             </nav>
@@ -89,22 +100,31 @@ const Header = () => {
                 </Button>
               </a>
 
+              {/* Dropdown de Criar Conta - Melhorado */}
               <div className="relative group">
                 <Button 
-                  className="bg-[#1f4ead] hover:bg-[#163a82] text-white font-black text-[10px] uppercase tracking-widest px-6 h-11 rounded-xl shadow-md transition-all flex gap-2"
+                  className="bg-[#1f4ead] hover:bg-[#163a82] text-white font-black text-[10px] uppercase tracking-widest px-6 h-11 rounded-xl shadow-lg shadow-blue-500/10 transition-all flex gap-2"
                 >
                   Criar Conta
-                  <ChevronDown className="w-4 h-4" />
+                  <ChevronDown className="w-4 h-4 group-hover:rotate-180 transition-transform" />
                 </Button>
 
-                <div className="absolute top-full right-0 mt-2 w-52 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl opacity-0 translate-y-2 pointer-events-none group-hover:opacity-100 group-hover:translate-y-0 group-hover:pointer-events-auto transition-all p-2">
-                  <a href="/register?type=driver" className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all">
-                    <User size={16} className="text-slate-400" />
+                {/* O 'invisible' e 'opacity-0' ajudam na performance da animação */}
+                <div className="absolute top-full right-0 mt-3 w-56 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all p-2 z-[60]">
+                  {/* Item Motorista */}
+                  <a href="/register?type=driver" className="flex items-center gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all group/item">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-800 rounded-lg group-hover/item:bg-white dark:group-hover/item:bg-slate-700">
+                      <User size={14} className="text-slate-500" />
+                    </div>
                     <span className="text-[10px] font-bold uppercase dark:text-slate-200">Sou Motorista</span>
                   </a>
-                  <a href="/register?type=company" className="flex items-center gap-3 p-3 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-xl transition-all">
-                    <Building2 size={16} className="text-[#1f4ead]" />
-                    <span className="text-[10px] font-black uppercase text-[#1f4ead]">Sou Empresa</span>
+                  
+                  {/* Item Empresa - Destaque em Azul */}
+                  <a href="/register?type=company" className="flex items-center gap-3 p-3 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl transition-all group/item">
+                    <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <Building2 size={14} className="text-[#1f4ead]" />
+                    </div>
+                    <span className="text-[10px] font-black uppercase text-[#1f4ead] dark:text-blue-400">Sou Empresa</span>
                   </a>
                 </div>
               </div>

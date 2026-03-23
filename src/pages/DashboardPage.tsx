@@ -12,6 +12,13 @@ import MyProfile from '../pages/profile/MyProfile';
 import ChatList from './chat/ChatList';
 import WelcomeOnboarding from '../components/profile/WelcomeOnboarding';
 
+// PÁGINAS
+import PlansPage from './plans/PlansPage';
+import FinancialPage from './financial/FinancialPage';
+import SupportPage from './support/SupportPage';
+import QuotesPage from './quotes/QuotesPage';
+import MarketplaceManager from '../modules/marketplace/MarketplaceManager';
+
 // COMPONENTES INTERNOS (ADMIN)
 import DashboardAdmin from '../components/admin/DashboardAdmin'; 
 import FreightsManagerView from '../components/admin/FreightManagerView';
@@ -23,6 +30,20 @@ import AdminPortalRequests from '../components/admin/AdminPortalRequests';
 import AdminFinancial from '../components/admin/AdminFinancial'; 
 import PlansManager from '../components/admin/PlansManager';
 import AdminDashboardActivity from '../components/admin/AdminDashboardActivity';
+import PricingManager from '../components/admin/PricingManager';
+import SupportTicketsManager from '../components/admin/SupportTicketsManager';
+import QuotesManager from '../components/admin/QuotesManager';
+import MarketplaceManagerAdmin from '../components/admin/MarketplaceManagerAdmin';
+import DashboardHome from '../components/admin/DashboardHome';
+import DashboardBI from '../components/admin/DashboardBI';
+import ProfileView from '../components/admin/ProfileView';
+import AccessManager from '../components/admin/AccessManager';
+import UserCreate from '../components/admin/UserCreate';
+import RolesPage from './admin/RolesPage';
+import ModulesPage from './admin/ModulesPage';
+
+// PÁGINAS DE COMUNIDADES
+import CommunityPlatform from './community/CommunityPlatform';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -64,18 +85,18 @@ export default function DashboardPage() {
   if (!user) return <Navigate to="/login" replace />;
 
   // --- LÓGICA DE PERMISSÕES (RBAC) ---
-  const role = String(user.role || '').toUpperCase();
+  const role = String(user.role || '').toLowerCase();
   
   // Internos (Staff)
-  const isSuperAdmin = role === 'SUPERADMIN' || role === 'ADMIN';
-  const isInternal = ['ADMIN', 'SUPERADMIN', 'SUPPORT', 'SALES', 'MANAGER'].includes(role);
+  const isSuperAdmin = role === 'admin';
+  const isInternal = ['admin', 'manager', 'support', 'finance', 'marketing', 'director', 'coordinator', 'supervisor'].includes(role);
   
   // Externos (Clientes)
-  const isCompany = ['COMPANY', 'TRANSPORTADORA', 'LOGISTICS', 'WAREHOUSE', 'SHIPPER'].includes(role);
-  const isDriver = ['DRIVER', 'MOTORISTA'].includes(role);
+  const isCompany = role === 'company';
+  const isDriver = role === 'driver';
   
   // Módulos Contratados
-  const hasAdsModule = !!user.is_advertiser || isInternal || isCompany;
+  const hasAdsModule = isInternal || isCompany;
 
   // LÓGICA DE BLOQUEIO / ONBOARDING
   // Verifica se faltam dados essenciais para empresas
@@ -118,26 +139,36 @@ export default function DashboardPage() {
         </div>
       )}
 
-      <Routes>   
+        <Routes>   
           <Route index element={
-            isInternal ? <DashboardAdmin /> : 
+            isInternal ? <DashboardHome user={user} /> : 
             isCompany ? <CompanyCommandCenter user={user} refreshUser={fetchUserData} /> : 
-            isDriver ? <DriverView user={user} /> : 
+            isDriver ? <DriverView /> : 
             <Navigate to="profile" replace />
           } />
 
           {isInternal && (
             <>
-              <Route path="admin/bi" element={<DashboardAdmin />} />
+              <Route path="admin/bi" element={<DashboardBI user={user} />} />
+              <Route path="admin/inicio" element={<DashboardHome user={user} />} />
               <Route path="admin/cargas" element={<FreightsManagerView />} />
               <Route path="admin/usuarios" element={<UsersManager />} />
+              {isSuperAdmin && <Route path="admin/usuarios/novo" element={<UserCreate />} />}
               <Route path="admin/comunidades" element={<GroupsManager />} />
               <Route path="admin/financeiro" element={<AdminFinancial />} />
               <Route path="admin/publicidade" element={<AdsManager />} />
               <Route path="admin/leads" element={<AdminPortalRequests />} />
+              <Route path="admin/cotacoes" element={<QuotesManager />} />
+              <Route path="admin/marketplace" element={<MarketplaceManagerAdmin />} />
               <Route path="admin/configuracoes" element={<SettingsView />} />
               <Route path="admin/atividade" element={<AdminDashboardActivity />} />
+              <Route path="admin/suporte" element={<SupportTicketsManager />} />
               {isSuperAdmin && <Route path="admin/planos" element={<PlansManager />} />}
+              {isSuperAdmin && <Route path="admin/precificacao" element={<PricingManager />} />}
+              {isSuperAdmin && <Route path="admin/acessos" element={<AccessManager />} />}
+              {isSuperAdmin && <Route path="admin/cargos" element={<RolesPage />} />}
+              {isSuperAdmin && <Route path="admin/modulos" element={<ModulesPage />} />}
+              <Route path="perfil" element={<ProfileView />} />
             </>
           )}
 
@@ -149,22 +180,19 @@ export default function DashboardPage() {
             <Route path="anunciante/*" element={<AdvertiserPortal user={user} />} />
           )}
 
+          {/* Páginas para todos os usuários logados */}
+          <Route path="planos" element={<PlansPage />} />
+          <Route path="financeiro" element={<FinancialPage />} />
+          <Route path="suporte" element={<SupportPage />} />
+          <Route path="cotacoes" element={<QuotesPage />} />
+          <Route path="comunidades" element={<CommunityPlatform user={user} />} />
+
           <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
           <Route path="chat" element={<ChatList />} />
-          <Route path="vendas" element={<ModulePlaceholder title="Marketplace de Insumos" />} />
+          <Route path="vendas" element={<MarketplaceManager user={user} />} />
+          <Route path="marketplace" element={<MarketplaceManager user={user} />} />
           <Route path="*" element={<Navigate to="" replace />} />
       </Routes>
-    </div>
-  );
-}
-
-function ModulePlaceholder({ title }: { title: string }) {
-  return (
-    <div className="p-12 flex flex-col items-center justify-center">
-      <div className="w-full max-w-2xl p-16 border-[6px] border-dashed border-slate-100 dark:border-slate-800 rounded-[4rem] text-center">
-        <h2 className="text-4xl font-black uppercase italic text-slate-200 dark:text-slate-800 mb-2">{title}</h2>
-        <p className="text-orange-500 font-bold uppercase tracking-widest text-xs">Módulo em Integração 2026</p>
-      </div>
     </div>
   );
 }

@@ -15,7 +15,7 @@ export default function GroupsManager() {
   const load = async () => {
   try {
     setLoading(true);
-    const res = await api.get('list-groups');
+    const res = await api.get('admin-groups');
       if (res.data && res.data.success) {
         setGroups(res.data.data || []);
       } else {
@@ -46,23 +46,21 @@ export default function GroupsManager() {
       is_premium: rawData.is_premium === 'on' ? 1 : 0,
       
       // Garantir que campos numéricos sejam números
-      member_count: Number(rawData.member_count) || 0,
       priority_level: Number(rawData.priority_level) || 0,
 
       // Strings (Enums no banco)
-      target_role: rawData.target_role || 'all',
+      target_role: rawData.target_role || 'ALL',
       display_location: rawData.display_location || 'both',
       access_type: rawData.access_type || 'public',
       status: rawData.status || 'active',
       
       // Campos de texto
       category: rawData.category || 'Geral',
-      group_admin_name: rawData.group_admin_name || '',
       internal_notes: rawData.internal_notes || ''
     };
 
     try {
-      const res = await api.post('manage-groups', payload);
+      const res = await api.post('admin-groups', payload);
       if (res.data.success) {
         setIsModalOpen(false);
         setEditingGroup(null);
@@ -78,7 +76,7 @@ export default function GroupsManager() {
   const deleteGroup = async (id: number) => {
     if(!confirm("Mover para a lixeira?")) return;
     try {
-      await api.delete('manage-groups', { data: { id } });
+      await api.post('delete-group', { id });
       load();
     } catch (err) {
       alert("Erro ao excluir.");
@@ -151,10 +149,27 @@ export default function GroupsManager() {
                   <span className="text-[9px] bg-slate-800 text-white px-2 py-0.5 rounded font-black uppercase tracking-widest flex items-center gap-1">
                     <Tag size={8}/> {g.category || 'Geral'}
                   </span>
-                  <span className="text-[10px] text-slate-400 font-bold flex items-center gap-1">
-                    <Users size={12}/> {g.member_count || 0}
+                  <span className={`text-[9px] px-2 py-0.5 rounded font-black uppercase tracking-widest flex items-center gap-1 ${
+                    g.target_role === 'DRIVER' ? 'bg-emerald-100 text-emerald-700' : 
+                    g.target_role === 'COMPANY' ? 'bg-blue-100 text-blue-700' : 
+                    'bg-green-100 text-green-700'
+                  }`}>
+                    {g.target_role === 'DRIVER' ? '🚛 Motoristas' : 
+                     g.target_role === 'COMPANY' ? '🏢 Empresas' : 
+                     '👥 Todos'}
                   </span>
+                  {g.display_location && g.display_location !== 'both' && (
+                    <span className="text-[9px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-black uppercase tracking-widest">
+                      {g.display_location === 'site' ? 'Site' : 'Plataforma'}
+                    </span>
+                  )}
                 </div>
+
+                {g.internal_notes && (
+                  <p className="text-[9px] text-amber-600 mt-2 italic bg-amber-50 px-2 py-1 rounded">
+                    📝 {g.internal_notes}
+                  </p>
+                )}
               </div>
 
               <div className="mt-5 flex items-center justify-between border-t border-slate-50 pt-3 text-[9px] font-black uppercase text-slate-400">
@@ -197,6 +212,15 @@ export default function GroupsManager() {
               </div>
 
               <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <label className="text-[9px] font-black uppercase text-slate-400 flex items-center gap-1"><Users size={12}/> Público Alvo</label>
+                <select name="target_role" defaultValue={editingGroup?.target_role || 'ALL'} className="w-full bg-white p-2 rounded-lg font-bold text-[11px] outline-none border border-slate-200">
+                  <option value="ALL">Todos</option>
+                  <option value="DRIVER">Apenas Motoristas</option>
+                  <option value="COMPANY">Apenas Empresas</option>
+                </select>
+              </div>
+
+              <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
                 <label className="text-[9px] font-black uppercase text-slate-400 flex items-center gap-1"><Lock size={12}/> Regra de Clique</label>
                 <select name="access_type" defaultValue={editingGroup?.access_type || 'public'} className="w-full bg-white p-2 rounded-lg font-bold text-[11px] outline-none border border-slate-200">
                   <option value="public">Link Direto</option>
@@ -228,11 +252,6 @@ export default function GroupsManager() {
               </div>
 
               <div>
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-1 block">Membros</label>
-                <input type="number" name="member_count" defaultValue={editingGroup?.member_count || 0} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent font-bold outline-none" />
-              </div>
-
-              <div>
                 <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-1 block">Status</label>
                 <select name="status" defaultValue={editingGroup?.status || 'active'} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent font-bold outline-none">
                   <option value="active">ATIVO</option>
@@ -253,13 +272,8 @@ export default function GroupsManager() {
               </div>
 
               <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-1 block">Equipe Administrativa</label>
-                <textarea name="group_admin_name" defaultValue={editingGroup?.group_admin_name} rows={2} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent font-bold outline-none resize-none" />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-1 block">Notas Internas</label>
-                <textarea name="internal_notes" defaultValue={editingGroup?.internal_notes} rows={2} className="w-full p-4 bg-slate-50 rounded-2xl border-2 border-transparent font-bold outline-none resize-none" />
+                <label className="text-[10px] font-black uppercase text-slate-400 ml-4 mb-1 block">Observação Administrativa</label>
+                <textarea name="internal_notes" defaultValue={editingGroup?.internal_notes} rows={3} placeholder="Observação visível apenas para administradores..." className="w-full p-4 bg-amber-50 rounded-2xl border-2 border-amber-100 font-bold outline-none resize-none text-xs" />
               </div>
             </div>
 

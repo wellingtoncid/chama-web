@@ -16,7 +16,7 @@ export default function NewListingModal({ isOpen, onClose, user, onRefresh }: an
     if (image) formData.append('image', image);
 
     try {
-      await api.post('?endpoint=create-listing', formData, {
+      await api.post('/create-listing', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
       alert("Anúncio publicado com sucesso!");

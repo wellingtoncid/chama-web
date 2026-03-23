@@ -66,7 +66,7 @@ const FreightCard = ({ data, aba, onToggle, disabled }: any) => {
     });
   };
 
-  const companyDisplayName = data.company?.name || data.company_name || data.user?.name || 'Anunciante Particular';
+  const companyDisplayName = data.company_name || data.user_name || 'Anunciante';
 
   return (
     <>

@@ -6,7 +6,6 @@ const GroupForm = ({ group, onClose, onSave }: any) => {
   const [formData, setFormData] = useState(group || {
     region_name: "",
     invite_link: "",
-    member_count: 0,
     is_public: 0,
     is_visible_home: 1,
     target_role: "all",
@@ -66,17 +65,7 @@ const GroupForm = ({ group, onClose, onSave }: any) => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Membros</label>
-                  <input 
-                    type="number"
-                    className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold"
-                    value={formData.member_count}
-                    onChange={e => setFormData({...formData, member_count: e.target.value})}
-                  />
-                </div>
-                <div>
+              <div>
                   <label className="text-[10px] font-black text-slate-400 uppercase ml-1">Categoria</label>
                   <select 
                     className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl outline-none font-bold text-slate-600"
@@ -89,7 +78,6 @@ const GroupForm = ({ group, onClose, onSave }: any) => {
                     <option value="Caçamba">Caçamba</option>
                   </select>
                 </div>
-              </div>
             </div>
 
             {/* COLUNA 2: REGRAS E PRIVACIDADE */}

@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-export const BASE_URL_API = import.meta.env.VITE_API_URL || 'http://127.0.0.1/chama-frete/api/public';
+export const BASE_URL_API = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
 
 export const api = axios.create({
   baseURL: BASE_URL_API,

@@ -1,4 +1,4 @@
-import { MessageCircle, Users, ArrowRight, Lock, Loader2 } from "lucide-react";
+import { MessageCircle, Users, ArrowRight, Lock, Loader2, Tag } from "lucide-react";
 import { Button } from "../ui/button";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -8,7 +8,6 @@ import { api } from "../../api/api";
 interface WhatsAppGroup {
   id: number;
   region_name: string;
-  member_count: number;
   invite_link: string;
   is_public: number;
   category: string;
@@ -98,8 +97,8 @@ const CommunityGroups = () => {
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2 uppercase italic tracking-tighter leading-none">{group.region_name}</h3>
                 <div className="flex items-center gap-2 mb-8">
                   <div className="flex items-center gap-1 bg-slate-50 dark:bg-slate-950 px-2 py-1 rounded-lg">
-                    <Users className="w-3 h-3 text-slate-400" />
-                    <span className="text-[10px] font-black text-slate-400 uppercase">{group.member_count} Participantes</span>
+                    <Tag className="w-3 h-3 text-slate-400" />
+                    <span className="text-[10px] font-black text-slate-400 uppercase">{group.category || 'Geral'}</span>
                   </div>
                 </div>
                 {group.invite_link === 'locked' ? (

@@ -8,6 +8,7 @@ import {
 import { api } from '../../api/api';
 import CheckoutModal from './CheckoutModal';
 import Swal from 'sweetalert2';
+import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
@@ -16,6 +17,9 @@ export default function FreightManager({ user }: any) {
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedFreightId, setSelectedFreightId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [modules, setModules] = useState<any>({});
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [pricingData, setPricingData] = useState<any>(null);
   
   // Estado para métricas específicas deste módulo
   const [stats, setStats] = useState({
@@ -24,14 +28,70 @@ export default function FreightManager({ user }: any) {
     activeFreights: 0
   });
 
+  // Hook de verificação de uso
+  const freightUsage = useUsageCheck('freights', 'publish');
+
+  // Carrega módulos do usuário
+  useEffect(() => {
+    async function loadModules() {
+      try {
+        const res = await api.get('/user/modules');
+        if (res.data?.success) {
+          const modulesMap: any = {};
+          res.data.data.modules.forEach((m: any) => {
+            modulesMap[m.key] = m;
+          });
+          setModules(modulesMap);
+        }
+      } catch (e) {
+        console.error('Erro ao carregar módulos:', e);
+      }
+    }
+    loadModules();
+  }, []);
+
   const checkAccessAndRun = (callback: () => void) => {
-    const isApproved = user?.role === 'ADMIN' || user?.company_status === 'APPROVED';
+    const isAdmin = user?.role === 'ADMIN';
+    const isApproved = isAdmin || user?.verification_status === 'verified';
     const hasProfile = !!user?.company_name && !!user?.document;
+    const hasFreightsModule = modules?.freights?.is_active ?? false;
+    const canAccessFreights = isAdmin || hasFreightsModule;
+
+    if (!canAccessFreights) {
+      Swal.fire({
+        title: '<span class="italic font-black">MÓDULO INATIVO</span>',
+        html: `
+          <div class="flex flex-col items-center gap-4">
+            <div class="text-orange-500 animate-bounce mt-4">
+              <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m12 8-4 4"/><path d="m8 8 4 4"/></svg>
+            </div>
+            <p class="text-slate-500 font-medium">
+              O módulo de Fretes está inativo. Ative-o no painel da sua empresa para publicar cargas.
+            </p>
+          </div>
+        `,
+        showCancelButton: true,
+        confirmButtonText: 'ATIVAR MÓDULO',
+        cancelButtonText: 'FECHAR',
+        confirmButtonColor: '#f97316',
+        cancelButtonColor: '#cbd5e1',
+        customClass: {
+          popup: 'rounded-[2.5rem] p-10',
+          confirmButton: 'rounded-xl font-black uppercase text-xs px-6 py-4',
+          cancelButton: 'rounded-xl font-black uppercase text-xs px-6 py-4'
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          navigate('/dashboard');
+        }
+      });
+      return;
+    }
 
     if (!isApproved) {
       Swal.fire({
         title: '<span class="italic font-black">ACESSO RESTRITO</span>',
-        html: `
+        html: ` 
           <div class="flex flex-col items-center gap-4">
             <div class="text-orange-500 animate-bounce mt-4">
               <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/><path d="m12 8-4 4"/><path d="m8 8 4 4"/></svg>
@@ -39,7 +99,7 @@ export default function FreightManager({ user }: any) {
             <p class="text-slate-500 font-medium">
               ${!hasProfile 
                 ? "Você precisa completar os dados da sua empresa antes de publicar ou editar cargas." 
-                : "Sua conta aguarda aprovação manual de um administrador."}
+                : "Complete pelo menos 60% do seu perfil para publicar cargas automaticamente."}
             </p>
           </div>
         `,
@@ -60,6 +120,22 @@ export default function FreightManager({ user }: any) {
       });
       return;
     }
+
+    // Verifica limite de uso gratuito
+    if (!freightUsage.canUse && freightUsage.pricing) {
+      setPricingData({
+        moduleKey: 'freights',
+        featureKey: 'publish',
+        featureName: 'Publicar Frete',
+        currentUsage: freightUsage.usage,
+        limit: freightUsage.limit,
+        pricePerUse: freightUsage.pricing.price_per_use,
+        priceMonthly: freightUsage.pricing.price_monthly
+      });
+      setShowUpgradeModal(true);
+      return;
+    }
+
     callback();
   };
 
@@ -269,6 +345,19 @@ export default function FreightManager({ user }: any) {
           plans={[]} 
         />
       )}
+
+      {/* MODAL DE UPGRADE (Limite atingido) */}
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        moduleKey={pricingData?.moduleKey || 'freights'}
+        featureKey={pricingData?.featureKey || 'publish'}
+        featureName={pricingData?.featureName || 'Publicar Frete'}
+        currentUsage={pricingData?.currentUsage || 0}
+        limit={pricingData?.limit || 0}
+        pricePerUse={pricingData?.pricePerUse || 0}
+        priceMonthly={pricingData?.priceMonthly || 0}
+      />
     </div>
   );
 }

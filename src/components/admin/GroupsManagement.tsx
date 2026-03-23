@@ -7,7 +7,6 @@ import GroupForm from "../../components/groups/GroupForm"; // Certifique-se de q
 interface WhatsAppGroup {
   id: number;
   region_name: string;
-  member_count: number;
   invite_link: string;
   is_public: number;
   is_visible_home: number;
@@ -100,25 +99,21 @@ const GroupsManagement = () => {
           <thead className="bg-slate-50/50 border-b border-slate-100">
             <tr>
               <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Região / Categoria</th>
-              <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-center">Membros</th>
               <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest">Público Alvo / Visibilidade</th>
               <th className="px-6 py-5 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-50">
             {loading ? (
-              <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400 font-bold">Carregando...</td></tr>
+              <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-400 font-bold">Carregando...</td></tr>
             ) : groups.length === 0 ? (
-              <tr><td colSpan={4} className="px-6 py-10 text-center text-slate-400 font-bold">Nenhum grupo cadastrado.</td></tr>
+              <tr><td colSpan={3} className="px-6 py-10 text-center text-slate-400 font-bold">Nenhum grupo cadastrado.</td></tr>
             ) : (
               groups.map((group) => (
                 <tr key={group.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <p className="font-black text-slate-800 uppercase text-sm">{group.region_name}</p>
                     <p className="text-[10px] font-bold text-blue-500 uppercase tracking-wider">{group.category}</p>
-                  </td>
-                  <td className="px-6 py-4 text-center font-black text-slate-600 italic">
-                    {group.member_count}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex flex-wrap gap-2">

@@ -43,7 +43,17 @@ export default function Login() {
         // 2. Configura o Token no Axios imediatamente para as próximas chamadas
         api.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
         
-        // 3. Normaliza a Role para decidir o redirecionamento
+        // 3. Busca dados completos do perfil antes de redirecionar
+        try {
+          const profileRes = await api.get('/get-my-profile');
+          if (profileRes.data?.success && profileRes.data?.user) {
+            localStorage.setItem('@ChamaFrete:user', JSON.stringify(profileRes.data.user));
+          }
+        } catch (err) {
+          console.error('Erro ao buscar perfil:', err);
+        }
+        
+        // 4. Normaliza a Role para decidir o redirecionamento
         const role = String(userData.role || '').toLowerCase();
         
         // Redirecionamento baseado na hierarquia do AppRoutes

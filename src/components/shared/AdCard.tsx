@@ -26,10 +26,23 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
   const [adsList, setAdsList] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [rotationSeconds, setRotationSeconds] = useState(8);
   const containerRef = useRef<HTMLDivElement>(null);
-  const viewLogged = useRef<number | null>(null);
   const { trackEvent, trackWhatsAppClick } = useTracker();
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
+
+  // 0. Carrega configurações de rotação
+  useEffect(() => {
+    const loadSettings = async () => {
+      try {
+        const res = await api.get('/site-settings', { params: { keys: 'ad_rotation_seconds' } });
+        if (res.data?.ad_rotation_seconds) {
+          setRotationSeconds(parseInt(res.data.ad_rotation_seconds) || 8);
+        }
+      } catch (e) { /* usa padrão */ }
+    };
+    loadSettings();
+  }, []);
 
   // 1. Carga de Dados
   useEffect(() => {
@@ -59,18 +72,16 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
     loadAds();
   }, [position, city, state, search, forcedAd]);
 
-  // 2. Lógica de Rotação Automática (Troca a cada 8 segundos)
+  // 2. Lógica de Rotação Automática (Tempo configurável via admin)
   useEffect(() => {
     if (loading || adsList.length <= 1 || forcedAd) return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % adsList.length);
-      // Resetamos o log de visualização para o novo anúncio ser contabilizado
-      viewLogged.current = null; 
-    }, 8000); // 8 segundos é o tempo ideal para leitura
+    }, rotationSeconds * 1000);
 
     return () => clearInterval(interval);
-  }, [adsList.length, loading, forcedAd]);
+  }, [adsList.length, loading, forcedAd, rotationSeconds]);
 
   // 3. Definição do Anúncio Atual
   const adToShow = useMemo(() => {
@@ -79,20 +90,34 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
     return adsList[currentIndex] || DEFAULT_AD;
   }, [adsList, currentIndex, forcedAd]);
 
-  // 4. Tracking de Impressão (View)
+  // 4. Tracking de Views Profissional - IntersectionObserver + localStorage
+  const viewTracked = useRef<Set<number>>(new Set());
+  
   useEffect(() => {
-    // Registra a visualização sempre que o adToShow mudar e estiver visível
-    if (loading || adToShow.id === 0 || viewLogged.current === adToShow.id) return;
+    if (loading || adToShow.id === 0) return;
+    
+    // Verifica se já contou view desta sessão
+    const sessionKey = `ad_view_${adToShow.id}`;
+    if (viewTracked.current.has(adToShow.id) || sessionStorage.getItem(sessionKey)) {
+      return;
+    }
 
     const observer = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        viewLogged.current = adToShow.id;
+      if (entries[0].isIntersecting && entries[0].intersectionRatio >= 0.5) {
+        // Marca como rastreado nesta sessão
+        viewTracked.current.add(adToShow.id);
+        sessionStorage.setItem(sessionKey, '1');
+        
+        // Registra view no backend
         trackEvent(adToShow.id, 'AD', 'VIEW');
         observer.disconnect();
       }
     }, { threshold: 0.5 });
 
-    if (containerRef.current) observer.observe(containerRef.current);
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+    
     return () => observer.disconnect();
   }, [adToShow.id, loading, trackEvent]);
 

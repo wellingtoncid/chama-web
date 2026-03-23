@@ -12,16 +12,44 @@ interface TopbarProps {
 const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
   const navigate = useNavigate();
 
+  // Verificação defensiva para evitar crash quando user é null
+  if (!user) {
+    return (
+      <div className="h-20 bg-white/90 dark:bg-slate-900/90 border-b border-slate-100 dark:border-slate-800" />
+    );
+  }
+
   const handleLogout = () => {
     localStorage.removeItem('@ChamaFrete:token');
     localStorage.removeItem('@ChamaFrete:user');
     window.location.href = '/login';
   };
 
-  const role = user.role?.toUpperCase();
-  const isAdmin = role === 'ADMIN';
-  const isDriver = role === 'DRIVER';
-  const roleLabel = isAdmin ? 'Administrador' : (isDriver ? 'Motorista' : 'Parceiro Corporativo');
+  const role = (user.role || '').toLowerCase();
+  const isAdmin = role === 'admin';
+  const isDriver = role === 'driver';
+  const isCompany = role === 'company';
+  const isManager = role === 'manager';
+  const isSupport = role === 'support';
+  const isFinance = role === 'finance';
+  const isMarketing = role === 'marketing';
+  const isCoordinator = role === 'coordinator';
+  const isSupervisor = role === 'supervisor';
+  const isDirector = role === 'director';
+
+  const roleLabels: Record<string, string> = {
+    admin: 'Administrador Master',
+    driver: 'Motorista',
+    company: 'Empresa',
+    manager: 'Gerente',
+    support: 'Suporte',
+    finance: 'Financeiro',
+    marketing: 'Marketing',
+    director: 'Diretor',
+    coordinator: 'Coordenador',
+    supervisor: 'Supervisor',
+  };
+  const roleLabel = roleLabels[role] || 'Usuário';
 
   return (
     <header className="h-20 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-100 dark:border-slate-800 px-4 md:px-8 flex items-center justify-between sticky top-0 z-30 transition-colors">

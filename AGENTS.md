@@ -237,3 +237,38 @@ Use the `PrivateRoute` component with `allowedRoles`:
 Create `.env` files as needed:
 - `VITE_API_URL` - Backend API URL
 - Never commit secrets to version control
+
+---
+
+## Roles & Modules
+
+### Constants Files
+- `src/constants/roles.ts` - Role definitions
+- `src/constants/modules.ts` - Module definitions
+- `src/constants/permissions.ts` - Permission definitions
+
+### Available Roles
+**External (platform users):**
+- `driver` - Motorista
+- `company` - Empresa/Transportadora
+
+**Internal (Chama Frete team):**
+- `admin`, `gerente`, `suporte`, `financeiro`, `marketing`, `vendas`, `coordenador`, `supervisor`
+
+### Available Modules
+| Module | Description |
+|--------|-------------|
+| `fretes` | Fretes (required for company/driver) |
+| `marketplace` | Anúncios de vendas |
+| `cotacoes` | Sistema de cotações |
+| `publicidade` | Anúncios publicitários |
+| `chat` | Mensagens |
+| `financeiro` | Transações e relatórios |
+| `grupos` | Grupos WhatsApp |
+| `planos` | Planos de assinatura |
+| `suporte` | Tickets de suporte |
+
+### Admin Pages
+- `/dashboard/admin/cargos` - Roles management
+- `/dashboard/admin/modulos` - Modules management
+- `/dashboard/admin/usuarios` - Users management

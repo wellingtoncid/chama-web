@@ -1,64 +1,219 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Plus, Loader2, ShoppingBag, Truck, 
-  FileSearch, Building2, Star, Megaphone, CheckCircle, Lock 
+  FileSearch, Building2, Star, Megaphone, 
+  CheckCircle, Lock, AlertCircle, CreditCard
 } from 'lucide-react';
 import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
 
-export default function CompanyCommandCenter({ user }: any) {
-  const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState<any>(null);
+interface Module {
+  key: string;
+  name: string;
+  description: string;
+  is_active: boolean;
+  is_allowed: boolean;
+}
 
-  // FUNÇÃO DE CHECAGEM REAL (Baseada na tabela account_features)
-  const getModuleStatus = (featureKey: string) => {
-    // Admin sempre tem acesso total
-    if (user.role === 'ADMIN') return 'active';
-    
-    // Verifica se a chave existe no array de features que o backend deve injetar no user
-    const hasFeature = user.account_features?.includes(featureKey);
-    
-    if (featureKey === 'b2b') return 'soon';
-    return hasFeature ? 'active' : 'locked';
-  };
+interface ModuleCardProps {
+  title: string;
+  desc: string;
+  icon: React.ReactNode;
+  moduleKey: string;
+  modules: Record<string, Module>;
+  userRole: string;
+  onActivate?: () => void;
+  onDeactivate?: () => void;
+}
 
-  const handleAction = (featureKey: string, path: string) => {
-    const status = getModuleStatus(featureKey);
-    
-    if (status === 'active') {
-      navigate(path);
-    } else if (status === 'locked') {
+function ModuleCard({ title, desc, icon, moduleKey, modules, userRole, onActivate, onDeactivate }: ModuleCardProps) {
+  const module = modules[moduleKey];
+  const isAllowed = module?.is_allowed ?? false;
+  const isActive = module?.is_active ?? false;
+  const isCompany = userRole === 'company';
+
+  const handleClick = () => {
+    if (!isAllowed) {
       Swal.fire({
-        title: '<span class="italic font-black">MÓDULO NÃO CONTRATADO</span>',
-        text: 'Sua conta não possui acesso a este recurso. Deseja ver os planos de ativação?',
+        title: '<span class="italic font-black">MÓDULO NÃO DISPONÍVEL</span>',
+        text: 'Este módulo não está disponível no seu plano atual.',
         icon: 'info',
         showCancelButton: true,
         confirmButtonText: 'VER PLANOS',
         confirmButtonColor: '#f97316',
+        cancelButtonText: 'FECHAR',
         customClass: { popup: 'rounded-[2rem]', confirmButton: 'rounded-xl font-black uppercase' }
       }).then((res) => {
-        if (res.isConfirmed) navigate('/dashboard/plans');
+        if (res.isConfirmed) window.location.href = '/dashboard/planos';
       });
+      return;
+    }
+
+    if (isActive) {
+      if (onDeactivate) {
+        Swal.fire({
+          title: '<span class="italic font-black">DESATIVAR MÓDULO?</span>',
+          text: `Ao desativar "${title}", você perderá acesso a este recurso.`,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'DESATIVAR',
+          confirmButtonColor: '#ef4444',
+          cancelButtonText: 'MANTER ATIVO',
+          customClass: { popup: 'rounded-[2rem]', confirmButton: 'rounded-xl font-black uppercase' }
+        }).then((res) => {
+          if (res.isConfirmed) onDeactivate();
+        });
+      }
+    } else {
+      if (onActivate) onActivate();
     }
   };
 
+  return (
+    <div 
+      onClick={handleClick}
+      className={`p-6 rounded-[2rem] border-2 flex flex-col justify-between h-56 transition-all relative group cursor-pointer ${
+        !isAllowed
+          ? 'bg-slate-50 border-dashed border-slate-200 opacity-70'
+          : isActive 
+            ? 'bg-white border-emerald-200 hover:border-emerald-400 hover:shadow-lg' 
+            : 'bg-white border-dashed border-slate-200 hover:border-orange-300 hover:bg-orange-50/30'
+      }`}
+    >
+      {!isAllowed && (
+        <div className="absolute top-4 right-4">
+          <Lock size={16} className="text-slate-300" />
+        </div>
+      )}
+
+      <div className="flex justify-between items-start">
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
+          !isAllowed
+            ? 'bg-slate-100 text-slate-400'
+            : isActive 
+              ? 'bg-emerald-100 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white' 
+              : 'bg-slate-100 text-slate-400 group-hover:bg-orange-100 group-hover:text-orange-600'
+        }`}>
+          {React.cloneElement(icon as React.ReactElement, { size: 24 })}
+        </div>
+        
+        {isAllowed && (
+          <span className={`text-[8px] font-black px-2 py-1 rounded-lg uppercase italic ${
+            isActive 
+              ? 'bg-emerald-100 text-emerald-600' 
+              : 'bg-orange-100 text-orange-600'
+          }`}>
+            {isActive ? 'Ativo' : 'Inativo'}
+          </span>
+        )}
+      </div>
+
+      <div>
+        <h4 className="text-base font-black uppercase italic text-slate-900 leading-tight">{title}</h4>
+        <p className="text-[10px] font-bold text-slate-400 leading-tight mt-1 uppercase italic">{desc}</p>
+      </div>
+
+      <div className={`flex items-center gap-1.5 text-[9px] font-black uppercase italic ${
+        !isAllowed ? 'text-slate-400' : isActive ? 'text-emerald-500' : 'text-orange-500'
+      }`}>
+        {!isAllowed ? (
+          <>
+            <CreditCard size={10} />
+            <span>Upgrade de Plano</span>
+          </>
+        ) : isActive ? (
+          <>
+            <span>Clique para gerenciar</span>
+            <Plus size={10} className="rotate-45" />
+          </>
+        ) : (
+          <>
+            <span>Ativar</span>
+            <Plus size={10} />
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function CompanyCommandCenter({ user }: any) {
+  const navigate = useNavigate();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<any>(null);
+  const [modules, setModules] = useState<Record<string, Module>>({});
+  const [updating, setUpdating] = useState<string | null>(null);
+
+  const userRole = String(user?.role || '').toLowerCase();
+  const isCompany = userRole === 'company';
+  const isDriver = userRole === 'driver';
+
   useEffect(() => {
-    async function loadDashboard() {
-      try {
-        setLoading(true);
-        // Busca métricas globais e logs de atividade
-        const res = await api.get('/company/summary');
-        if (res.data?.success) setStats(res.data.data);
-      } catch (e) {
-        console.error("Erro ao carregar sumário:", e);
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadDashboard();
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const [modulesRes, statsRes] = await Promise.all([
+        api.get('/user/modules'),
+        api.get('/company/summary').catch(() => ({ data: { success: false } }))
+      ]);
+
+      if (modulesRes.data?.success) {
+        const modulesMap: Record<string, Module> = {};
+        modulesRes.data.data.modules.forEach((m: Module) => {
+          modulesMap[m.key] = m;
+        });
+        setModules(modulesMap);
+      }
+
+      if (statsRes.data?.success) {
+        setStats(statsRes.data.data);
+      }
+    } catch (e) {
+      console.error('Erro ao carregar dados:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const toggleModule = async (moduleKey: string, activate: boolean) => {
+    try {
+      setUpdating(moduleKey);
+      await api.post('/user/modules', { 
+        module_key: moduleKey, 
+        action: activate ? 'activate' : 'deactivate' 
+      });
+      
+      setModules(prev => ({
+        ...prev,
+        [moduleKey]: { ...prev[moduleKey], is_active: activate }
+      }));
+
+      Swal.fire({
+        title: '<span class="italic font-black">SUCESSO</span>',
+        text: `Módulo ${activate ? 'ativado' : 'desativado'} com sucesso!`,
+        icon: 'success',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#22c55e',
+        customClass: { popup: 'rounded-[2rem]', confirmButton: 'rounded-xl font-black uppercase' }
+      });
+    } catch (e) {
+      console.error('Erro ao.toggle módulo:', e);
+      Swal.fire({
+        title: '<span class="italic font-black">ERRO</span>',
+        text: 'Não foi possível atualizar o módulo. Tente novamente.',
+        icon: 'error',
+        confirmButtonText: 'OK',
+        confirmButtonColor: '#ef4444',
+        customClass: { popup: 'rounded-[2rem]', confirmButton: 'rounded-xl font-black uppercase' }
+      });
+    } finally {
+      setUpdating(null);
+    }
+  };
 
   if (loading) return (
     <div className="h-96 flex items-center justify-center text-orange-500">
@@ -69,23 +224,23 @@ export default function CompanyCommandCenter({ user }: any) {
   return (
     <div className="space-y-10 animate-in fade-in duration-500 pb-20">
       
-      {/* HEADER LIMPO */}
+      {/* HEADER */}
       <header className="px-2">
         <div className="flex items-center gap-2 text-orange-500 mb-1">
           <Building2 size={16} />
           <span className="text-[10px] font-black uppercase tracking-[0.2em] italic">
-            {user.corporate_name || 'Empresa'}
+            {user.corporate_name || (isDriver ? 'Motorista' : 'Empresa')}
           </span>
         </div>
         <h1 className="text-4xl font-black text-slate-900 uppercase italic tracking-tighter leading-none">
-          {user.trade_name || user.corporate_name}
+          {user.trade_name || user.corporate_name || user.name}
         </h1>
         <p className="text-slate-500 font-bold text-sm mt-2 italic">
           Olá, <span className="text-orange-500">{user.name}</span>
         </p>
       </header>
 
-      {/* MÉTRICAS GLOBAIS (Apenas o que importa para a conta) */}
+      {/* MÉTRICAS */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-900 italic font-black">
@@ -93,7 +248,9 @@ export default function CompanyCommandCenter({ user }: any) {
           </div>
           <div>
             <p className="text-[9px] font-black uppercase text-slate-400">Reputação Geral</p>
-            <div className="flex text-orange-500"><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /><Star size={10} fill="currentColor" /></div>
+            <div className="flex text-orange-500">
+              {[...Array(5)].map((_, i) => <Star key={i} size={10} fill="currentColor" />)}
+            </div>
           </div>
         </div>
 
@@ -103,49 +260,107 @@ export default function CompanyCommandCenter({ user }: any) {
           </div>
           <div>
             <p className="text-[9px] font-black uppercase text-slate-400">Status do Registro</p>
-            <p className="text-xs font-black uppercase italic text-slate-900">{user.status === 'active' ? 'Ativo e Verificado' : 'Em Análise'}</p>
+            <p className="text-xs font-black uppercase italic text-slate-900">
+              {user.status === 'active' ? 'Ativo e Verificado' : 'Em Análise'}
+            </p>
           </div>
         </div>
       </div>
 
-      {/* GRID DE MÓDULOS PADRONIZADO */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <ModuleCard 
-          title="Marketplace" 
-          desc="Gestão de anúncios de produtos e peças."
-          icon={<ShoppingBag />}
-          status={getModuleStatus('marketplace')}
-          onClick={() => handleAction('marketplace', '/dashboard/marketplace')}
-        />
+      {/* MÓDULOS DA CONTA */}
+      <section>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-lg font-black uppercase italic text-slate-900">Módulos da Sua Conta</h2>
+            <p className="text-[10px] font-bold text-slate-400 uppercase italic">
+              {isDriver 
+                ? 'Gerencie os módulos disponíveis para você'
+                : 'Ative ou desative os módulos da sua empresa'}
+            </p>
+          </div>
+          {Object.values(modules).filter(m => m.is_active).length > 0 && (
+            <div className="text-[10px] font-black text-emerald-600 uppercase italic">
+              {Object.values(modules).filter(m => m.is_active).length} módulo(s) ativo(s)
+            </div>
+          )}
+        </div>
 
-        <ModuleCard 
-          title="Logística" 
-          desc="Gestão de fretes e publicações de carga."
-          icon={<Truck />}
-          status={getModuleStatus('logistica')}
-          onClick={() => handleAction('logistica', '/dashboard/logistica')}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* FREIGHTS - Obrigatório para empresas e motoristas */}
+          <ModuleCard 
+            title="Logística"
+            desc={isCompany ? "Publique cargas e encontre motoristas." : "Veja cargas disponíveis e matches."}
+            icon={<Truck />}
+            moduleKey="freights"
+            modules={modules}
+            userRole={userRole}
+            onDeactivate={undefined}
+          />
 
-        <ModuleCard 
-          title="Publicidade" 
-          desc="Destaques, banners e impulsionamento."
-          icon={<Megaphone />}
-          status={getModuleStatus('ads')}
-          onClick={() => handleAction('ads', '/dashboard/ads')}
-        />
+          {/* MARKETPLACE - Para empresas e motoristas */}
+          <ModuleCard 
+            title="Marketplace"
+            desc={isCompany ? "Venda de produtos e peças." : "Compre produtos e peças."}
+            icon={<ShoppingBag />}
+            moduleKey="marketplace"
+            modules={modules}
+            userRole={userRole}
+            onActivate={!modules.marketplace?.is_active ? () => toggleModule('marketplace', true) : undefined}
+            onDeactivate={isCompany ? () => toggleModule('marketplace', false) : undefined}
+          />
 
-        <ModuleCard 
-          title="B2B Quotes" 
-          desc="Solicitações de cotações estruturadas."
-          icon={<FileSearch />}
-          status={getModuleStatus('b2b')}
-          onClick={() => {}} 
-        />
-      </div>
+          {/* Só para empresas */}
+          {isCompany && (
+            <>
+              {/* QUOTES */}
+              <ModuleCard 
+                title="Cotações"
+                desc="Solicite e receba cotações de fretes."
+                icon={<FileSearch />}
+                moduleKey="quotes"
+                modules={modules}
+                userRole={userRole}
+                onActivate={!modules.quotes?.is_active ? () => toggleModule('quotes', true) : undefined}
+                onDeactivate={() => toggleModule('quotes', false)}
+              />
+
+              {/* ADVERTISER */}
+              <ModuleCard 
+                title="Publicidade"
+                desc="Destaque sua empresa e anúncios."
+                icon={<Megaphone />}
+                moduleKey="advertiser"
+                modules={modules}
+                userRole={userRole}
+                onActivate={!modules.advertiser?.is_active ? () => toggleModule('advertiser', true) : undefined}
+                onDeactivate={() => toggleModule('advertiser', false)}
+              />
+            </>
+          )}
+        </div>
+
+        {/* AVISO PARA MOTORISTAS */}
+        {isDriver && (
+          <div className="mt-6 p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3">
+            <AlertCircle size={20} className="text-amber-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-xs font-black text-amber-800 uppercase italic">
+                Módulo Logística
+              </p>
+              <p className="text-[10px] font-bold text-amber-600 mt-1">
+                O módulo de logística está ativo para visualização de cargas e contato com empresas. 
+                A publicação de cargas é exclusiva para contas empresariais.
+              </p>
+            </div>
+          </div>
+        )}
+      </section>
 
       {/* ATIVIDADE RECENTE */}
       <div className="bg-white rounded-[2.5rem] p-10 border border-slate-100 shadow-sm">
-        <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-8 italic">Últimos Registros da Conta</h3>
+        <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-8 italic">
+          Últimos Registros da Conta
+        </h3>
         <div className="space-y-4">
           {stats?.recent_activity?.length > 0 ? (
             stats.recent_activity.map((item: any, i: number) => (
@@ -156,61 +371,12 @@ export default function CompanyCommandCenter({ user }: any) {
               </div>
             ))
           ) : (
-            <p className="text-center text-[10px] font-black text-slate-300 uppercase italic py-4">Sem atividade recente registrada.</p>
+            <p className="text-center text-[10px] font-black text-slate-300 uppercase italic py-4">
+              Sem atividade recente registrada.
+            </p>
           )}
         </div>
       </div>
-    </div>
-  );
-}
-
-/* COMPONENTE DE CARD ÚNICO */
-function ModuleCard({ title, desc, icon, status, onClick }: any) {
-  const isActive = status === 'active';
-  const isSoon = status === 'soon';
-
-  return (
-    <div 
-      onClick={onClick}
-      className={`p-8 rounded-[2.5rem] border-2 flex flex-col justify-between h-64 transition-all relative group ${
-        isSoon ? 'bg-slate-50 border-transparent cursor-default opacity-60' :
-        isActive ? 'bg-white border-slate-50 hover:border-orange-500 cursor-pointer hover:shadow-xl' :
-        'bg-white border-dashed border-slate-200 cursor-pointer hover:bg-slate-50'
-      }`}
-    >
-      <div className="flex justify-between items-start">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center transition-all ${
-          isSoon ? 'bg-slate-200 text-slate-400' :
-          isActive ? 'bg-slate-900 text-white group-hover:bg-orange-500' : 'bg-slate-100 text-slate-400'
-        }`}>
-          {React.cloneElement(icon, { size: 28 })}
-        </div>
-        
-        <span className={`text-[8px] font-black px-2 py-1 rounded-lg uppercase italic ${
-          isSoon ? 'bg-blue-100 text-blue-600' :
-          isActive ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'
-        }`}>
-          {isSoon ? 'Em Breve' : isActive ? 'Habilitado' : 'Bloqueado'}
-        </span>
-      </div>
-
-      <div>
-        <h4 className="text-lg font-black uppercase italic text-slate-900 leading-tight">{title}</h4>
-        <p className="text-[10px] font-bold text-slate-400 leading-tight mt-1 uppercase italic">{desc}</p>
-      </div>
-
-      {!isSoon && (
-        <div className={`flex items-center gap-2 text-[9px] font-black uppercase italic ${isActive ? 'text-orange-500' : 'text-slate-400'}`}>
-          {isActive ? 'Acessar Agora' : 'Ativar Módulo'}
-          <Plus size={10} className={isActive ? 'rotate-45' : ''} />
-        </div>
-      )}
-      
-      {!isActive && !isSoon && (
-        <div className="absolute top-4 right-4">
-          <Lock size={12} className="text-slate-300" />
-        </div>
-      )}
     </div>
   );
 }

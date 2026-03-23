@@ -19,8 +19,8 @@ export default function PlansManager() {
   const loadPlans = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/manage-plans'); 
-      const data = res.data.success === false ? [] : (res.data.plans || res.data);
+      const res = await api.get('/admin-manage-plans'); 
+      const data = res.data.success === false ? [] : (res.data.plans || res.data.data || []);
       setPlans(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error("Erro ao carregar planos:", e);

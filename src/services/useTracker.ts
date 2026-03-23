@@ -19,15 +19,13 @@ export const useTracker = () => {
     if (!targetId) return;
 
     try {
-      // 1. Corrigido o Endpoint para bater com seu Router PHP
-      // 2. Garantimos que os nomes dos campos batam com o registerEvent() do Backend
+      // Usa a rota correta com prefixo /api/
       await api.post('/log-event', {
         target_id: targetId,
         target_type: targetType, // O Backend fará o strtoupper()
         event_type: eventType,
       });
       
-      console.log(`[Tracker] Sucesso: ${eventType} em ${targetType} (${targetId})`);
     } catch (error) {
       // Falha silenciosa para o usuário, mas logada para o desenvolvedor
       console.warn(`[Tracker] Falha ao registrar ${eventType}:`, error);

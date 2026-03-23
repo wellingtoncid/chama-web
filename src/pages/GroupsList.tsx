@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../api/api';
+import { useTracker } from '../services/useTracker';
 import { 
   Lock, Search, Star, Globe, Users, MessageCircle, X, Zap, Plus, 
   ShieldCheck, ArrowUpRight, BarChart3, ShoppingCart, Truck
@@ -9,11 +10,22 @@ import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import GroupsModal from '../components/modals/GroupsModal'
 
+const INFEED_DEFAULT_AD = {
+  id: 0,
+  title: "Divulgue sua Empresa",
+  description: "Chegue até milhares de transportadores e empresas de logística. Anuncie aqui.",
+  image_url: "https://images.unsplash.com/photo-1553877522-43269d4ea984?w=800",
+  category: "PUBLICIDADE",
+};
+
 export default function GroupsList() {
   const [groups, setGroups] = useState<any[]>([]);
   const [ads, setAds] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Tracking de métricas
+  const { trackEvent } = useTracker();
 
   // Verifica se o usuário está logado para grupos que exigem login
   const isLogged = !!localStorage.getItem("@ChamaFrete:token");
@@ -23,32 +35,57 @@ export default function GroupsList() {
       try {
         const [resG, resA] = await Promise.all([
           api.get('list-groups'),
-          api.get('ads').catch(() => ({ data: { data: [] } }))  
+          api.get('ads', { params: { position: 'in-feed' } }).catch(() => ({ data: { data: [] } }))  
         ]);
         const groupsList = resG.data.data || resG.data || [];
         const adsList = resA.data.data || resA.data || [];
 
         setGroups(Array.isArray(groupsList) ? groupsList : []);
-        setAds(Array.isArray(adsList) ? adsList : []);
+        
+        // Se não houver anúncios reais, usar anúncio padrão
+        const hasRealAds = adsList.some((ad: any) => ad.id > 0);
+        if (!hasRealAds) {
+          setAds([INFEED_DEFAULT_AD]);
+          // Registra view do anúncio padrão (plataforma)
+          trackEvent(0, 'AD', 'VIEW');
+        } else {
+          setAds(Array.isArray(adsList) ? adsList : []);
+          // Registra view dos anúncios carregados
+          adsList.forEach((ad: any) => {
+            if (ad.id) trackEvent(ad.id, 'AD', 'VIEW');
+          });
+        }
       } catch (e) { 
         console.error("Erro ao carregar dados do portal:", e); 
         setGroups([]); 
       }
     };
     fetchData();
-  }, []);
+  }, [trackEvent]);
 
   const renderGrid = () => {
     const items: any[] = [];
     if (!Array.isArray(groups)) return [];
 
-    const filteredGroups = groups.filter(g => 
-      g && (g.display_location === 'site' || g.display_location === 'both') &&
-      (g.region_name || "").toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    const filteredGroups = groups.filter(g => {
+      if (!g || (g.display_location !== 'site' && g.display_location !== 'both')) return false;
+      
+      // Se não tiver termo de busca, mostra todos os grupos disponíveis para o site
+      if (!searchTerm.trim()) return true;
+      
+      // Filtro por termo de busca (nome, categoria, cidade)
+      const term = searchTerm.toLowerCase();
+      return (
+        (g.region_name || '').toLowerCase().includes(term) ||
+        (g.category || '').toLowerCase().includes(term) ||
+        (g.city || '').toLowerCase().includes(term) ||
+        (g.state || '').toLowerCase().includes(term)
+      );
+    });
 
     const sortedGroups = [...filteredGroups].sort((a, b) => {
       if (a.is_visible_home !== b.is_visible_home) return b.is_visible_home - a.is_visible_home;
+      if (a.is_premium !== b.is_premium) return b.is_premium - a.is_premium;
       return b.priority_level - a.priority_level;
     });
     
@@ -69,7 +106,7 @@ export default function GroupsList() {
     return items;
   };
 
-  const HorizontalBanner = ({ item }: { item: any }) => (
+  const HorizontalBanner = ({ item, onTrackClick }: { item: any; onTrackClick: (id: number) => void }) => (
     <div className="col-span-1 md:col-span-2 lg:col-span-3 w-full bg-[#0F172A] rounded-[2.5rem] overflow-hidden shadow-2xl relative border border-slate-800 min-h-[200px] flex items-center">
       <div className="absolute inset-0">
         <img src={item.image_url} className="w-full h-full object-cover opacity-30" alt="" />
@@ -77,13 +114,29 @@ export default function GroupsList() {
       </div>
       <div className="relative p-10 flex flex-col md:flex-row items-center justify-between w-full gap-6">
         <div className="text-center md:text-left">
-          <span className="bg-blue-600 text-white px-4 py-1 rounded-full font-black text-[9px] uppercase tracking-[0.2em] mb-4 inline-block">Parceiro Estratégico</span>
+          <span className={`px-4 py-1 rounded-full font-black text-[9px] uppercase tracking-[0.2em] mb-4 inline-block ${item.id === 0 ? 'bg-blue-600' : 'bg-blue-600'}`}>
+            {item.id === 0 ? 'Anúncio da Plataforma' : 'Parceiro Estratégico'}
+          </span>
           <h4 className="text-3xl font-black text-white uppercase italic tracking-tighter leading-none">{item.title}</h4>
           <p className="text-slate-400 text-sm mt-2 max-w-xl line-clamp-2">{item.description}</p>
         </div>
-        <a href={item.link_whatsapp} target="_blank" className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap">
-          Conhecer Agora
-        </a>
+        {item.id === 0 ? (
+          <button 
+            onClick={() => { trackEvent(0, 'AD', 'CLICK'); setIsModalOpen(true); }}
+            className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap"
+          >
+            Anuncie Aqui
+          </button>
+        ) : (
+          <a 
+            href={item.link_whatsapp || item.destination_url || item.link_url} 
+            target="_blank" 
+            onClick={() => onTrackClick(item.id)}
+            className="bg-white text-slate-900 px-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all whitespace-nowrap"
+          >
+            Conhecer Agora
+          </a>
+        )}
       </div>
     </div>
   );
@@ -126,7 +179,7 @@ export default function GroupsList() {
           {renderGrid().map((item, idx) => {
             // RENDERIZAÇÃO DE CARD DE ANÚNCIO (AD)
             if (item.isAd && (idx === 0 || idx % 6 === 0)) {
-              return <HorizontalBanner key={item.id} item={item} />;
+              return <HorizontalBanner key={item.id} item={item} onTrackClick={(id) => trackEvent(id, 'AD', 'CLICK')} />;
             }
             if (item.isAd) {
               return (
@@ -143,19 +196,38 @@ export default function GroupsList() {
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-[#0F172A] via-[#0F172A]/20 to-transparent" />
                   </div>
-                  <div className="relative p-8 h-full flex flex-col">
+                    <div className="relative p-8 h-full flex flex-col">
                     <div className="flex justify-between items-start mb-auto">
-                      <span className="bg-amber-400 text-black px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg">Destaque Parceiro</span>
+                      <span className={`px-4 py-1.5 rounded-xl font-black text-[9px] uppercase tracking-widest shadow-lg ${
+                        item.id === 0 ? 'bg-blue-600 text-white' : 'bg-amber-400 text-black'
+                      }`}>
+                        {item.id === 0 ? 'Anúncio da Plataforma' : 'Destaque Parceiro'}
+                      </span>
                       <div className="bg-white/10 backdrop-blur-md p-2 rounded-xl border border-white/10">
-                        <Star size={18} className="text-amber-400 fill-current" />
+                        <Star size={18} className={item.id === 0 ? "text-blue-400 fill-current" : "text-amber-400 fill-current"} />
                       </div>
                     </div>
                     <div className="mt-8">
                       <h4 className="text-3xl font-black text-white uppercase italic leading-[1.1] tracking-tighter mb-3">{item.title}</h4>
                       <p className="text-slate-400 text-sm font-medium italic mb-8 line-clamp-3">{item.description}</p>
-                      <a href={item.link_whatsapp} target="_blank" rel="noopener noreferrer" className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition-all active:scale-95 shadow-white/10 shadow-xl">
-                        Acessar Agora <ArrowUpRight size={18} />
-                      </a>
+                      {item.id === 0 ? (
+                        <button 
+                          onClick={() => { trackEvent(0, 'AD', 'CLICK'); setIsModalOpen(true); }}
+                          className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition-all active:scale-95 shadow-white/10 shadow-xl"
+                        >
+                          Anuncie Aqui <Zap size={18} />
+                        </button>
+                      ) : (
+                        <a 
+                          href={item.link_whatsapp || item.destination_url || item.link_url} 
+                          target="_blank" 
+                          rel="noopener noreferrer" 
+                          onClick={() => item.id && trackEvent(item.id, 'AD', 'CLICK')}
+                          className="w-full flex items-center justify-center gap-3 bg-white text-slate-900 py-5 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-amber-400 transition-all active:scale-95 shadow-white/10 shadow-xl"
+                        >
+                          Acessar Agora <ArrowUpRight size={18} />
+                        </a>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -225,11 +297,7 @@ export default function GroupsList() {
                 </div>
 
                 <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex flex-col">
-                      <span className="text-2xl font-black text-slate-900 dark:text-white leading-none">{isSoon ? '---' : item.member_count}</span>
-                      <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mt-1">Participantes</span>
-                    </div>
+                  <div className="flex items-center justify-between">
                     {loginRequired && (
                         <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase bg-slate-50 dark:bg-slate-800 px-3 py-1.5 rounded-lg">
                           <Lock size={12} /> Privado

@@ -21,19 +21,20 @@ export const AdImage = ({ url, className, alt = "" }: AdImageProps) => {
     }
     
     // 3. Limpa a URL Base
-    const baseUrl = BASE_URL_API.endsWith('/') 
+    let baseUrl = BASE_URL_API.endsWith('/') 
         ? BASE_URL_API.slice(0, -1) 
         : BASE_URL_API;
 
-    // 4. Limpa o Path interno
-    // Se o path for apenas o nome do arquivo "foto.jpg", 
-    // precisamos garantir que ele aponte para a pasta de uploads correta do seu PHP
-    let cleanPath = trimmedPath.startsWith('/') ? trimmedPath.substring(1) : trimmedPath;
-    
-    // Se não for link externo e não começar com uploads, adicionamos o prefixo da pasta
-    if (!cleanPath.startsWith('uploads/')) {
-        // cleanPath = `uploads/ads/${cleanPath}`; // Ajuste conforme sua estrutura de pastas no servidor
+    // Removendo /api do final para buscar arquivos estáticos na raiz
+    if (baseUrl.endsWith('/api')) {
+        baseUrl = baseUrl.slice(0, -4);
     }
+
+    // 4. Limpa o Path interno
+    let cleanPath = trimmedPath.startsWith('/') ? trimmedPath.substring(1) : trimmedPath;
+
+    // Se já começa com uploads/, não precisa adicionar prefixo
+    // O banco já salva com o caminho completo: uploads/ads/xxx.jpg
 
     return `${baseUrl}/${cleanPath}`;
   };

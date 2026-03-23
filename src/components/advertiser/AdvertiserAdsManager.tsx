@@ -23,11 +23,12 @@ export default function AdvertiserAdsManager({ user }: { user: any }) {
     
     try {
       setLoading(true);
-      // Usando a estrutura de query params que o seu AdController espera
-      const response = await api.get(`?endpoint=get-user-ads&user_id=${user.id}`);
+      // Buscando anúncios do usuário logado
+      const response = await api.get(`/my-ads`);
       
-      // Garante que ads seja sempre um array, mesmo que o PHP retorne erro ou vazio
-      setAds(Array.isArray(response.data) ? response.data : []);
+      // Garante que ads seja sempre um array
+      const adsData = response.data?.data || [];
+      setAds(Array.isArray(adsData) ? adsData : []);
     } catch (error) {
       console.error("Erro ao carregar anúncios:", error);
       setAds([]);

@@ -55,7 +55,7 @@ export default function CreateFreight() {
       api.get('list-all-users').then(res => {
         const list = res.data.success ? res.data.data : res.data;
         if (Array.isArray(list)) {
-          setCompanies(list.filter((u: any) => u.role?.toLowerCase() === 'company'));
+          setCompanies(list.filter((u: any) => u.role === 'company' || u.role === 'admin'));
         }
       });
     }
@@ -205,7 +205,7 @@ export default function CreateFreight() {
                 >
                   <option value="">Selecione a empresa...</option>
                   {companies.map(c => (
-                    <option key={c.id} value={c.id}>{c.company_name?.toUpperCase() || c.name?.toUpperCase()}</option>
+                    <option key={c.id} value={c.id}>{String(c.display_name || c.company_name || c.name || 'Empresa sem nome').toUpperCase()}</option>
                   ))}
                 </select>
               </div>
@@ -259,7 +259,7 @@ export default function CreateFreight() {
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Veículo</label>
                 <select required value={formData.vehicle_type} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, vehicle_type: e.target.value})}>
                   <option value="">Selecione...</option>
-                  {VEHICLE_TYPES.map(v => <option key={v} value={v}>{v}</option>)}
+                  {VEHICLE_TYPES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
                 </select>
               </div>
               <div className="space-y-2">

@@ -14,6 +14,11 @@ import {
   Calendar,
 } from 'lucide-react';
 import { api } from '../../api/api';
+
+// IMPORTAÇÃO DOS COMPONENTES DE LAYOUT
+import Header from '../../components/shared/Header';
+import Footer from '../../components/shared/Footer';
+
 import FreightRow from '../../components/shared/FreightRow';
 import FreightCard from '../../components/shared/FreightCard';
 import { VEHICLE_TYPE_IDS } from '../../constants/freightOptions';
@@ -53,7 +58,6 @@ export default function ProfileView() {
           });
           const items = Array.isArray(postsRes.data?.data) ? postsRes.data.data : [];
 
-          // Identificação robusta de tipo de usuário (Driver x Empresa)
           const roleType = (data.role || data.user_type || '').toLowerCase();
           const isDriverRole = roleType === 'driver' || roleType === 'motorista';
           const isShipperRole =
@@ -93,8 +97,6 @@ export default function ProfileView() {
     if (p.avatar_url) score += 20;
     if (p.city && p.state) score += 20;
     if (p.bio && p.bio.length > 10) score += 20;
-    // O quinto elemento (WhatsApp) não está disponível na visualização pública,
-    // então a pontuação máxima aqui é 80 para fins da lógica de exibição.
     return score;
   };
 
@@ -104,9 +106,7 @@ export default function ProfileView() {
   const profileScore = calculateProfileScore(profile);
   const shouldShowVerifiedBadge = profile.is_verified !== false && profileScore >= 80;
 
-  // Fallback para user_type quando role não vier do backend
   const type = (profile.role || profile.user_type || '').toLowerCase();
-  // Heurística extra: se tem vehicle_type e não é empresa explicita, tratamos como driver
   const isDriver =
     type === 'driver' ||
     type === 'motorista' ||
@@ -136,8 +136,13 @@ export default function ProfileView() {
         shadow: 'shadow-blue-100',
       };
 
-  const displayName = profile.corporate_name || profile.trade_name || profile.name || 'Usuário Chama Frete';
+  const displayName = profile.trade_name || profile.corporate_name || profile.name || 'Usuário Chama Frete';
   const displayRole = isDriver ? 'Motorista Autônomo' : 'Empresa / Embarcador';
+  
+  // Garantia de Banner e Avatar (Usa banner_url ou cover_url se disponível)
+  const bannerImg = profile.banner_url || profile.cover_url;
+  const avatarImg = profile.avatar_url;
+
   const businessTypeLabel =
     profile.business_type && COMPANY_TYPE_LABELS[profile.business_type]
       ? COMPANY_TYPE_LABELS[profile.business_type]
@@ -177,229 +182,239 @@ export default function ProfileView() {
   const hasAnyPosts = hasFreights || hasMarketplace;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20">
-      {/* HEADER BANNER */}
-      <div className={`h-64 md:h-80 w-full relative ${theme.bg} overflow-hidden`}>
-        {profile.cover_url ? (
-          <img src={profile.cover_url} alt="Banner" className="w-full h-full object-cover opacity-70" />
-        ) : (
-          <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-black/60" />
-        )}
-        <button
-          onClick={() => navigate(-1)}
-          className="absolute top-8 left-8 z-20 bg-white/10 backdrop-blur-xl p-4 rounded-2xl text-white hover:bg-white/20 transition-all"
-        >
-          <ArrowLeft size={20} />
-        </button>
-      </div>
+    <div className="flex flex-col min-h-screen">
+      <Header />
 
-      <div className="max-w-6xl mx-auto px-4 -mt-24 relative z-10">
-        {/* CARD PRINCIPAL DE IDENTIDADE */}
-        <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 p-8 md:p-12">
-          <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
-            {/* AVATAR OU VEÍCULO PADRÃO */}
-            <div className="relative shrink-0">
-              {isDriver ? (
-                <VehicleProfileBadge
-                  vehicleType={profile.vehicle_type || profile.extras?.vehicle_type}
-                  bodyType={profile.body_type || profile.extras?.body_type}
-                  avatarUrl={profile.avatar_url}
-                  theme={theme}
-                />
-              ) : (
-                <div className={`w-44 h-44 md:w-52 md:h-52 ${theme.bg} rounded-[3rem] p-1.5 shadow-2xl`}>
-                  <div className="w-full h-full bg-white dark:bg-slate-800 rounded-[2.8rem] overflow-hidden flex items-center justify-center">
-                    {profile.avatar_url ? (
-                      <img src={profile.avatar_url} alt={displayName} className="w-full h-full object-cover" />
-                    ) : (
-                      <Building2 size={72} className="text-slate-200 dark:text-slate-600" />
-                    )}
-                  </div>
-                </div>
-              )}
-              {shouldShowVerifiedBadge && (
-                <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-3 rounded-2xl shadow-lg border-4 border-white dark:border-slate-900">
-                  <ShieldCheck size={24} />
-                </div>
-              )}
-            </div>
+      <main className="flex-grow pt-16 md:pt-20">
+        {/* HEADER BANNER */}
+        <div className={`h-64 md:h-120 w-full relative ${theme.bg}`}>
+          {bannerImg ? (
+            <img src={bannerImg} alt="Banner" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+          ) : (
+            <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-black/60" />
+          )}
+          <button
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate('/');
+              }
+            }}
+            className="absolute top-8 left-8 z-20 bg-white/10 backdrop-blur-xl p-4 rounded-2xl text-white hover:bg-white/20 transition-all border border-white/20 shadow-lg"
+            title="Voltar"
+          >
+            <ArrowLeft size={20} />
+          </button>
+        </div>
 
-            {/* INFO TEXTO */}
-            <div className="flex-1 text-center md:text-left space-y-4">
-              <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                {shouldShowVerifiedBadge && (
-                  <span className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1.5">
-                    <CheckCircle2 size={14} /> Perfil Verificado
-                  </span>
-                )}
-                <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                  {displayRole}
-                </span>
-                {businessTypeLabel && (
-                  <span className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter">
-                    {businessTypeLabel}
-                  </span>
-                )}
-              </div>
-
-              <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic leading-[0.9] tracking-tighter">
-                {displayName}
-              </h1>
-
-              <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
-                <span className={`flex items-center gap-2 ${theme.text}`}>
-                  <MapPinned size={18} /> {profile.city || 'Atendimento'} - {profile.state || 'Brasil'}
-                </span>
-                {profile.member_since && (
-                  <span className="flex items-center gap-2">
-                    <Calendar size={18} /> No Chama Frete desde {new Date(profile.member_since).getFullYear()}
-                  </span>
-                )}
-              </div>
-
-              {/* BLOCO DE CONTATO - APENAS PARA LOGADOS */}
-              {isLoggedIn && profile.whatsapp_clean ? (
-                <button
-                  onClick={handleWhatsAppClick}
-                  className={`inline-flex items-center gap-4 ${theme.bg} hover:scale-[1.02] text-white px-8 py-5 rounded-[2rem] font-black uppercase italic transition-all shadow-xl mt-4`}
-                >
-                  <MessageCircle size={24} />
-                  <div className="text-left leading-tight">
-                    <p className="text-[10px] opacity-80 not-italic uppercase">Contato</p>
-                    <p className="text-lg">WhatsApp</p>
-                  </div>
-                </button>
-              ) : (
-                <div className="inline-flex items-center gap-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-6 py-4 rounded-2xl mt-4">
-                  <Lock size={20} />
-                  <span className="text-[11px] font-bold uppercase">Faça login para ver o contato</span>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* BIO / SOBRE */}
-          <div className="mt-12 pt-10 border-t border-slate-100 dark:border-slate-800">
-            <h3 className="text-slate-900 dark:text-white font-black uppercase italic text-sm tracking-widest flex items-center gap-3 mb-6">
-              <div className={`w-10 h-1.5 ${theme.bg} rounded-full`} />
-              {isDriver ? 'Sobre mim' : 'Sobre a Empresa'}
-            </h3>
-            <div className="grid lg:grid-cols-3 gap-10">
-              <div className="lg:col-span-2">
-                <p className="text-slate-600 dark:text-slate-300 text-lg font-medium leading-relaxed italic">
-                  "{profile.bio ||
-                    `Olá! Sou ${displayName} e utilizo o Chama Frete para conectar com parceiros de logística.`}"
-                </p>
-              </div>
-              <div className={`${theme.light} p-6 rounded-[2.5rem] border ${theme.border} space-y-4`}>
-                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
-                  Ficha Técnica
-                </p>
+        <div className="max-w-6xl mx-auto px-4 -mt-24 relative z-10 pb-20">
+          {/* CARD PRINCIPAL DE IDENTIDADE */}
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 p-8 md:p-12">
+            <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
+              {/* AVATAR OU VEÍCULO PADRÃO */}
+              <div className="relative shrink-0">
                 {isDriver ? (
-                  <>
-                    <InfoItem
-                      label="Veículo"
-                      value={profile.vehicle_type || profile.extras?.vehicle_type || 'Não informado'}
-                    />
-                    <InfoItem
-                      label="Implemento"
-                      value={profile.body_type || profile.extras?.body_type || '---'}
-                    />
-                    <InfoItem
-                      label="Status"
-                      value={isAvailable ? 'Disponível para fretes' : 'Indisponível no momento'}
-                    />
-                  </>
+                  <VehicleProfileBadge
+                    vehicleType={profile.vehicle_type || profile.extras?.vehicle_type}
+                    bodyType={profile.body_type || profile.extras?.body_type}
+                    avatarUrl={avatarImg}
+                    theme={theme}
+                  />
                 ) : (
-                  <>
-                    {businessTypeLabel && <InfoItem label="Tipo" value={businessTypeLabel} />}
-                    <InfoItem label="Status" value={isAvailable ? 'Ativa' : 'Indisponível'} />
-                  </>
+                  <div className={`w-44 h-44 md:w-52 md:h-52 ${theme.bg} rounded-[3rem] p-1.5 shadow-2xl`}>
+                    <div className="w-full h-full bg-white dark:bg-slate-800 rounded-[2.8rem] overflow-hidden flex items-center justify-center">
+                      {avatarImg ? (
+                        <img src={avatarImg} alt={displayName} className="w-full h-full object-cover" />
+                      ) : (
+                        <Building2 size={72} className="text-slate-200 dark:text-slate-600" />
+                      )}
+                    </div>
+                  </div>
+                )}
+                {shouldShowVerifiedBadge && (
+                  <div className="absolute -bottom-2 -right-2 bg-emerald-500 text-white p-3 rounded-2xl shadow-lg border-4 border-white dark:border-slate-900">
+                    <ShieldCheck size={24} />
+                  </div>
+                )}
+              </div>
+
+              {/* INFO TEXTO */}
+              <div className="flex-1 text-center md:text-left space-y-4">
+                <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                  {shouldShowVerifiedBadge && (
+                    <span className="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter border border-emerald-100 dark:border-emerald-500/20 flex items-center gap-1.5">
+                      <CheckCircle2 size={14} /> Perfil Verificado
+                    </span>
+                  )}
+                  <span className="bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                    {displayRole}
+                  </span>
+                  {businessTypeLabel && (
+                    <span className="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-tighter">
+                      {businessTypeLabel}
+                    </span>
+                  )}
+                </div>
+
+                <h1 className="text-4xl md:text-6xl font-black text-slate-900 dark:text-white uppercase italic leading-[0.9] tracking-tighter">
+                  {displayName}
+                </h1>
+
+                <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
+                  <span className={`flex items-center gap-2 ${theme.text}`}>
+                    <MapPinned size={18} /> {profile.city || 'Atendimento'} - {profile.state || 'Brasil'}
+                  </span>
+                  {profile.member_since && (
+                    <span className="flex items-center gap-2">
+                      <Calendar size={18} /> No Chama Frete desde {new Date(profile.member_since).getFullYear()}
+                    </span> 
+                  )}
+                </div>
+
+                {isLoggedIn && profile.whatsapp_clean ? (
+                  <button
+                    onClick={handleWhatsAppClick}
+                    className={`inline-flex items-center gap-4 ${theme.bg} hover:scale-[1.02] text-white px-8 py-5 rounded-[2rem] font-black uppercase italic transition-all shadow-xl mt-4`}
+                  >
+                    <MessageCircle size={24} />
+                    <div className="text-left leading-tight">
+                      <p className="text-[10px] opacity-80 not-italic uppercase">Contato</p>
+                      <p className="text-lg">WhatsApp</p>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="inline-flex items-center gap-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-6 py-4 rounded-2xl mt-4">
+                    <Lock size={20} />
+                    <span className="text-[11px] font-bold uppercase">Faça login para ver o contato</span>
+                  </div>
                 )}
               </div>
             </div>
+
+            {/* BIO / SOBRE */}
+            <div className="mt-12 pt-10 border-t border-slate-100 dark:border-slate-800">
+              <h3 className="text-slate-900 dark:text-white font-black uppercase italic text-sm tracking-widest flex items-center gap-3 mb-6">
+                <div className={`w-10 h-1.5 ${theme.bg} rounded-full`} />
+                {isDriver ? 'Sobre mim' : 'Sobre a Empresa'}
+              </h3>
+              <div className="grid lg:grid-cols-3 gap-10">
+                <div className="lg:col-span-2">
+                  <p className="text-slate-600 dark:text-slate-300 text-lg font-medium leading-relaxed italic">
+                    "{profile.bio ||
+                      `Olá! Sou ${displayName} e utilizo o Chama Frete para conectar com parceiros de logística.`}"
+                  </p>
+                </div>
+                <div className={`${theme.light} p-6 rounded-[2.5rem] border ${theme.border} space-y-4`}>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                    Ficha Técnica
+                  </p>
+                  {isDriver ? (
+                    <>
+                      <InfoItem
+                        label="Veículo"
+                        value={profile.vehicle_type || profile.extras?.vehicle_type || 'Não informado'}
+                      />
+                      <InfoItem
+                        label="Implemento"
+                        value={profile.body_type || profile.extras?.body_type || '---'}
+                      />
+                      <InfoItem
+                        label="Status"
+                        value={isAvailable ? 'Disponível para fretes' : 'Indisponível no momento'}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      {businessTypeLabel && <InfoItem label="Tipo" value={businessTypeLabel} />}
+                      <InfoItem label="Status" value={isAvailable ? 'Ativa' : 'Indisponível'} />
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* REDES SOCIAIS */}
+            {(instagramUrl || linkedinUrl) && (
+              <div className="mt-8 flex flex-wrap items-center gap-4">
+                {instagramUrl && (
+                  <a
+                    href={instagramUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100"
+                  >
+                    Instagram
+                  </a>
+                )}
+                {linkedinUrl && (
+                  <a
+                    href={linkedinUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-slate-900 text-white border border-slate-800 hover:bg-black"
+                  >
+                    LinkedIn
+                  </a>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* REDES SOCIAIS VISÍVEIS NO PERFIL PÚBLICO */}
-          {(instagramUrl || linkedinUrl) && (
-            <div className="mt-8 flex flex-wrap items-center gap-4">
-              {instagramUrl && (
-                <a
-                  href={instagramUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100"
-                >
-                  Instagram
-                </a>
-              )}
-              {linkedinUrl && (
-                <a
-                  href={linkedinUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-slate-900 text-white border border-slate-800 hover:bg-black"
-                >
-                  LinkedIn
-                </a>
-              )}
+          {/* LISTAGEM DE POSTS */}
+          {hasFreights && (
+            <section className="mt-12">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
+                  Fretes Disponíveis
+                </h2>
+                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
+                  {freights.length} {freights.length === 1 ? 'oferta' : 'ofertas'}
+                </span>
+              </div>
+              <div className="space-y-4">
+                {freights.map((item: any) => (
+                  <FreightRow
+                    key={item.id}
+                    data={{ ...item, value: item.price || item.value }}
+                    onClick={() => navigate(`/frete/${item.slug || item.id}`)}
+                    showDate
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {hasMarketplace && (
+            <section className="mt-12">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
+                  {isDriver ? 'Anúncios no Marketplace' : 'Produtos no Marketplace'}
+                </h2>
+                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
+                  {marketplaceItems.length} {marketplaceItems.length === 1 ? 'anúncio' : 'anúncios'}
+                </span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {marketplaceItems.map((item: any) => (
+                  <FreightCard key={item.id} data={item} aba="" disabled={false} />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {!hasAnyPosts && (
+            <div className="mt-12 bg-white dark:bg-slate-900 p-16 rounded-[3rem] text-center border-2 border-dashed border-slate-200 dark:border-slate-800">
+              <LayoutGrid size={48} className="text-slate-200 dark:text-slate-700 mx-auto mb-6" />
+              <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
+                Sem publicações ativas no momento
+              </p>
             </div>
           )}
         </div>
+      </main>
 
-        {/* SEÇÃO FRETES (Empresas com módulo frete) */}
-        {hasFreights && (
-          <section className="mt-12">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-              <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
-                Fretes Disponíveis
-              </h2>
-              <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
-                {freights.length} {freights.length === 1 ? 'oferta' : 'ofertas'}
-              </span>
-            </div>
-            <div className="space-y-4">
-              {freights.map((item: any) => (
-                <FreightRow
-                  key={item.id}
-                  data={{ ...item, value: item.price || item.value }}
-                  onClick={() => navigate(`/frete/${item.slug || item.id}`)}
-                  showDate
-                />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* SEÇÃO MARKETPLACE / ANÚNCIOS (Motoristas ou empresas vendedoras) */}
-        {hasMarketplace && (
-          <section className="mt-12">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-              <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
-                {isDriver ? 'Anúncios no Marketplace' : 'Produtos no Marketplace'}
-              </h2>
-              <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
-                {marketplaceItems.length} {marketplaceItems.length === 1 ? 'anúncio' : 'anúncios'}
-              </span>
-            </div>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {marketplaceItems.map((item: any) => (
-                <FreightCard key={item.id} data={item} aba="" disabled={false} />
-              ))}
-            </div>
-          </section>
-        )}
-
-        {/* VAZIO */}
-        {!hasAnyPosts && (
-          <div className="mt-12 bg-white dark:bg-slate-900 p-16 rounded-[3rem] text-center border-2 border-dashed border-slate-200 dark:border-slate-800">
-            <LayoutGrid size={48} className="text-slate-200 dark:text-slate-700 mx-auto mb-6" />
-            <p className="text-sm font-black text-slate-400 uppercase tracking-[0.2em]">
-              Sem publicações ativas no momento
-            </p>
-          </div>
-        )}
-      </div>
+      <Footer />
     </div>
   );
 }
@@ -416,7 +431,6 @@ function VehicleProfileBadge({
   theme: any;
 }) {
   const vType = vehicleType || 'Não informado';
-  const typeId = VEHICLE_TYPE_IDS[vType as keyof typeof VEHICLE_TYPE_IDS] || 'default';
 
   return (
     <div className={`w-44 h-44 md:w-52 md:h-52 ${theme.bg} rounded-[3rem] p-1.5 shadow-2xl`}>
@@ -466,20 +480,24 @@ function LoadingState() {
 
 function NotFoundState({ navigate }: any) {
   return (
-    <div className="min-h-screen flex items-center justify-center p-10 bg-slate-50 dark:bg-slate-950">
-      <div className="bg-white dark:bg-slate-900 p-16 rounded-[3rem] text-center shadow-2xl max-w-md border border-slate-200 dark:border-slate-800">
-        <AlertCircle size={80} className="text-red-100 dark:text-red-900/30 mx-auto mb-6" />
-        <h1 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white">Perfil Indisponível</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mt-4 font-medium italic">
-          Este perfil não existe ou foi removido da plataforma.
-        </p>
-        <button
-          onClick={() => navigate('/')}
-          className="mt-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-full py-5 rounded-[2rem] font-black uppercase italic text-sm hover:scale-[1.02] transition-all shadow-lg"
-        >
-          Voltar ao Início
-        </button>
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
+      <Header />
+      <div className="flex-grow flex items-center justify-center p-10">
+        <div className="bg-white dark:bg-slate-900 p-16 rounded-[3rem] text-center shadow-2xl max-w-md border border-slate-200 dark:border-slate-800">
+          <AlertCircle size={80} className="text-red-100 dark:text-red-900/30 mx-auto mb-6" />
+          <h1 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white">Perfil Indisponível</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-4 font-medium italic">
+            Este perfil não existe ou foi removido da plataforma.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            className="mt-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-full py-5 rounded-[2rem] font-black uppercase italic text-sm hover:scale-[1.02] transition-all shadow-lg"
+          >
+            Voltar ao Início
+          </button>
+        </div>
       </div>
+      <Footer />
     </div>
   );
 }

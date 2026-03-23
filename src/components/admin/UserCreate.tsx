@@ -196,7 +196,7 @@ export default function AdminUserProvisioning() {
                    <ModernSelect 
                     label="Cargo Operacional"
                     value={form.role}
-                    options={form.origin === 'INTERNAL' ? ['admin', 'manager', 'analyst', 'assistant'] : ['driver', 'company', 'shipper']}
+                    options={form.origin === 'INTERNAL' ? ['admin', 'manager', 'support', 'finance', 'marketing', 'director', 'coordinator', 'supervisor'] : ['driver', 'company']}
                     onChange={(val: any) => setForm({...form, role: val})}
                    />
                 </div>

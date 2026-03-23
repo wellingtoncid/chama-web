@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import { 
   Mail, Loader2, Search, User, Settings2, ShieldPlus, 
   Trash2, Building2, CheckCircle, Clock, Truck, Store, 
-  UserPlus, Star, Calendar, ShieldCheck, Smartphone
+  UserPlus, Star, Calendar, ShieldCheck, Smartphone, X
 } from 'lucide-react';
 import ProfilePermissionsModal from './ProfilePermissionsModal';
 
@@ -13,8 +12,24 @@ export default function UsersManager() {
   const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState("all");
+  const [filterRole, setFilterRole] = useState("all");
   const [selectedUser, setSelectedUser] = useState<any>(null);
-  const navigate = useNavigate();
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [creating, setCreating] = useState(false);
+
+  const [userType, setUserType] = useState<'driver' | 'company' | 'system'>('driver');
+  const [newUser, setNewUser] = useState({
+    name: '', // Razão Social (company) or Nome Completo (driver)
+    owner_name: '', // Nome do responsável (company only)
+    name_fantasy: '', // Nome fantasia (company only)
+    email: '',
+    password: '',
+    whatsapp: '',
+    document: '',
+    role: 'company',
+    user_type: 'DRIVER'
+  });
 
   const fetchUsers = async () => {
     try {
@@ -25,7 +40,7 @@ export default function UsersManager() {
 
       const sorted = (Array.isArray(data) ? data : []).sort((a: any, b: any) => {
         if (a.status === 'pending' && b.status !== 'pending') return -1;
-        return (a.name || "").localeCompare(b.name || "");
+        return (a.user_name || a.name || "").localeCompare(b.user_name || b.name || "");
       });
       setUsers(sorted);
     } catch (e) { 
@@ -36,6 +51,94 @@ export default function UsersManager() {
   };
 
   useEffect(() => { fetchUsers(); }, []);
+
+  const handleCreateUser = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    
+    if (!newUser.name || !newUser.email || !newUser.password) {
+      return alert("Nome, email e senha são obrigatórios");
+    }
+
+    if (userType === 'driver' && newUser.document && newUser.document.replace(/\D/g, '').length !== 11) {
+      return alert("CPF deve ter 11 dígitos");
+    }
+
+    if (userType === 'company' && newUser.document && newUser.document.replace(/\D/g, '').length !== 14) {
+      return alert("CNPJ deve ter 14 dígitos");
+    }
+
+    if (userType === 'company' && !newUser.owner_name) {
+      return alert("Informe o nome do responsável pela empresa");
+    }
+
+    if (userType === 'company' && newUser.document && newUser.document.replace(/\D/g, '').length !== 14) {
+      return alert("CNPJ deve ter 14 dígitos");
+    }
+
+    if (userType === 'system' && !newUser.role) {
+      return alert("Selecione um cargo para usuário do sistema");
+    }
+
+    if (userType === 'system' && newUser.document && newUser.document.replace(/\D/g, '').length !== 11) {
+      return alert("CPF deve ter 11 dígitos");
+    }
+    
+    try {
+      setCreating(true);
+      
+      const payload: any = {
+        name: newUser.name, // Para empresa: Razão Social
+        email: newUser.email,
+        password: newUser.password,
+        whatsapp: newUser.whatsapp,
+        document: newUser.document,
+        user_type: userType === 'system' ? 'SYSTEM' : (userType === 'company' ? 'COMPANY' : 'DRIVER'),
+        role: newUser.role || (userType === 'company' ? 'company' : (userType === 'system' ? 'admin' : 'driver'))
+      };
+
+      // Para empresa, adicionar campos específicos
+      if (userType === 'company') {
+        payload.owner_name = newUser.owner_name; // Nome do responsável
+        payload.name_fantasy = newUser.name_fantasy || null; // Nome fantasia
+      }
+
+      const res = await api.post('/admin-create-user', payload);
+      if (res.data?.success) {
+        alert("Usuário criado com sucesso!");
+        setShowCreateModal(false);
+        setNewUser({ name: '', owner_name: '', name_fantasy: '', email: '', password: '', whatsapp: '', document: '', role: 'company', user_type: 'DRIVER' });
+        setUserType('driver');
+        fetchUsers();
+      } else {
+        alert(res.data?.message || "Erro ao criar usuário");
+      }
+    } catch (e: any) {
+      alert(e.response?.data?.message || "Erro ao criar usuário");
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const openCreateModal = () => {
+    setShowCreateModal(true);
+  };
+
+  const filteredUsers = users.filter((u: any) => {
+    if (u.status === 'deleted') return false;
+    if (filterStatus !== 'all' && u.status !== filterStatus) return false;
+    if (filterRole !== 'all' && u.role !== filterRole) return false;
+    const searchLower = search.toLowerCase();
+    return (
+      (u.user_name?.toLowerCase() || u.name?.toLowerCase() || "").includes(searchLower) ||  
+      (u.company_name?.toLowerCase() || u.company_corporate_name?.toLowerCase() || "").includes(searchLower) ||
+      (u.company_document?.toLowerCase() || "").includes(searchLower) ||
+      (u.email?.toLowerCase() || "").includes(searchLower) ||
+      (u.document?.includes(searchLower)) ||
+      (u.role?.toLowerCase() || "").includes(searchLower) ||
+      (u.business_type?.toLowerCase() || "").includes(searchLower) ||
+      (u.city?.toLowerCase() || "").includes(searchLower)
+    );
+  });
 
   const handleApprove = async (id: number, name: string) => {
     if (!window.confirm(`Liberar acesso total para ${name.toUpperCase()}?`)) return;
@@ -66,24 +169,10 @@ export default function UsersManager() {
     }
   };
 
-  const filteredUsers = users.filter((u: any) => {
-    if (u.status === 'deleted') return false;
-    const searchLower = search.toLowerCase();
-    return (
-      (u.name?.toLowerCase() || "").includes(searchLower) || 
-      (u.company_name?.toLowerCase() || "").includes(searchLower) ||
-      (u.email?.toLowerCase() || "").includes(searchLower) ||
-      (u.document?.includes(searchLower)) || // CPF ou CNPJ
-      (u.role?.toLowerCase() || "").includes(searchLower) ||
-      (u.business_type?.toLowerCase() || "").includes(searchLower) || // BUSCA POR TIPO
-      (u.city?.toLowerCase() || "").includes(searchLower)
-    );
-  });
-
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* HEADER E BUSCA */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
         <div className="flex items-center gap-4">
           <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
             <ShieldPlus size={24} />
@@ -98,18 +187,41 @@ export default function UsersManager() {
         </div>
 
         <div className="flex flex-1 gap-3 w-full md:w-auto md:justify-end">
+          {/* FILTROS */}
+          <select 
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="px-4 py-3 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 ring-blue-500/20 outline-none"
+          >
+            <option value="all">Todos Status</option>
+            <option value="active">Ativos</option>
+            <option value="pending">Pendentes</option>
+            <option value="inactive">Inativos</option>
+          </select>
+
+          <select 
+            value={filterRole}
+            onChange={(e) => setFilterRole(e.target.value)}
+            className="px-4 py-3 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 ring-blue-500/20 outline-none"
+          >
+            <option value="all">Todos Tipos</option>
+            <option value="admin">Administrador</option>
+            <option value="company">Empresa</option>
+            <option value="driver">Motorista</option>
+          </select>
+
           <div className="relative flex-1 md:max-w-xs">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input 
               type="text" 
-              placeholder="Nome, Empresa, Email ou Documento..." 
+              placeholder="Buscar..." 
               className="w-full pl-11 pr-4 py-3 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 ring-blue-500/20 outline-none transition-all"
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
 
           <button 
-            onClick={() => navigate('/dashboard/admin/usuarios/novo')} // CAMINHO DA NOVA PÁGINA
+            onClick={openCreateModal}
             className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase italic hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-100"
           >
             <UserPlus size={16} /> Novo Usuário
@@ -159,63 +271,105 @@ export default function UsersManager() {
                       </div>
 
                       <div className="space-y-1">
+                        {/* Nome do usuário ou responsável */}
                         <p className="font-black text-slate-800 text-sm uppercase italic leading-none flex items-center gap-2">
-                          {u.name}
-                          {u.parent_id && <span className="text-[8px] bg-blue-100 text-blue-600 px-1 rounded not-italic">Sub</span>}
+                          {u.user_name || u.name || '⚠️ Sem nome'}
                         </p>
                         
-                        {/* Se for empresa ou tiver empresa vinculada */}
-                        {u.company_name ? (
+                        {/* Mostrar empresa para COMPANY ou vínculo para team members */}
+                        {(u.user_type === 'COMPANY' || u.role === 'company') ? (
                           <p className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1">
-                            <Store size={10} /> {u.company_name}
+                            <Store size={10} /> {u.company_name || u.company_corporate_name || '⚠️ Cadastre nome da empresa'}
                           </p>
-                        ) : u.parent_name ? (
+                        ) : u.parent_id && u.parent_name ? (
                           <p className="text-[10px] font-bold text-slate-500 uppercase italic flex items-center gap-1">
-                            <UserPlus size={10} /> Vinculado a: {u.parent_name}
+                            <UserPlus size={10} /> {u.parent_name} • {u.access_level || 'Usuário'}
                           </p>
+                        ) : (u.user_type === 'DRIVER' || u.role === 'driver') ? (
+                          <p className="text-[9px] font-bold text-slate-300 uppercase italic">Motorista</p>
+                        ) : (u.user_type === 'OPERATOR' || u.user_type === 'ADMIN' || u.role === 'admin' || u.role === 'manager' || u.role === 'coordinator') ? (
+                          <p className="text-[9px] font-bold text-slate-300 uppercase italic">Equipe Chama Frete</p>
                         ) : (
                           <p className="text-[9px] font-bold text-slate-300 uppercase italic">Perfil Individual</p>
                         )}
 
-                        <div className="flex flex-col gap-0.5">
-                           <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1.5">
-                             <Mail size={10} /> {u.email}
-                           </span>
-                           {u.whatsapp && (
-                             <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1.5">
-                               <Smartphone size={10} /> {u.whatsapp}
-                             </span>
-                           )}
+                        {/* Email e WhatsApp lado a lado */}
+                        <div className="flex gap-3">
+                          <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                            <Mail size={10} /> {u.email}
+                          </span>
+                          {u.whatsapp && (
+                            <span className="text-[10px] font-medium text-slate-400 flex items-center gap-1">
+                              <Smartphone size={10} /> {u.whatsapp}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
                   </td>
 
-                 <td className="px-8 py-5">
+                  <td className="px-8 py-5">
                   <div className="flex flex-col gap-2">
-                    {/* Container de Badges com Wrap para suportar múltiplas informações */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      
-                      {/* 1. Badge do Plano (Pro/Free) */}
-                      <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${u.plan_id == 1 ? 'bg-orange-100 text-orange-600 border border-orange-200' : 'bg-slate-100 text-slate-400'}`}>
-                        <Star size={10} fill={u.plan_id == 1 ? "currentColor" : "none"} />
-                        {u.plan_id == 1 ? 'Pro' : 'Free'}
-                      </span>
+                    {/* Helper function to get user type label */}
+                    {(() => {
+                      const getUserTypeLabel = () => {
+                        const ut = u.user_type?.toUpperCase();
+                        const al = u.access_level?.toLowerCase();
+                        const r = u.role?.toLowerCase();
+                        
+                        // Use user_type if available, otherwise fall back to role
+                        if (ut === 'DRIVER' || r === 'driver') return 'Motorista';
+                        
+                        if (ut === 'COMPANY' || r === 'company') {
+                          if (al === 'owner') return 'Empresa • Owner';
+                          if (al === 'manager') return 'Empresa • Gerente';
+                          if (al === 'user') return 'Empresa • Usuário';
+                          return 'Empresa';
+                        }
+                        
+                        if (ut === 'OPERATOR' || ut === 'ADMIN' || r === 'admin' || r === 'manager' || r === 'coordinator' || r === 'supervisor') {
+                          if (r === 'admin') return 'Admin';
+                          if (r === 'manager') return 'Gerente';
+                          if (r === 'coordinator') return 'Coordenador';
+                          if (r === 'supervisor') return 'Supervisor';
+                          if (r === 'analyst') return 'Analista';
+                          if (r === 'assistant') return 'Assistente';
+                          if (r === 'support') return 'Suporte';
+                          if (r === 'finance') return 'Financeiro';
+                          if (r === 'marketing') return 'Marketing';
+                          return r ? r.charAt(0).toUpperCase() + r.slice(1) : 'Equipe Chama Frete';
+                        }
+                        
+                        return 'Usuário';
+                      };
 
-                      {/* 2. Badge do Tipo de Plano (Aparece SEMPRE) */}
-                      <span className="text-[9px] font-bold text-slate-500 uppercase bg-slate-50 px-2 py-1 rounded-lg border border-slate-100 whitespace-nowrap">
-                        {u.plan_type || 'Geral'}
-                      </span>
+                      const getPlanLabel = () => {
+                        // Use plan_name from SQL if available
+                        if (u.plan_name) return u.plan_name;
+                        // Fall back to Free for plan_id = 1
+                        if (u.plan_id == 1) return 'Free';
+                        return 'Plano';
+                      };
 
-                      {/* 3. Badges dos Tipos de Empresa (Aparecem ADICIONALMENTE se existirem) */}
-                      {u.business_type && u.business_type.split(',').map((type: string, idx: number) => (
-                        <span key={idx} className="text-[9px] font-bold text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 whitespace-nowrap">
-                          {type.trim().replace('_', ' ')}
-                        </span>
-                      ))}
-                    </div>
+                      const isFree = u.plan_id == 1;
 
-                    {/* 4. Data de Criação (O "Desde") */}
+                      return (
+                        <div className="flex flex-wrap items-center gap-2">
+                          {/* Badge do Tipo de Usuário */}
+                          <span className="text-[9px] font-bold text-blue-600 uppercase bg-blue-50 px-2 py-1 rounded-lg border border-blue-100 whitespace-nowrap">
+                            {getUserTypeLabel()}
+                          </span>
+
+                          {/* Badge do Plano */}
+                          <span className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-tighter ${isFree ? 'bg-slate-100 text-slate-400' : 'bg-orange-100 text-orange-600 border border-orange-200'}`}>
+                            <Star size={10} fill={!isFree ? "currentColor" : "none"} />
+                            {getPlanLabel()}
+                          </span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Data de Criação */}
                     <span className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1 ml-1">
                       <Calendar size={10} /> 
                       Desde {u.created_at ? new Date(u.created_at).toLocaleDateString('pt-BR') : '---'}
@@ -245,13 +399,6 @@ export default function UsersManager() {
                         </button>
                       )}
                       
-                      <button 
-                        onClick={() => navigate(`/dashboard/admin/usuarios/${u.id}`)}
-                        className="h-10 w-10 flex items-center justify-center bg-white text-slate-400 border border-slate-200 hover:border-slate-900 hover:text-slate-900 rounded-xl transition-all shadow-sm"
-                      >
-                        <Search size={18} />
-                      </button>
-
                       <button 
                         onClick={() => setSelectedUser(u)} 
                         title="Editar Usuário"
@@ -289,6 +436,282 @@ export default function UsersManager() {
           onClose={() => setSelectedUser(null)} 
           onSave={fetchUsers}
         />
+      )}
+
+      {/* MODAL DE CRIAÇÃO DE USUÁRIO */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-200 flex items-center justify-center p-6 overflow-y-auto">
+          <div className="bg-white w-full max-w-2xl rounded-[3rem] p-10 shadow-2xl animate-in zoom-in-95 duration-300 my-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black uppercase italic">Novo Usuário</h3>
+              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-full">
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* TIPO DE USUÁRIO */}
+            <div className="flex gap-2 mb-6">
+              <button
+                type="button"
+                onClick={() => { setUserType('driver'); setNewUser({...newUser, user_type: 'DRIVER', role: 'driver'}); }}
+                className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs transition-all ${
+                  userType === 'driver' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                <Truck size={16} className="inline mr-2" />
+                Motorista
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUserType('company'); setNewUser({...newUser, user_type: 'COMPANY', role: 'company'}); }}
+                className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs transition-all ${
+                  userType === 'company' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                <Building2 size={16} className="inline mr-2" />
+                Empresa
+              </button>
+              <button
+                type="button"
+                onClick={() => { setUserType('system'); setNewUser({...newUser, user_type: 'SYSTEM', role: 'admin'}); }}
+                className={`flex-1 py-3 px-4 rounded-xl font-black uppercase text-xs transition-all ${
+                  userType === 'system' ? 'bg-orange-500 text-white' : 'bg-slate-100 text-slate-500'
+                }`}
+              >
+                <ShieldCheck size={16} className="inline mr-2" />
+                Sistema
+              </button>
+            </div>
+
+            <form onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }} className="space-y-4">
+              {/* CAMPOS MOTORISTA */}
+              {userType === 'driver' && (
+                <>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Nome Completo *</label>
+                    <input
+                      type="text"
+                      value={newUser.name}
+                      onChange={e => setNewUser({...newUser, name: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                      placeholder="João Silva"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">CPF *</label>
+                      <input
+                        type="text"
+                        value={newUser.document}
+                        onChange={e => setNewUser({...newUser, document: e.target.value})}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">WhatsApp</label>
+                      <input
+                        type="text"
+                        value={newUser.whatsapp}
+                        onChange={e => setNewUser({...newUser, whatsapp: e.target.value})}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Email *</label>
+                    <input
+                      type="email"
+                      value={newUser.email}
+                      onChange={e => setNewUser({...newUser, email: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                      placeholder="joao@exemplo.com"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Senha *</label>
+                    <input
+                      type="password"
+                      value={newUser.password}
+                      onChange={e => setNewUser({...newUser, password: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* CAMPOS EMPRESA */}
+              {userType === 'company' && (
+                <>
+                  {/* Dados da Empresa */}
+                  <div className="bg-blue-50 p-4 rounded-2xl space-y-3">
+                    <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Dados da Empresa</p>
+                    
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Razão Social *</label>
+                      <input
+                        type="text"
+                        value={newUser.name}
+                        onChange={e => setNewUser({...newUser, name: e.target.value})}
+                        className="w-full p-4 bg-white rounded-2xl border-none font-bold mt-2"
+                        placeholder="Transportes ABC Ltda"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Nome Fantasia</label>
+                      <input
+                        type="text"
+                        value={newUser.name_fantasy}
+                        onChange={e => setNewUser({...newUser, name_fantasy: e.target.value})}
+                        className="w-full p-4 bg-white rounded-2xl border-none font-bold mt-2"
+                        placeholder="ABC Transport"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">CNPJ *</label>
+                      <input
+                        type="text"
+                        value={newUser.document}
+                        onChange={e => setNewUser({...newUser, document: e.target.value})}
+                        className="w-full p-4 bg-white rounded-2xl border-none font-bold mt-2"
+                        placeholder="00.000.000/0001-00"
+                        maxLength={18}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Dados do Responsável */}
+                  <div className="bg-green-50 p-4 rounded-2xl space-y-3">
+                    <p className="text-[10px] font-black uppercase text-green-600 tracking-wider">Dados do Responsável</p>
+                    
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Nome Completo *</label>
+                      <input
+                        type="text"
+                        value={newUser.owner_name}
+                        onChange={e => setNewUser({...newUser, owner_name: e.target.value})}
+                        className="w-full p-4 bg-white rounded-2xl border-none font-bold mt-2"
+                        placeholder="João Silva"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">WhatsApp</label>
+                        <input
+                          type="text"
+                          value={newUser.whatsapp}
+                          onChange={e => setNewUser({...newUser, whatsapp: e.target.value})}
+                          className="w-full p-4 bg-white rounded-2xl border-none font-bold mt-2"
+                          placeholder="(00) 00000-0000"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Email *</label>
+                        <input
+                          type="email"
+                          value={newUser.email}
+                          onChange={e => setNewUser({...newUser, email: e.target.value})}
+                          className="w-full p-4 bg-white rounded-2xl border-none font-bold mt-2"
+                          placeholder="joao@empresa.com.br"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Senha *</label>
+                      <input
+                        type="password"
+                        value={newUser.password}
+                        onChange={e => setNewUser({...newUser, password: e.target.value})}
+                        className="w-full p-4 bg-white rounded-2xl border-none font-bold mt-2"
+                        placeholder="••••••••"
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {/* CAMPOS SISTEMA */}
+              {userType === 'system' && (
+                <>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Nome Completo *</label>
+                    <input
+                      type="text"
+                      value={newUser.name}
+                      onChange={e => setNewUser({...newUser, name: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                      placeholder="João Silva"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">CPF *</label>
+                      <input
+                        type="text"
+                        value={newUser.document}
+                        onChange={e => setNewUser({...newUser, document: e.target.value})}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                        placeholder="000.000.000-00"
+                        maxLength={14}
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Email *</label>
+                      <input
+                        type="email"
+                        value={newUser.email}
+                        onChange={e => setNewUser({...newUser, email: e.target.value})}
+                        className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                        placeholder="joao@chamafrete.com.br"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Senha *</label>
+                    <input
+                      type="password"
+                      value={newUser.password}
+                      onChange={e => setNewUser({...newUser, password: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                      placeholder="••••••••"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Cargo *</label>
+                    <select
+                      value={newUser.role}
+                      onChange={e => setNewUser({...newUser, role: e.target.value})}
+                      className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                    >
+                      <option value="">Selecione o cargo</option>
+                      <option value="admin">Admin</option>
+                      <option value="manager">Gerente</option>
+                      <option value="coordinator">Coordenador</option>
+                      <option value="supervisor">Supervisor</option>
+                      <option value="analyst">Analista</option>
+                      <option value="assistant">Assistente</option>
+                      <option value="support">Suporte</option>
+                      <option value="finance">Financeiro</option>
+                      <option value="marketing">Marketing</option>
+                    </select>
+                  </div>
+                </>
+              )}
+
+              <button
+                type="submit"
+                disabled={creating || !newUser.name || !newUser.email || !newUser.password || (userType === 'system' && !newUser.role)}
+                className="w-full py-5 bg-orange-500 text-white rounded-2xl font-black uppercase mt-4 hover:bg-orange-600 transition-all flex justify-center items-center gap-2 disabled:opacity-50"
+              >
+                {creating ? <Loader2 className="animate-spin" size={18} /> : <UserPlus size={18} />}
+                Criar {userType === 'driver' ? 'Motorista' : userType === 'company' ? 'Empresa' : 'Usuário'}
+              </button>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

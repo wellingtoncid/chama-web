@@ -34,8 +34,8 @@ export const PrivateRoute = ({ allowedRoles }: PrivateRouteProps) => {
     const normalizedAllowed = allowedRoles.map(r => r.toLowerCase());
     
     const isAdmin = userRole === 'admin';
-    const isCompany = userRole === 'company' || userRole === 'transportadora' || userRole === 'advertiser';
-    const isDriver = userRole === 'driver' || userRole === 'motorista';
+    const isCompany = userRole === 'company';
+    const isDriver = userRole === 'driver';
     
     const hasRoleAccess = normalizedAllowed.includes(userRole) || 
                          (normalizedAllowed.includes('company') && isCompany) ||

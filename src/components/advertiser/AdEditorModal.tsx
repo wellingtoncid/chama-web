@@ -1,6 +1,17 @@
-import { useState } from 'react';
-import { X, Upload, Link as LinkIcon, Type, Loader2, Image as ImageIcon } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Upload, Link as LinkIcon, Type, Loader2, Image as ImageIcon, Layout, Home, FileText, Bell, AlertTriangle, Instagram } from 'lucide-react';
 import { api } from '../../api/api';
+
+const AD_POSITIONS = [
+  { key: 'sidebar', name: 'Barra Lateral', icon: Layout, description: 'Exibido na barra lateral', size: '300x250' },
+  { key: 'freight_list', name: 'Lista de Fretes', icon: Layout, description: 'Publicado entre os fretes', size: '728x90' },
+  { key: 'home_hero', name: 'Banner Home', icon: Home, description: 'Destaque no topo da página inicial', size: '1200x400' },
+  { key: 'footer', name: 'Rodapé', icon: FileText, description: 'Exibido no rodapé do site', size: '728x90' },
+  { key: 'popup', name: 'Popup', icon: AlertTriangle, description: 'Popup entre navegações', size: '500x500' },
+  { key: 'header', name: 'Cabeçalho', icon: Bell, description: 'No topo do site', size: '728x90' },
+  { key: 'in-feed', name: 'No Feed', icon: Instagram, description: 'Entre conteúdos do feed', size: '600x300' },
+  { key: 'details_page', name: 'Página de Detalhes', icon: FileText, description: 'Páginas de detalhes', size: '728x90' },
+];
 
 interface AdEditorProps {
   userId: number;
@@ -13,6 +24,7 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
   const [formData, setFormData] = useState({
     title: '',
     destination_url: '',
+    position: 'sidebar',
     image: null as File | null
   });
   const [preview, setPreview] = useState<string | null>(null);
@@ -37,17 +49,23 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
       data.append('title', formData.title);
       data.append('destination_url', formData.destination_url);
       data.append('image', formData.image);
+      data.append('position', formData.position);
 
-      await api.post('?endpoint=create-ad', data, {
+      const res = await api.post('/ads/save', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
-      alert("Anúncio enviado para aprovação!");
-      onSuccess();
-      onClose();
-    } catch (error) {
+      if (res.data?.success) {
+        alert("Anúncio salvo com sucesso!");
+        onSuccess();
+        onClose();
+      } else {
+        alert(res.data?.message || "Erro ao salvar anúncio.");
+      }
+    } catch (error: any) {
       console.error(error);
-      alert("Erro ao salvar anúncio.");
+      const msg = error.response?.data?.message || "Erro ao salvar anúncio.";
+      alert(msg);
     } finally {
       setLoading(false);
     }
@@ -85,6 +103,22 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
                 </>
               )}
             </div>
+          </div>
+
+          {/* Posição do Anúncio */}
+          <div className="relative">
+            <label className="text-[10px] font-black text-slate-400 uppercase ml-4 mb-1 block">Espaço Publicitário</label>
+            <select 
+              value={formData.position}
+              onChange={e => setFormData({...formData, position: e.target.value})}
+              className="w-full bg-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 outline-none"
+            >
+              {AD_POSITIONS.map(pos => (
+                <option key={pos.key} value={pos.key}>
+                  {pos.name} ({pos.size})
+                </option>
+              ))}
+            </select>
           </div>
 
           <div className="space-y-4">

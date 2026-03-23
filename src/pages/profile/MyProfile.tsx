@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, Save, Loader2, Camera, AlertCircle, 
   Globe, MapPin, MessageCircle, Copy, ExternalLink, Image as ImageIcon,
-  LayoutDashboard, User, Building2, Briefcase
+  LayoutDashboard, User, Building2, Briefcase, ShoppingBag, Check
 } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2'; 
@@ -24,6 +24,54 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  
+  const [modulesLoading, setModulesLoading] = useState(false);
+  const [marketplaceEnabled, setMarketplaceEnabled] = useState(false);
+
+  useEffect(() => {
+    loadModules();
+  }, []);
+
+  const loadModules = async () => {
+    try {
+      const res = await api.get('/user/modules');
+      if (res.data?.success) {
+        const marketplace = res.data.data?.modules?.find((m: any) => m.key === 'marketplace');
+        setMarketplaceEnabled(marketplace?.is_active || false);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar módulos:", e);
+    }
+  };
+
+  const toggleModule = async (moduleKey: string, enable: boolean) => {
+    try {
+      setModulesLoading(true);
+      const res = await api.post('/user/modules', {
+        module_key: moduleKey,
+        action: enable ? 'activate' : 'deactivate'
+      });
+      
+      if (res.data?.success) {
+        if (moduleKey === 'marketplace') setMarketplaceEnabled(enable);
+        Swal.fire({
+          icon: 'success',
+          title: enable ? 'Módulo Ativado!' : 'Módulo Desativado',
+          text: enable ? 'O Marketplace agora está disponível no seu painel.' : 'O Marketplace foi desativado.',
+          timer: 2000,
+          showConfirmButton: false
+        });
+      }
+    } catch (e: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: e.response?.data?.message || 'Não foi possível atualizar o módulo.'
+      });
+    } finally {
+      setModulesLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -53,9 +101,9 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     }
   }, [user]);
 
-  const role = user.role?.toLowerCase();
-  const isDriver = role === 'driver' || role === 'motorista';
-  const isCompany = ['company', 'shipper', 'transportadora', 'logistics', 'advertiser'].includes(role);
+  const role = (user.role || '').toLowerCase();
+  const isDriver = role === 'driver';
+  const isCompany = role === 'company';
 
   const themeClasses = isDriver ? {
     bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-100', 
@@ -288,6 +336,41 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
             <h3 className="text-xl font-black uppercase italic mb-8 text-slate-800 dark:text-white flex items-center gap-3"><MessageCircle size={24} className={themeClasses.text} /> Apresentação / Bio</h3>
             <textarea value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-transparent focus:border-slate-200 outline-none font-medium text-slate-700 dark:text-slate-300 min-h-[200px]" placeholder="Conte sua experiência, rotas que atende e diferenciais..." />
           </div>
+
+          {/* SEÇÃO DE MÓDULOS PARA DRIVER - DESTAQUE */}
+          {isDriver && (
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-[3rem] p-8 shadow-lg border border-blue-500/20">
+              <div className="flex items-start justify-between gap-6">
+                <div className="flex items-center gap-4">
+                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
+                    <ShoppingBag size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-black uppercase italic text-lg text-white">Marketplace</h3>
+                    <p className="text-blue-100 text-sm font-medium">Venda veículos, peças e acessórios</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => toggleModule('marketplace', !marketplaceEnabled)}
+                  disabled={modulesLoading}
+                  className={`relative w-16 h-9 rounded-full transition-all duration-300 flex-shrink-0 ${
+                    marketplaceEnabled ? 'bg-emerald-400' : 'bg-white/30'
+                  } disabled:opacity-50`}
+                >
+                  <div className={`absolute top-1 w-7 h-7 bg-white rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
+                    marketplaceEnabled ? 'left-8' : 'left-1'
+                  }`}>
+                    {marketplaceEnabled ? <Check size={14} className="text-emerald-500" /> : <span className="text-blue-400 text-xs font-bold">OFF</span>}
+                  </div>
+                </button>
+              </div>
+              <p className="text-blue-200 text-xs mt-4 font-medium">
+                {marketplaceEnabled 
+                  ? '✓ Marketplace ativado! Acesse pelo menu lateral para cadastrar seus produtos.' 
+                  : 'Ative para vender itens no marketplace da plataforma.'}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* COLUNA LATERAL: CONTATOS E REDES */}
@@ -315,8 +398,8 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                  <Input dark label="Site Oficial" placeholder="www.site.com" value={formData.website} onChange={(v:string) => setFormData({...formData, website: v})} />
                </div>
              </div>
-             <LayoutDashboard className="absolute -right-10 -bottom-10 text-white/5 w-40 h-40 group-hover:scale-110 transition-transform duration-700" />
-          </div>
+              <LayoutDashboard className="absolute -right-10 -bottom-10 text-white/5 w-40 h-40 group-hover:scale-110 transition-transform duration-700" />
+           </div>
         </div>
       </div>
 

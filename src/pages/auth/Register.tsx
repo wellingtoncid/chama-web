@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
-import { Truck, Building2, User, Mail, Lock, Phone, Loader2, FileText } from 'lucide-react';
+import { Truck, Building2, User, Mail, Lock, Phone, Loader2, FileText, Building } from 'lucide-react';
 import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function Register() {
   const [role, setRole] = useState<'driver' | 'company'>('driver');
-  const [name, setName] = useState('');
+  const [name, setName] = useState(''); // Nome completo (driver) ou Razão Social (company)
+  const [ownerName, setOwnerName] = useState(''); // Nome do responsável (company only)
+  const [nameFantasy, setNameFantasy] = useState(''); // Nome fantasia (company only)
   const [email, setEmail] = useState('');
   const [whatsapp, setWhatsapp] = useState('');
-  const [document, setDocument] = useState(''); // Novo campo
+  const [document, setDocument] = useState(''); // CPF or CNPJ
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -17,20 +19,32 @@ export default function Register() {
     e.preventDefault();
     if (loading) return;
 
+    // Validation for company
+    if (role === 'company' && !ownerName.trim()) {
+      alert("Por favor, informe o nome do responsável pela empresa.");
+      return;
+    }
+
     setLoading(true);
 
     // Sanitização: Apenas números para WhatsApp e Documento
     const cleanWhatsapp = whatsapp.replace(/\D/g, '');
     const cleanDocument = document.replace(/\D/g, '');
 
-    const payload = {
-      name: name.trim(),
+    const payload: any = {
+      name: name.trim(), // Driver: nome completo | Company: Razão Social
       email: email.trim().toLowerCase(),
       whatsapp: cleanWhatsapp,
-      document: cleanDocument, // Enviando o documento real
+      document: cleanDocument,
       password,
       role
     };
+
+    // Add company-specific fields
+    if (role === 'company') {
+      payload.owner_name = ownerName.trim(); // Nome do responsável
+      payload.name_fantasy = nameFantasy.trim(); // Nome fantasia
+    }
 
     try {
       const response = await api.post('/register', payload);
@@ -50,6 +64,13 @@ export default function Register() {
     }
   };
 
+  const clearFieldsOnRoleChange = () => {
+    setName('');
+    setOwnerName('');
+    setNameFantasy('');
+    setDocument('');
+  };
+
   return (
     <div className="min-h-screen bg-slate-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-2xl p-8 md:p-10">
@@ -62,7 +83,7 @@ export default function Register() {
         <div className="grid grid-cols-2 gap-4 mb-8">
           <button
             type="button"
-            onClick={() => { setRole('driver'); setDocument(''); }}
+            onClick={() => { setRole('driver'); clearFieldsOnRoleChange(); }}
             className={`flex flex-col items-center p-5 rounded-3xl border-2 transition-all duration-300 ${
               role === 'driver' 
                 ? 'border-orange-500 bg-orange-50 text-orange-600 shadow-sm' 
@@ -75,7 +96,7 @@ export default function Register() {
 
           <button
             type="button"
-            onClick={() => { setRole('company'); setDocument(''); }}
+            onClick={() => { setRole('company'); clearFieldsOnRoleChange(); }}
             className={`flex flex-col items-center p-5 rounded-3xl border-2 transition-all duration-300 ${
               role === 'company' 
                 ? 'border-blue-600 bg-blue-50 text-blue-600 shadow-sm' 
@@ -88,32 +109,102 @@ export default function Register() {
         </div>
 
         <form onSubmit={handleRegister} className="space-y-4">
-          {/* Nome */}
-          <div className="relative">
-            <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input
-              type="text" 
-              placeholder={role === 'driver' ? "Seu Nome Completo" : "Razão Social da Empresa"}
-              required
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
+          {/* Se for EMPRESA: Dados da Empresa */}
+          {role === 'company' && (
+            <div className="bg-blue-50 p-4 rounded-2xl space-y-3">
+              <p className="text-[10px] font-black uppercase text-blue-600 tracking-wider">Dados da Empresa</p>
+              
+              {/* Razão Social */}
+              <div className="relative">
+                <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={20} />
+                <input
+                  type="text" 
+                  placeholder="Razão Social"
+                  required
+                  className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-bold text-slate-700"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
 
-          {/* CPF / CNPJ - CAMPO DINÂMICO */}
-          <div className="relative">
-            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-            <input
-              type="text" 
-              placeholder={role === 'driver' ? "Seu CPF (apenas números)" : "CNPJ da Empresa"}
-              required
-              className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
-              value={document}
-              onChange={(e) => setDocument(e.target.value.replace(/\D/g, ''))} // Mantém apenas números
-              maxLength={role === 'driver' ? 11 : 14}
-            />
-          </div>
+              {/* Nome Fantasia */}
+              <div className="relative">
+                <Building className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={20} />
+                <input
+                  type="text" 
+                  placeholder="Nome Fantasia (opcional)"
+                  className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-bold text-slate-700"
+                  value={nameFantasy}
+                  onChange={(e) => setNameFantasy(e.target.value)}
+                />
+              </div>
+
+              {/* CNPJ */}
+              <div className="relative">
+                <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-blue-400" size={20} />
+                <input
+                  type="text" 
+                  placeholder="CNPJ (apenas números)"
+                  required
+                  className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl focus:ring-2 focus:ring-blue-600 outline-none transition-all font-bold text-slate-700"
+                  value={document}
+                  onChange={(e) => setDocument(e.target.value.replace(/\D/g, ''))}
+                  maxLength={14}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Se for EMPRESA: Dados do Responsável */}
+          {role === 'company' && (
+            <div className="bg-green-50 p-4 rounded-2xl space-y-3">
+              <p className="text-[10px] font-black uppercase text-green-600 tracking-wider">Dados do Responsável</p>
+              
+              {/* Nome do Responsável */}
+              <div className="relative">
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 text-green-600" size={20} />
+                <input
+                  type="text" 
+                  placeholder="Nome Completo do Responsável"
+                  required
+                  className="w-full pl-12 pr-4 py-4 bg-white border-none rounded-2xl focus:ring-2 focus:ring-green-600 outline-none transition-all font-bold text-slate-700"
+                  value={ownerName}
+                  onChange={(e) => setOwnerName(e.target.value)}
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Se for MOTORISTA: Nome Completo */}
+          {role === 'driver' && (
+            <div className="relative">
+              <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input
+                type="text" 
+                placeholder="Seu Nome Completo"
+                required
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+            </div>
+          )}
+
+          {/* Se for MOTORISTA: CPF */}
+          {role === 'driver' && (
+            <div className="relative">
+              <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+              <input
+                type="text" 
+                placeholder="Seu CPF (apenas números)"
+                required
+                className="w-full pl-12 pr-4 py-4 bg-slate-50 border-none rounded-2xl focus:ring-2 focus:ring-slate-900 outline-none transition-all font-bold text-slate-700"
+                value={document}
+                onChange={(e) => setDocument(e.target.value.replace(/\D/g, ''))}
+                maxLength={11}
+              />
+            </div>
+          )}
 
           {/* WhatsApp */}
           <div className="relative">

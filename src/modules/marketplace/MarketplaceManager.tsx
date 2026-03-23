@@ -12,8 +12,8 @@ const MarketplaceManager = ({ user }: { user: any }) => {
   const fetchMyItems = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`?endpoint=get-my-listings&user_id=${user.id}`);
-      setItems(response.data || []);
+      const response = await api.get('/my-listings');
+      setItems(response.data?.data || response.data || []);
     } catch (error) {
       console.error("Erro ao carregar seus anúncios", error);
     } finally {

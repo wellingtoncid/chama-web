@@ -1,6 +1,6 @@
 import { Mail, Phone } from "lucide-react";
 import { FaInstagram, FaLinkedin, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
-import AdCard from "../shared/AdCard"; // Certifique-se de que o caminho está correto
+import AdCard from "../shared/AdCard"; 
 
 const Footer = () => {
   return (
@@ -15,9 +15,18 @@ const Footer = () => {
             <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <AdCard position="footer" variant="horizontal" />
-            <AdCard position="footer" variant="horizontal" />
-            <AdCard position="footer" variant="horizontal" />
+            <AdCard 
+              position="footer" 
+              variant="horizontal"
+              />
+            <AdCard 
+              position="footer" 
+              variant="horizontal" 
+              />
+            <AdCard 
+              position="footer" 
+              variant="horizontal" 
+              />
           </div>
         </div>
 
@@ -99,7 +108,9 @@ const Footer = () => {
         {/* Direitos Autorais */}
         <div className="pt-12 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row justify-between items-center gap-6">
           <p className="text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-            © 2026 Chama Frete | Lognetz Tecnologia da Informação Ltda. Todos os direitos reservados. 
+            Built with ❤️ to honor and glorify the Lord Jesus Christ.
+            Chama Frete — A Lognetz IT Platform
+            © 2026 Lognetz. All rights reserved.
           </p>
           <div className="flex gap-8 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
             <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacidade</a>

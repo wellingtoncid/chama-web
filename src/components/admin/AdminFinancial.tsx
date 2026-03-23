@@ -13,7 +13,7 @@ export default function AdminFinancial() {
     const fetchFinance = async () => {
       try {
         // O endpoint calcula soma da tabela 'transactions' onde status = 'completed'
-        const res = await api.get('', { params: { endpoint: 'admin-financial-stats' } });
+        const res = await api.get('/admin-financial-stats');
         setStats(res.data);
       } catch (err) { console.error(err); } 
       finally { setLoading(false); }

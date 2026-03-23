@@ -26,6 +26,10 @@ export default function AdsManager() {
   const [whatsapp, setWhatsapp] = useState('');
   const [description, setDescription] = useState('');
   const [locationCity, setLocationCity] = useState('Brasil');
+  const [viewLimit, setViewLimit] = useState<number | ''>('');
+  const [targetUserId, setTargetUserId] = useState<number | ''>('');
+  const [users, setUsers] = useState<{id: number; name: string; email: string}[]>([]);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -41,32 +45,70 @@ export default function AdsManager() {
     ad.category?.toLowerCase().includes(filter.toLowerCase())
   );
 
-  // Unificação da lógica de Imagem (idêntica ao AdImage)
+  // Unificação da lógica de Imagem 
   const getFullImageUrl = (path: string) => {
     if (!path || path.trim() === "") return 'https://placehold.co/800x400/f1f5f9/64748b?text=Sem+Imagem';
     if (path.startsWith('http')) return path;
     
-    const baseUrl = BASE_URL_API.endsWith('/') ? BASE_URL_API.slice(0, -1) : BASE_URL_API;
-    let cleanPath = path.startsWith('/') ? path.substring(1) : path;
-    if (cleanPath.startsWith('api/')) cleanPath = cleanPath.replace('api/', '');
+    // Remove any leading slashes and api/ prefix
+    let cleanPath = path.replace(/^\//, '').replace(/^api\//, '');
     
-    return `${baseUrl}/${cleanPath}`;
+    // For ads, the path is already uploads/ads/filename
+    return `http://127.0.0.1:8000/${cleanPath}`;
   };
 
   const loadAds = async () => {
     try {
       setLoading(true);
+      console.log("Carregando anúncios...");
       const res = await api.get('/ads');
-      // Garantimos que ads seja sempre um array
-      setAds(Array.isArray(res.data) ? res.data : []);
+      console.log("Resposta da API de ads:", res.data);
+      const adsData = res.data?.data || res.data || [];
+      console.log("Anúncios carregados:", adsData);
+      setAds(Array.isArray(adsData) ? adsData : []);
     } catch (error) {
       console.error("Erro ao carregar anúncios", error);
+      setAds([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadAds(); }, []);
+  useEffect(() => { 
+    loadAds(); 
+    loadUsers();
+    loadCurrentUser();
+  }, []);
+
+  const loadUsers = async () => {
+    try {
+      const res = await api.get('/companies');
+      const companiesData = res.data?.companies || res.data?.data || res.data || [];
+      setUsers(companiesData);
+    } catch (error) {
+      console.warn("Erro ao carregar empresas - tentando método alternativo", error);
+      // Fallback
+      try {
+        const res = await api.get('/list-all-users');
+        const usersData = res.data?.users || res.data?.data || res.data || [];
+        const companies = usersData.filter((u: any) => u.type === 'COMPANY' || u.user_type === 'COMPANY');
+        setUsers(companies);
+      } catch (e) {
+        setUsers([]); 
+      }
+    }
+  };
+
+  const loadCurrentUser = async () => {
+    try {
+      const userData = localStorage.getItem('@ChamaFrete:user');
+      if (userData) {
+        setCurrentUser(JSON.parse(userData));
+      }
+    } catch (e) {
+      console.error("Erro ao carregar usuário atual", e);
+    }
+  };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -81,7 +123,7 @@ export default function AdsManager() {
       resetForm();
       setEditingId(ad.id);
       setTitle(ad.title || '');
-      setLink(ad.link || ''); 
+      setLink(ad.destination_url || ad.link || ''); 
       setWhatsapp(ad.link_whatsapp || '');
       setDescription(ad.description || '');
       setCategory(ad.category || 'PROMOÇÃO');
@@ -116,6 +158,7 @@ export default function AdsManager() {
         formData.append('link_whatsapp', whatsapp);
         formData.append('description', description);
         formData.append('location_city', locationCity);
+        if (targetUserId) formData.append('target_user_id', targetUserId.toString());
 
         await api.post('/upload-ad', formData, { 
           headers: { 'Content-Type': 'multipart/form-data' }
@@ -131,9 +174,10 @@ export default function AdsManager() {
           link_whatsapp: whatsapp,
           description,
           location_city: locationCity,
+          target_user_id: targetUserId || undefined,
           action: editingId ? 'update' : 'create'
         };
-        await api.post('/manage-ads', payload);
+        await api.post('/upload-ad', payload);
       }
       setIsModalOpen(false);
       resetForm();
@@ -160,7 +204,7 @@ export default function AdsManager() {
     setTitle(''); setLink(''); setDescription(''); setWhatsapp('');
     setCategory('PROMOÇÃO'); setSelectedFile(null); setPreviewUrl(null);
     setExternalImageUrl(''); setPosition('sidebar'); setLocationCity('Brasil');
-    setImageMode('upload');
+    setTargetUserId(''); setImageMode('upload');
   };
 
   return (
@@ -357,16 +401,41 @@ export default function AdsManager() {
                 )}
 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Local de Exibição</label>
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Local de Exibição (onde vai aparecer no site)</label>
                   <select value={position} onChange={(e) => setPosition(e.target.value)} className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none">
-                    <option value="sidebar">Barra Lateral</option>
-                    <option value="freight_list">Lista de Fretes</option>
-                    <option value="home_hero">Banner Principal Home</option>
+                    <option value="strategic_partners">⭐ Strategic Partners (VIP)</option>
+                    <option value="home_hero">🏆 Banner Principal Home</option>
+                    <option value="spotlight">⭐ Destaque/Spotlight</option>
+                    <option value="media_network">📺 Anunciantes & Media Network</option>
+                    <option value="sidebar">📱 Barra Lateral</option>
+                    <option value="footer">🔻 Rodapé</option>
+                    <option value="header">🔼 Cabeçalho</option>
+                    <option value="freight_list">🚚 Lista de Fretes</option>
+                    <option value="details_page">📄 Página de Detalhes</option>
+                    <option value="in-feed">📰 No Feed</option>
+                    <option value="popup">🔔 Popup</option>
                   </select>
                 </div>
               </div>
 
               <div className="space-y-4">
+                {/* Selecionar Usuário/Empresa */}
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Criar em nome de (Empresa)</label>
+                  <select 
+                    value={targetUserId} 
+                    onChange={(e) => setTargetUserId(e.target.value ? Number(e.target.value) : '')}
+                    className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none"
+                  >
+                    <option value="">Selecione uma empresa...</option>
+                    {users.map(user => (
+                      <option key={user.id} value={user.id}>
+                        {user.name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Título do Cliente/Campanha</label>
                   <input type="text" placeholder="Ex: Olist - Marketplace" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none" />
