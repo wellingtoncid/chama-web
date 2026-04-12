@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, Save, Loader2, Camera, AlertCircle, 
   Globe, MapPin, MessageCircle, Copy, ExternalLink, Image as ImageIcon,
-  LayoutDashboard, User, Building2, Briefcase, ShoppingBag, Check
+  LayoutDashboard, User, Building2, Briefcase, ShoppingBag, Check, Search, FileText
 } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2'; 
@@ -27,9 +27,18 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   
   const [modulesLoading, setModulesLoading] = useState(false);
   const [marketplaceEnabled, setMarketplaceEnabled] = useState(false);
+  const [identityConfirmed, setIdentityConfirmed] = useState(false);
+  
+  // CNPJ Verification
+  const [cnpjData, setCnpjData] = useState<any>(null);
+  const [cnpjInput, setCnpjInput] = useState('');
+  const [verifyingCnpj, setVerifyingCnpj] = useState(false);
 
   useEffect(() => {
     loadModules();
+    if (isCompany) {
+      loadCnpjData();
+    }
   }, []);
 
   const loadModules = async () => {
@@ -38,9 +47,65 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
       if (res.data?.success) {
         const marketplace = res.data.data?.modules?.find((m: any) => m.key === 'marketplace');
         setMarketplaceEnabled(marketplace?.is_active || false);
+        
+        const identityModule = res.data.data?.modules?.find((m: any) => m.key === 'identity_verification');
+        setIdentityConfirmed(identityModule?.is_active || false);
       }
     } catch (e) {
       console.error("Erro ao carregar módulos:", e);
+    }
+  };
+
+  const loadCnpjData = async () => {
+    try {
+      const res = await api.get('/get-cnpj-data');
+      if (res.data?.success && res.data?.data) {
+        setCnpjData(res.data.data);
+        setCnpjInput(res.data.data.cnpj || '');
+      }
+    } catch (e) {
+      console.error("Erro ao carregar dados do CNPJ:", e);
+    }
+  };
+
+  const verifyCnpj = async () => {
+    const cleanCnpj = cnpjInput.replace(/\D/g, '');
+    if (cleanCnpj.length !== 14) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'CNPJ inválido',
+        text: 'O CNPJ deve ter 14 dígitos.'
+      });
+      return;
+    }
+
+    setVerifyingCnpj(true);
+    try {
+      const res = await api.post('/verify-cnpj', { cnpj: cleanCnpj });
+      if (res.data.success) {
+        setCnpjData(res.data.data);
+        Swal.fire({
+          icon: 'success',
+          title: 'CNPJ verificado!',
+          text: res.data.is_active 
+            ? 'Sua empresa está ativa na Receita Federal.' 
+            : 'Atenção: Empresa não está ativa.'
+        });
+      } else {
+        Swal.fire({
+          icon: 'error',
+          title: 'Erro',
+          text: res.data.message || 'Não foi possível verificar o CNPJ.'
+        });
+      }
+    } catch (e: any) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: e.response?.data?.message || 'Erro ao verificar CNPJ.'
+      });
+    } finally {
+      setVerifyingCnpj(false);
     }
   };
 
@@ -93,7 +158,9 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         // Garante que campos de motorista existam para o DriverFields não quebrar
         vehicle_type: user.vehicle_type || extras.vehicle_type || '',
         body_type: user.body_type || extras.body_type || '',
-        trade_name: user.trade_name || user.name || ''
+        trade_name: user.trade_name || user.name || '',
+        // Disponibilidade do motorista - usa 0 se existir no banco, senão default 1
+        is_available: user.is_available ?? 0
       });
       
       if (user.avatar_url) setAvatarPreview(user.avatar_url);
@@ -151,16 +218,21 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         'specific_regions', 'load_volume'
       ];
 
+      // Campos que são números inteiros e devem ser enviados mesmo sendo 0
+      const integerFields = ['is_available'];
+
       const extras: any = {};
       
       Object.keys(formData).forEach(key => {
         if (extendedKeys.includes(key)) {
           extras[key] = formData[key];
+        } else if (integerFields.includes(key)) {
+          data.append(key, String(formData[key]));
         } else {
           // Campos nativos do banco (city, state, vehicle_type, body_type, etc)
           if (Array.isArray(formData[key])) {
             data.append(key, JSON.stringify(formData[key]));
-          } else if (formData[key] !== null) {
+          } else if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
             data.append(key, formData[key]);
           }
         }
@@ -335,42 +407,12 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
             <h3 className="text-xl font-black uppercase italic mb-8 text-slate-800 dark:text-white flex items-center gap-3"><MessageCircle size={24} className={themeClasses.text} /> Apresentação / Bio</h3>
             <textarea value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-transparent focus:border-slate-200 outline-none font-medium text-slate-700 dark:text-slate-300 min-h-[200px]" placeholder="Conte sua experiência, rotas que atende e diferenciais..." />
-          </div>
-
-          {/* SEÇÃO DE MÓDULOS PARA DRIVER - DESTAQUE */}
-          {isDriver && (
-            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-[3rem] p-8 shadow-lg border border-blue-500/20">
-              <div className="flex items-start justify-between gap-6">
-                <div className="flex items-center gap-4">
-                  <div className="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
-                    <ShoppingBag size={24} className="text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-black uppercase italic text-lg text-white">Marketplace</h3>
-                    <p className="text-blue-100 text-sm font-medium">Venda veículos, peças e acessórios</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => toggleModule('marketplace', !marketplaceEnabled)}
-                  disabled={modulesLoading}
-                  className={`relative w-16 h-9 rounded-full transition-all duration-300 flex-shrink-0 ${
-                    marketplaceEnabled ? 'bg-emerald-400' : 'bg-white/30'
-                  } disabled:opacity-50`}
-                >
-                  <div className={`absolute top-1 w-7 h-7 bg-white rounded-full shadow-lg transition-all duration-300 flex items-center justify-center ${
-                    marketplaceEnabled ? 'left-8' : 'left-1'
-                  }`}>
-                    {marketplaceEnabled ? <Check size={14} className="text-emerald-500" /> : <span className="text-blue-400 text-xs font-bold">OFF</span>}
-                  </div>
-                </button>
-              </div>
-              <p className="text-blue-200 text-xs mt-4 font-medium">
-                {marketplaceEnabled 
-                  ? '✓ Marketplace ativado! Acesse pelo menu lateral para cadastrar seus produtos.' 
-                  : 'Ative para vender itens no marketplace da plataforma.'}
+            {(formData.bio?.length ?? 0) <= 20 && (
+              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 px-2">
+                Para melhor pontuação do perfil, preencha mais de 20 caracteres.
               </p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* COLUNA LATERAL: CONTATOS E REDES */}
@@ -402,6 +444,31 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
            </div>
         </div>
       </div>
+
+      {/* Identidade Confirmada - only show if not contracted */}
+      {!identityConfirmed && (
+        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-500/10 dark:to-yellow-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[2rem] p-6">
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center shrink-0">
+              <ShieldCheck size={24} className="text-white" />
+            </div>
+            <div className="flex-1">
+              <h3 className="font-black uppercase italic text-lg text-slate-900 dark:text-white mb-1">
+                Aumente a confiança dos clientes
+              </h3>
+              <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
+                Contrate "Identidade Confirmada" para verificar sua {isDriver ? 'identidade' : 'empresa'} e destacar seu perfil com um badge especial.
+              </p>
+              <button
+                onClick={() => window.location.href = '/dashboard/plans'}
+                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-6 py-3 rounded-xl font-black uppercase text-sm transition-all shadow-lg"
+              >
+                Ver planos →
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* FOOTER SAVE BAR STICKY */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-[3rem] p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-white/20 sticky bottom-6 z-40">

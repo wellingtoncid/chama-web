@@ -31,7 +31,7 @@ export const AdImage = ({ url, className, alt = "" }: AdImageProps) => {
     }
 
     // 4. Limpa o Path interno
-    let cleanPath = trimmedPath.startsWith('/') ? trimmedPath.substring(1) : trimmedPath;
+    const cleanPath = trimmedPath.startsWith('/') ? trimmedPath.substring(1) : trimmedPath;
 
     // Se já começa com uploads/, não precisa adicionar prefixo
     // O banco já salva com o caminho completo: uploads/ads/xxx.jpg

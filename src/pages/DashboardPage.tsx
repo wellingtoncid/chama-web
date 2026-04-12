@@ -14,6 +14,7 @@ import WelcomeOnboarding from '../components/profile/WelcomeOnboarding';
 
 // PÁGINAS
 import PlansPage from './plans/PlansPage';
+import CompanyProPage from './company/CompanyProPage';
 import FinancialPage from './financial/FinancialPage';
 import SupportPage from './support/SupportPage';
 import QuotesPage from './quotes/QuotesPage';
@@ -23,7 +24,7 @@ import MarketplaceManager from '../modules/marketplace/MarketplaceManager';
 import DashboardAdmin from '../components/admin/DashboardAdmin'; 
 import FreightsManagerView from '../components/admin/FreightManagerView';
 import UsersManager from '../components/admin/UsersManagerView';
-import GroupsManager from '../components/admin/GroupsManagerView'; 
+import GroupsManager from '../components/admin/GroupsManagement'; 
 import AdsManager from '../components/admin/AdsManager'; 
 import SettingsView from '../components/admin/SettingsView'; 
 import AdminPortalRequests from '../components/admin/AdminPortalRequests';
@@ -34,6 +35,7 @@ import PricingManager from '../components/admin/PricingManager';
 import SupportTicketsManager from '../components/admin/SupportTicketsManager';
 import QuotesManager from '../components/admin/QuotesManager';
 import MarketplaceManagerAdmin from '../components/admin/MarketplaceManagerAdmin';
+import ListingCategoriesManager from '../components/admin/ListingCategoriesManager';
 import DashboardHome from '../components/admin/DashboardHome';
 import DashboardBI from '../components/admin/DashboardBI';
 import ProfileView from '../components/admin/ProfileView';
@@ -41,9 +43,14 @@ import AccessManager from '../components/admin/AccessManager';
 import UserCreate from '../components/admin/UserCreate';
 import RolesPage from './admin/RolesPage';
 import ModulesPage from './admin/ModulesPage';
+import VerificationsManager from '../components/admin/VerificationsManager';
+import ReviewsManager from '../components/admin/ReviewsManager';
+import ReportsManager from '../components/admin/ReportsManager';
+import AffiliateManager from '../components/admin/AffiliateManager';
 
 // PÁGINAS DE COMUNIDADES
 import CommunityPlatform from './community/CommunityPlatform';
+import TeamPage from './team/TeamPage';
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -160,6 +167,7 @@ export default function DashboardPage() {
               <Route path="admin/leads" element={<AdminPortalRequests />} />
               <Route path="admin/cotacoes" element={<QuotesManager />} />
               <Route path="admin/marketplace" element={<MarketplaceManagerAdmin />} />
+              <Route path="admin/marketplace-categorias" element={<ListingCategoriesManager />} />
               <Route path="admin/configuracoes" element={<SettingsView />} />
               <Route path="admin/atividade" element={<AdminDashboardActivity />} />
               <Route path="admin/suporte" element={<SupportTicketsManager />} />
@@ -168,12 +176,23 @@ export default function DashboardPage() {
               {isSuperAdmin && <Route path="admin/acessos" element={<AccessManager />} />}
               {isSuperAdmin && <Route path="admin/cargos" element={<RolesPage />} />}
               {isSuperAdmin && <Route path="admin/modulos" element={<ModulesPage />} />}
+              <Route path="admin/verificacoes" element={<VerificationsManager />} />
+              <Route path="admin/avaliacoes" element={<ReviewsManager />} />
+              <Route path="admin/denuncias" element={<ReportsManager />} />
+              {isSuperAdmin && <Route path="admin/afiliados" element={<AffiliateManager />} />}
               <Route path="perfil" element={<ProfileView />} />
             </>
           )}
 
           {(isCompany || isInternal) && (
             <Route path="logistica" element={<FreightManager user={user} />} />
+          )}
+
+          {isCompany && (
+            <>
+              <Route path="company-pro" element={<CompanyProPage />} />
+              <Route path="equipe" element={<TeamPage />} />
+            </>
           )}
 
           {hasAdsModule && (

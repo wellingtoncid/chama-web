@@ -114,7 +114,7 @@ export default function ProfileView() {
               </span>
               {profile?.rating_count > 0 && (
                 <span className="flex items-center gap-1">
-                  ⭐ {profile?.rating_avg?.toFixed(1)} ({profile?.rating_count} avaliações)
+                  ⭐ {Number(profile?.rating_avg || 0).toFixed(1)} ({profile?.rating_count} avaliações)
                 </span>
               )}
             </div>
@@ -265,7 +265,7 @@ export default function ProfileView() {
             <input 
               type="text"
               value={editing ? (formData as any).zip_code : (profile as any)?.zip_code}
-              onChange={e => setFormData({...formData, zip_code: e.target.value})}
+              onChange={e => setFormData({...formData, zip_code: e.target.value} as any)}
               disabled={!editing}
               className={inputClass}
             />

@@ -1,11 +1,13 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import FreightCard from '../../components/shared/FreightCard';
 import FreightRow from '../../components/shared/FreightRow';
+import { ProfileCompletenessAlert } from '../../components/driver';
 import { 
   Search, Heart, List, History, Activity, Truck, X, 
   Zap, ChevronRight, BellRing, Check, ShieldCheck, LayoutGrid,
-  Box
+  Box, Wallet
 } from 'lucide-react';
 
 interface DriverViewProps {
@@ -13,6 +15,7 @@ interface DriverViewProps {
 }
 
 export default function DriverView({ forceTab }: DriverViewProps) {
+  const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Alternador de visual
   const [search, setSearch] = useState('');
@@ -24,6 +27,7 @@ export default function DriverView({ forceTab }: DriverViewProps) {
   
   const [invitations, setInvitations] = useState<any[]>([]);
   const [activeFreight, setActiveFreight] = useState<any>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   // Recuperação segura do usuário
   const user = useMemo(() => {
@@ -50,6 +54,21 @@ export default function DriverView({ forceTab }: DriverViewProps) {
   useEffect(() => {
     if (forceTab) setFilter(forceTab);
   }, [forceTab]);
+
+  useEffect(() => {
+    loadWalletBalance();
+  }, []);
+
+  const loadWalletBalance = async () => {
+    try {
+      const res = await api.get('/wallet/balance');
+      if (res.data?.data?.balance !== undefined) {
+        setWalletBalance(res.data.data.balance);
+      }
+    } catch (error) {
+      console.error('Erro ao carregar saldo:', error);
+    }
+  };
 
   // 1. Carrega dados operacionais (Convites e Frete Ativo)
   const loadOperationalData = useCallback(async () => {
@@ -204,6 +223,9 @@ export default function DriverView({ forceTab }: DriverViewProps) {
         </div>
       </div>
       
+      {/* Profile Completeness Alert */}
+      <ProfileCompletenessAlert variant="banner" />
+      
       {/* SEÇÃO URGENTE: Carga em Andamento */}
       {filter === 'all' && activeFreight && (
         <div className="bg-slate-900 rounded-[2.5rem] p-6 border-b-8 border-emerald-500 shadow-2xl text-white animate-in slide-in-from-top-4 duration-500">
@@ -246,10 +268,24 @@ export default function DriverView({ forceTab }: DriverViewProps) {
       )}
 
       {/* KPIS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 relative z-10">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 relative z-10">
         <StatCard label="Disponíveis" value={stats.total_open} icon={<List size={18}/>} color="orange" />
         <StatCard label="Favoritos" value={stats.total_favs} icon={<Heart size={18}/>} color="red" />
         <StatCard label="Convites" value={invitations.length} icon={<Zap size={18}/>} color="orange" />
+        <button 
+          onClick={() => navigate('/dashboard/financeiro')}
+          className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-50 dark:border-slate-800 shadow-sm flex items-center gap-3 hover:shadow-md hover:border-green-200 dark:hover:border-green-800 transition-all cursor-pointer"
+        >
+          <div className="p-2.5 rounded-xl text-green-500 bg-green-50 dark:bg-green-900/20">
+            <Wallet size={18}/>
+          </div>
+          <div className="text-left">
+            <p className="text-[8px] font-black uppercase text-slate-400 tracking-tight">Carteira</p>
+            <p className="text-lg font-black text-slate-800 dark:text-slate-100 leading-none">
+              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(walletBalance)}
+            </p>
+          </div>
+        </button>
         
         {/* Radar Smart Interativo */}
         <button 

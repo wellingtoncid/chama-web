@@ -74,7 +74,7 @@ const Partners = () => {
   const getImageUrl = (path: string) => {
     if (!path) return 'https://placehold.co/400x300/f1f5f9/64748b?text=Sem+Imagem';
     if (path.startsWith('http')) return path;
-    let cleanPath = path.replace(/^\//, '').replace(/^api\//, '');
+    const cleanPath = path.replace(/^\//, '').replace(/^api\//, '');
     return `http://127.0.0.1:8000/${cleanPath}`;
   };
 

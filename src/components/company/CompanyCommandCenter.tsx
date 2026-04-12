@@ -2,11 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { 
   Plus, Loader2, ShoppingBag, Truck, 
   FileSearch, Building2, Star, Megaphone, 
-  CheckCircle, Lock, AlertCircle, CreditCard
+  CheckCircle, Lock, AlertCircle, CreditCard, Clock, XCircle
 } from 'lucide-react';
 import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'sweetalert2';
+import RequestModal from '../../components/modals/RequestModal';
 
 interface Module {
   key: string;
@@ -14,6 +15,9 @@ interface Module {
   description: string;
   is_active: boolean;
   is_allowed: boolean;
+  requires_approval?: boolean;
+  approval_status?: 'pending' | 'approved' | 'rejected' | null;
+  requested_at?: string | null;
 }
 
 interface ModuleCardProps {
@@ -25,12 +29,15 @@ interface ModuleCardProps {
   userRole: string;
   onActivate?: () => void;
   onDeactivate?: () => void;
+  onRequestAccess?: () => void;
 }
 
-function ModuleCard({ title, desc, icon, moduleKey, modules, userRole, onActivate, onDeactivate }: ModuleCardProps) {
+function ModuleCard({ title, desc, icon, moduleKey, modules, userRole, onActivate, onDeactivate, onRequestAccess }: ModuleCardProps) {
   const module = modules[moduleKey];
   const isAllowed = module?.is_allowed ?? false;
   const isActive = module?.is_active ?? false;
+  const requiresApproval = module?.requires_approval ?? false;
+  const approvalStatus = module?.approval_status ?? null;
   const isCompany = userRole === 'company';
 
   const handleClick = () => {
@@ -65,46 +72,83 @@ function ModuleCard({ title, desc, icon, moduleKey, modules, userRole, onActivat
           if (res.isConfirmed) onDeactivate();
         });
       }
+    } else if (requiresApproval && approvalStatus === 'pending') {
+      // Já possui solicitação pendente
+      return;
+    } else if (requiresApproval) {
+      // Abre modal de solicitação
+      if (onRequestAccess) onRequestAccess();
     } else {
       if (onActivate) onActivate();
     }
   };
 
+  // Determina o estado visual do card
+  const getCardState = () => {
+    if (!isAllowed) return 'locked';
+    if (isActive) return 'active';
+    if (requiresApproval && approvalStatus === 'pending') return 'pending';
+    if (requiresApproval) return 'approval_required';
+    return 'inactive';
+  };
+
+  const cardState = getCardState();
+
   return (
     <div 
       onClick={handleClick}
       className={`p-6 rounded-[2rem] border-2 flex flex-col justify-between h-56 transition-all relative group cursor-pointer ${
-        !isAllowed
+        cardState === 'locked'
           ? 'bg-slate-50 border-dashed border-slate-200 opacity-70'
-          : isActive 
+          : cardState === 'active' 
             ? 'bg-white border-emerald-200 hover:border-emerald-400 hover:shadow-lg' 
+          : cardState === 'pending'
+            ? 'bg-amber-50 border-amber-200'
+            : cardState === 'approval_required'
+              ? 'bg-white border-dashed border-amber-300 hover:border-amber-400 hover:bg-amber-50/30'
             : 'bg-white border-dashed border-slate-200 hover:border-orange-300 hover:bg-orange-50/30'
       }`}
     >
-      {!isAllowed && (
+      {/* Badges de estado */}
+      {cardState === 'locked' && (
         <div className="absolute top-4 right-4">
           <Lock size={16} className="text-slate-300" />
         </div>
       )}
 
+      {cardState === 'pending' && (
+        <div className="absolute top-4 right-4">
+          <span className="text-[8px] font-black px-2 py-1 rounded-lg uppercase italic bg-amber-100 text-amber-700 flex items-center gap-1">
+            <Clock size={10} />
+            Aguardando
+          </span>
+        </div>
+      )}
+
       <div className="flex justify-between items-start">
         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${
-          !isAllowed
+          cardState === 'locked'
             ? 'bg-slate-100 text-slate-400'
-            : isActive 
+            : cardState === 'active' 
               ? 'bg-emerald-100 text-emerald-600 group-hover:bg-emerald-500 group-hover:text-white' 
-              : 'bg-slate-100 text-slate-400 group-hover:bg-orange-100 group-hover:text-orange-600'
+            : cardState === 'pending'
+              ? 'bg-amber-100 text-amber-600'
+            : cardState === 'approval_required'
+              ? 'bg-amber-100 text-amber-600 group-hover:bg-amber-500 group-hover:text-white'
+            : 'bg-slate-100 text-slate-400 group-hover:bg-orange-100 group-hover:text-orange-600'
         }`}>
-          {React.cloneElement(icon as React.ReactElement, { size: 24 })}
+          {React.cloneElement(icon as React.ReactElement<{ size: number }>, { size: 24 })}
         </div>
         
-        {isAllowed && (
+        {isAllowed && cardState !== 'pending' && (
           <span className={`text-[8px] font-black px-2 py-1 rounded-lg uppercase italic ${
             isActive 
               ? 'bg-emerald-100 text-emerald-600' 
-              : 'bg-orange-100 text-orange-600'
+            : cardState === 'approval_required'
+              ? 'bg-amber-100 text-amber-600'
+            : 'bg-orange-100 text-orange-600'
           }`}>
-            {isActive ? 'Ativo' : 'Inativo'}
+            {isActive ? 'Ativo' : cardState === 'approval_required' ? 'Disponível' : 'Inativo'}
           </span>
         )}
       </div>
@@ -115,17 +159,32 @@ function ModuleCard({ title, desc, icon, moduleKey, modules, userRole, onActivat
       </div>
 
       <div className={`flex items-center gap-1.5 text-[9px] font-black uppercase italic ${
-        !isAllowed ? 'text-slate-400' : isActive ? 'text-emerald-500' : 'text-orange-500'
+        cardState === 'locked' ? 'text-slate-400' 
+          : cardState === 'active' ? 'text-emerald-500' 
+          : cardState === 'pending' ? 'text-amber-600'
+          : cardState === 'approval_required' ? 'text-amber-600'
+          : 'text-orange-500'
       }`}>
-        {!isAllowed ? (
+        {cardState === 'locked' ? (
           <>
             <CreditCard size={10} />
             <span>Upgrade de Plano</span>
           </>
-        ) : isActive ? (
+        ) : cardState === 'active' ? (
           <>
             <span>Clique para gerenciar</span>
             <Plus size={10} className="rotate-45" />
+          </>
+        ) : cardState === 'pending' ? (
+          <>
+            <Clock size={10} />
+            <span>Aguardando Aprovação</span>
+          </>
+        ) : cardState === 'approval_required' ? (
+          <>
+            <Clock size={10} />
+            <span>Solicitar Acesso</span>
+            <Plus size={10} />
           </>
         ) : (
           <>
@@ -144,6 +203,11 @@ export default function CompanyCommandCenter({ user }: any) {
   const [stats, setStats] = useState<any>(null);
   const [modules, setModules] = useState<Record<string, Module>>({});
   const [updating, setUpdating] = useState<string | null>(null);
+  const [requestModal, setRequestModal] = useState<{isOpen: boolean, moduleKey: string, moduleName: string}>({
+    isOpen: false,
+    moduleKey: '',
+    moduleName: ''
+  });
 
   const userRole = String(user?.role || '').toLowerCase();
   const isCompany = userRole === 'company';
@@ -177,6 +241,14 @@ export default function CompanyCommandCenter({ user }: any) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRequestAccess = (moduleKey: string, moduleName: string) => {
+    setRequestModal({ isOpen: true, moduleKey, moduleName });
+  };
+
+  const handleRequestSuccess = () => {
+    loadData(); // Recarrega os módulos
   };
 
   const toggleModule = async (moduleKey: string, activate: boolean) => {
@@ -278,11 +350,17 @@ export default function CompanyCommandCenter({ user }: any) {
                 : 'Ative ou desative os módulos da sua empresa'}
             </p>
           </div>
-          {Object.values(modules).filter(m => m.is_active).length > 0 && (
-            <div className="text-[10px] font-black text-emerald-600 uppercase italic">
-              {Object.values(modules).filter(m => m.is_active).length} módulo(s) ativo(s)
-            </div>
-          )}
+          {(() => {
+            const sellableModules = ['freights', 'marketplace', 'quotes', 'advertiser'];
+            const activeSellableCount = Object.values(modules)
+              .filter(m => m.is_active && sellableModules.includes(m.key))
+              .length;
+            return activeSellableCount > 0 && (
+              <div className="text-[10px] font-black text-emerald-600 uppercase italic">
+                {activeSellableCount} módulo(s) ativo(s)
+              </div>
+            );
+          })()}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -312,7 +390,7 @@ export default function CompanyCommandCenter({ user }: any) {
           {/* Só para empresas */}
           {isCompany && (
             <>
-              {/* QUOTES */}
+              {/* QUOTES - REQUER APROVAÇÃO */}
               <ModuleCard 
                 title="Cotações"
                 desc="Solicite e receba cotações de fretes."
@@ -320,11 +398,11 @@ export default function CompanyCommandCenter({ user }: any) {
                 moduleKey="quotes"
                 modules={modules}
                 userRole={userRole}
-                onActivate={!modules.quotes?.is_active ? () => toggleModule('quotes', true) : undefined}
                 onDeactivate={() => toggleModule('quotes', false)}
+                onRequestAccess={() => handleRequestAccess('quotes', 'Cotações')}
               />
 
-              {/* ADVERTISER */}
+              {/* ADVERTISER - REQUER APROVAÇÃO */}
               <ModuleCard 
                 title="Publicidade"
                 desc="Destaque sua empresa e anúncios."
@@ -332,12 +410,21 @@ export default function CompanyCommandCenter({ user }: any) {
                 moduleKey="advertiser"
                 modules={modules}
                 userRole={userRole}
-                onActivate={!modules.advertiser?.is_active ? () => toggleModule('advertiser', true) : undefined}
                 onDeactivate={() => toggleModule('advertiser', false)}
+                onRequestAccess={() => handleRequestAccess('advertiser', 'Publicidade')}
               />
             </>
           )}
         </div>
+
+        {/* MODAL DE SOLICITAÇÃO DE MÓDULO */}
+        <RequestModal
+          isOpen={requestModal.isOpen}
+          onClose={() => setRequestModal(prev => ({ ...prev, isOpen: false }))}
+          moduleName={requestModal.moduleName}
+          moduleKey={requestModal.moduleKey}
+          onSuccess={handleRequestSuccess}
+        />
 
         {/* AVISO PARA MOTORISTAS */}
         {isDriver && (

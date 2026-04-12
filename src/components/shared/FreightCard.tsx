@@ -1,44 +1,71 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Truck, Heart, Building2, Package, X, 
-  Lock, ChevronRight, Container 
-} from 'lucide-react';
+import { Heart, X, Lock, ChevronRight, ShieldCheck, MapPin } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
+import { AdImage } from '../AdImage';
 
-const FreightCard = ({ data, aba, onToggle, disabled }: any) => {
+interface FreightCardProps {
+  data: {
+    id: number;
+    slug?: string;
+    product?: string;
+    price?: string | number;
+    origin_city?: string;
+    origin_state?: string;
+    dest_city?: string;
+    dest_state?: string;
+    vehicle_type?: string;
+    body_type?: string;
+    company_name?: string;
+    user_name?: string;
+    avatar_url?: string;
+    user_is_verified?: number;
+    verified_until?: string;
+    is_favorite?: boolean | string | number;
+    is_featured?: number;
+  };
+  aba?: string;
+  onToggle?: () => void;
+  onView?: () => void;
+  disabled?: boolean;
+}
+
+export default function FreightCard({ data, aba, onToggle, onView, disabled }: FreightCardProps) {
   const navigate = useNavigate();
   const [isFavorite, setIsFavorite] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
 
-  // Fallback de segurança para evitar crash
+  // Call onView when component mounts (item enters viewport)
+  React.useEffect(() => {
+    if (onView) {
+      onView();
+    }
+  }, [onView]);
+
   if (!data) return null;
 
   const user = JSON.parse(localStorage.getItem('@ChamaFrete:user') || 'null');
-  // Se não tem user, permitimos ver o botão para induzir o login no clique
   const isDriver = user?.role === 'driver' || !user;
+  const isVerified = data.user_is_verified == 1 || (data.verified_until && new Date(data.verified_until) > new Date());
 
   useEffect(() => {
     const favStatus = String(data.is_favorite) === 'true' || Number(data.is_favorite) === 1;
     setIsFavorite(favStatus);
   }, [data.is_favorite]);
 
-  const formatLocation = (city: string, state: string) => {
-    if (!city && !state) return "NÃO INFORMADO";
-    return `${city || 'Cidade'} - ${state || 'UF'}`.toUpperCase();
+  const formatLocation = (city?: string, state?: string) => {
+    if (!city && !state) return "N/I";
+    return `${city || 'Cidade'} - ${state || 'UF'}`;
   };
 
   const toggleFavorite = async (e: React.MouseEvent) => {
-    e.stopPropagation(); // Impede que o clique no coração abra os detalhes da carga
-    
+    e.stopPropagation();
     if (!user) {
       setShowLoginModal(true);
       return;
     }
-
     const original = isFavorite;
     setIsFavorite(!original);
-    
     try {
       await api.post('/toggle-favorite', { freight_id: data.id });
       if (aba === 'favs' && onToggle) onToggle();
@@ -49,169 +76,135 @@ const FreightCard = ({ data, aba, onToggle, disabled }: any) => {
 
   const goToDetails = () => {
     if (disabled) return;
-    
-    // Prioriza o slug para rotas amigáveis, usa ID como fallback
     const identifier = data.slug || data.id;
     if (identifier) {
       navigate(`/frete/${identifier}`);
     }
   };
 
-  const formatCurrency = (val: any) => {
-    const num = parseFloat(val);
+  const formatCurrency = (val: string | number | undefined) => {
+    const num = parseFloat(String(val));
     if (isNaN(num) || num <= 0) return "A COMBINAR";
-    return num.toLocaleString('pt-BR', { 
-      style: 'currency', 
-      currency: 'BRL' 
-    });
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
 
   const companyDisplayName = data.company_name || data.user_name || 'Anunciante';
+  const hasAvatar = !!data.avatar_url;
 
   return (
     <>
-      <div 
+      <div
         onClick={goToDetails}
-        /* Ajustado: bg-white para dark:bg-slate-900 e bordas dark:border-slate-800 */
-        className={`bg-white dark:bg-slate-900 rounded-[2.5rem] p-6 border border-slate-100 dark:border-slate-800 shadow-sm transition-all relative flex flex-col h-full group ${
-          disabled 
-            ? 'opacity-80 grayscale-[0.3] cursor-default' 
-            : 'hover:shadow-xl dark:hover:shadow-blue-900/10 hover:-translate-y-1 cursor-pointer'
-        }`}
+        className={`bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 transition-all hover:shadow-lg cursor-pointer font-sans flex flex-col h-[420px] ${disabled ? 'opacity-70' : ''}`}
       >
-        {/* Status e Favorito */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <div className={`w-1.5 h-1.5 rounded-full ${disabled ? 'bg-slate-300 dark:bg-slate-600' : 'bg-green-500 animate-pulse'}`}></div>
-            <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-              {disabled ? 'Finalizado' : 'Disponível agora'}
+        {/* IMAGEM - EXATAMENTE h-52 */}
+        <div className="h-52 bg-gradient-to-br from-blue-600 to-blue-800 relative overflow-hidden flex-shrink-0">
+          {hasAvatar ? (
+            <AdImage 
+              url={data.avatar_url!} 
+              className="w-full h-full object-cover"
+              alt={companyDisplayName}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-600 to-blue-800">
+              <span className="text-white/30 text-8xl font-black uppercase italic">
+                {companyDisplayName.charAt(0)}
+              </span>
+            </div>
+          )}
+
+          <div className="absolute top-3 left-3 z-10">
+            <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[9px] font-bold backdrop-blur-sm ${
+              disabled ? 'bg-slate-500/90 text-white' : 'bg-green-500/90 text-white'
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${disabled ? 'bg-white/50' : 'bg-white animate-pulse'}`}></span>
+              {disabled ? 'FINALIZADO' : 'DISPONÍVEL'}
             </span>
           </div>
-            
+
           {!disabled && isDriver && (
             <button 
               onClick={toggleFavorite}
-              /* Ajustado: bg-slate-50 para dark:bg-slate-800 */
-              className={`p-2.5 rounded-xl transition-all z-20 ${
-                isFavorite 
-                ? 'bg-red-500 text-white shadow-lg shadow-red-100 dark:shadow-red-900/20' 
-                : 'bg-slate-50 dark:bg-slate-800 text-slate-300 dark:text-slate-500 hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20'
+              className={`absolute top-3 right-3 p-2 rounded-xl backdrop-blur-sm transition-all z-10 ${
+                isFavorite ? 'bg-red-500/90 text-white' : 'bg-white/80 text-slate-600 hover:text-red-500'
               }`}
             >
-              <Heart size={16} fill={isFavorite ? "white" : "none"} />
+              <Heart size={14} fill={isFavorite ? "white" : "none"} />
             </button>
           )}
-        </div>
 
-        {/* Empresa e Produto */}
-        <div className="flex flex-col gap-1 mb-4">
-          <div className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400">
-            <Building2 size={14} className="shrink-0" />
-            <span className="text-[10px] font-black uppercase tracking-wider truncate">
-              {companyDisplayName}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-800 dark:text-slate-100">
-            <Package size={16} className="shrink-0 text-slate-400 dark:text-slate-500" />
-            <span className="text-base font-black italic uppercase truncate">
-              {data.product || 'Carga Geral'}
-            </span>
-          </div>
-        </div>
-
-        {/* Especificações do Veículo */}
-        {/* Ajustado: bg-slate-50 para dark:bg-slate-950/50 */}
-        <div className="bg-slate-50 dark:bg-slate-950/50 rounded-2xl p-4 mb-5 border border-slate-100/50 dark:border-slate-800 transition-colors group-hover:bg-blue-50/30 dark:group-hover:bg-blue-900/10">
-          <div className="flex items-start gap-3">
-            <div className="w-10 h-10 bg-white dark:bg-slate-800 rounded-xl flex items-center justify-center shadow-sm text-blue-600 dark:text-blue-400 shrink-0 border border-slate-100 dark:border-slate-700">
-              <Truck size={20} />
+          {data.is_featured === 1 && (
+            <div className="absolute top-3 right-14 bg-orange-500/90 text-white text-[9px] font-bold px-2.5 py-1 rounded-full backdrop-blur-sm z-10">
+              DESTAQUE
             </div>
-            <div className="overflow-hidden min-w-0">
-              <p className="text-[11px] font-black text-slate-800 dark:text-slate-200 uppercase truncate leading-tight mb-1">
-                {data.vehicle_type || 'Não informado'}
-              </p>
-              <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-orange-100 dark:bg-orange-900/20 text-orange-700 dark:text-orange-400 rounded-md">
-                 <Container size={10} strokeWidth={3} />
-                 <p className="text-[9px] font-extrabold uppercase truncate">
-                    {data.body_type || 'Diversos'}
-                 </p>
-              </div>
+          )}
+
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-4 z-10">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-black uppercase text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
+                {companyDisplayName}
+              </span>
+              {isVerified && (
+                <ShieldCheck size={16} className="text-emerald-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]" fill="currentColor" />
+              )}
             </div>
           </div>
         </div>
 
-        {/* Rota (Origem/Destino) */}
-        <div className="flex flex-col gap-4 mb-6 relative px-1">
-          {/* Linha pontilhada: dark:border-slate-800 */}
-          <div className="absolute left-[11px] top-2 bottom-2 w-0.5 border-l-2 border-dotted border-slate-200 dark:border-slate-800" />
-          
-          <div className="flex items-center gap-4 relative">
-            {/* Ring: ring-blue-50 para dark:ring-blue-900/20 */}
-            <div className="w-2.5 h-2.5 rounded-full bg-blue-500 ring-4 ring-blue-50 dark:ring-blue-900/30" />
-            <div className="overflow-hidden min-w-0 flex-1">
-                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase leading-none mb-1">Origem</p>
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate tracking-tight">
-                    {formatLocation(data.origin_city, data.origin_state)}
-                </p>
-            </div>
+        <div className="p-4 flex flex-col flex-grow">
+          <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug mb-1 flex-grow uppercase">
+            {data.product || 'CARGA GERAL'}
+          </h3>
+
+          {(data.vehicle_type || data.body_type) && (
+            <p className="text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400 mb-1">
+              {data.vehicle_type && `🚚 ${data.vehicle_type}`}
+              {data.vehicle_type && data.body_type && ' / '}
+              {data.body_type && data.body_type}
+            </p>
+          )}
+
+          <div className="flex items-center gap-1.5 text-[10px] text-slate-500 dark:text-slate-400 mb-3">
+            <MapPin size={12} className="shrink-0" />
+            <span className="truncate font-bold uppercase">{formatLocation(data.origin_city, data.origin_state)} → {formatLocation(data.dest_city, data.dest_state)}</span>
           </div>
 
-          <div className="flex items-center gap-4 relative">
-            <div className="w-2.5 h-2.5 rounded-full bg-green-500 ring-4 ring-green-50 dark:ring-green-900/30" />
-            <div className="overflow-hidden min-w-0 flex-1">
-                <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase leading-none mb-1">Destino</p>
-                <p className="text-xs font-bold text-slate-700 dark:text-slate-300 truncate tracking-tight">
-                    {formatLocation(data.dest_city, data.dest_state)}
-                </p>
-            </div>
-          </div>
-        </div>
-
-        {/* Rodapé: Valor e CTA */}
-        <div className="mt-auto pt-5 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
-          <div className="min-w-0">
-             <p className="text-[8px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-0.5">Pagamento</p>
-             <p className="text-xl font-[1000] text-green-600 dark:text-green-400 tracking-tighter italic leading-none truncate">
+          <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 mt-auto">
+            <div>
+              <p className="text-[8px] font-bold uppercase text-slate-400 tracking-wide">Pagamento</p>
+              <p className="text-lg font-bold text-green-600 dark:text-green-400">
                 {formatCurrency(data.price)}
-             </p>
-          </div>
-          <div className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-1 shrink-0 ${
-            disabled 
-            ? 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-600' 
-            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 group-hover:bg-blue-600 dark:group-hover:bg-blue-500 group-hover:text-white group-hover:shadow-lg shadow-blue-200 dark:shadow-none'
-          }`}>
-            {disabled ? 'Encerrado' : (
-                <>Ver Carga <ChevronRight size={14} strokeWidth={3} /></>
-            )}
+              </p>
+            </div>
+            <div className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-bold text-[10px] uppercase transition-all">
+              VER <ChevronRight size={14} strokeWidth={2.5} />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modal de Acesso Restrito - Ajustado para Dark Mode */}
       {showLoginModal && (
         <div className="fixed inset-0 z-[1100] flex items-center justify-center bg-slate-900/60 dark:bg-black/80 backdrop-blur-md p-4">
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-10 max-w-sm w-full text-center relative animate-in zoom-in duration-200 shadow-2xl border border-white/20 dark:border-slate-800">
-            <button onClick={() => setShowLoginModal(false)} className="absolute top-6 right-6 text-slate-300 dark:text-slate-600 hover:text-red-500 transition-colors">
-              <X size={24} />
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-sm w-full text-center relative shadow-xl border border-slate-200 dark:border-slate-700">
+            <button onClick={() => setShowLoginModal(false)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">
+              <X size={20} />
             </button>
-            <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-              <Lock size={40} />
+            <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 text-blue-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <Lock size={28} />
             </div>
-            <h2 className="text-2xl font-[1000] text-slate-900 dark:text-white uppercase italic mb-3 tracking-tighter leading-tight">Acesso Restrito</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-sm font-bold leading-relaxed mb-8 px-4">
-              Faça login para salvar seus fretes favoritos e negociar com segurança.
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">ACESSO RESTRITO</h2>
+            <p className="text-slate-500 text-sm mb-6">
+              Faça login para salvar fretes favoritos.
             </p>
             <button 
-                onClick={() => navigate('/login')}
-                className="block w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 py-5 rounded-2xl font-black uppercase text-xs tracking-[0.2em] shadow-xl hover:bg-blue-600 dark:hover:bg-blue-500 dark:hover:text-white transition-all active:scale-95"
+              onClick={() => navigate('/login')}
+              className="w-full bg-blue-600 text-white py-3 rounded-xl font-bold text-sm hover:bg-blue-700 transition-all"
             >
-              Entrar Agora
+              ENTRAR AGORA
             </button>
           </div>
         </div>
       )}
     </>
   );
-};
-
-export default FreightCard;
+}

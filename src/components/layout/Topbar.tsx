@@ -1,6 +1,8 @@
 import React from 'react';
 import { Bell, Search, LogOut, User, ShieldCheck, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import WalletBalance from '../shared/WalletBalance';
+import NotificationBell from '../ui/NotificationBell';
 
 interface TopbarProps {
   user: any;
@@ -36,6 +38,9 @@ const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
   const isCoordinator = role === 'coordinator';
   const isSupervisor = role === 'supervisor';
   const isDirector = role === 'director';
+  
+  // Verificação ativa: is_verified = 1 E verified_until > agora
+  const isVerified = user.is_verified == 1 && (!user.verified_until || new Date(user.verified_until) > new Date());
 
   const roleLabels: Record<string, string> = {
     admin: 'Administrador Master',
@@ -65,8 +70,8 @@ const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
           </div>
           <h2 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-tighter flex items-center gap-1">
             Eixo <span className="text-orange-500 italic">{roleLabel}</span>
-            {(user.is_verified || isAdmin) && (
-              <ShieldCheck size={13} className="text-blue-600 dark:text-blue-400 ml-0.5" fill="currentColor" fillOpacity={0.1} />
+            {isVerified && (
+              <ShieldCheck size={13} className="text-blue-600 dark:text-blue-400 ml-0.5" fill="currentColor" fillOpacity={0.1} title="Usuário Verificado" />
             )}
           </h2>
         </div>
@@ -85,22 +90,24 @@ const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
           />
         </div>
 
-        {/* GRUPO DE AÇÕES */}
+          {/* GRUPO DE AÇÕES */}
         <div className="flex items-center gap-1">
+          {/* SALDO CARTEIRA (SÓ PARA EMPRESAS) */}
+          {isCompany && (
+            <WalletBalance compact showHiddenToggle onRecargeClick={() => navigate('/dashboard/financeiro')} />
+          )}
+
           {/* BOTÃO DARK MODE */}
           <button 
             onClick={toggleTheme}
             className="p-2.5 text-slate-500 dark:text-yellow-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-all flex items-center justify-center"
-            title={isDark ? "Modo Claro" : "Modo Escuro"}
+            title={isDark ? "Modo claro" : "Modo Escuro"}
           >
             {isDark ? <Sun size={19} /> : <Moon size={19} />}
           </button>
 
           {/* NOTIFICAÇÕES */}
-          <button className="relative p-2.5 text-slate-500 hover:text-orange-600 hover:bg-orange-50 dark:hover:bg-orange-900/20 rounded-xl transition-all">
-            <Bell size={19} />
-            <span className="absolute top-2 right-2 w-2.5 h-2.5 bg-orange-600 rounded-full border-2 border-white dark:border-slate-900"></span>
-          </button>
+          <NotificationBell />
 
           {/* SAIR */}
           <button 

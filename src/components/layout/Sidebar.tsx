@@ -3,17 +3,20 @@ import {
   LayoutDashboard, Truck, Megaphone, ShoppingBag, 
   User, ShieldCheck, CreditCard, LogOut, MessageSquare, 
   Wallet, UserCog, Settings, Mail, Users,
-  PlusCircle, Tag, HelpCircle, Headphones, FileText, Menu, X, Shield, LayoutGrid
+  PlusCircle, Tag, HelpCircle, Headphones, FileText, Menu, X, Shield, LayoutGrid, Star, Flag
 } from 'lucide-react';
 import logoImg from '../../assets/chama-thumb-blue-rbg.png';
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api/api';
+import Swal from 'sweetalert2';
 
 const Sidebar = ({ user }: { user: any }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeModules, setActiveModules] = useState<string[]>([]);
+  const [isAvailable, setIsAvailable] = useState(user?.is_available ?? 1);
+  const [toggling, setToggling] = useState(false);
 
   const fetchUserModules = useCallback(async () => {
     try {
@@ -33,6 +36,42 @@ const Sidebar = ({ user }: { user: any }) => {
   useEffect(() => {
     fetchUserModules();
   }, [fetchUserModules]);
+
+  useEffect(() => {
+    if (user?.is_available !== undefined) {
+      setIsAvailable(user.is_available);
+    }
+  }, [user?.is_available]);
+
+  const toggleAvailability = async () => {
+    const newStatus = isAvailable === 1 ? 0 : 1;
+    setToggling(true);
+    try {
+      const res = await api.post('/toggle-availability', { is_available: newStatus });
+      if (res.data.success) {
+        setIsAvailable(newStatus);
+        const updatedUser = { ...user, is_available: newStatus };
+        localStorage.setItem('@ChamaFrete:user', JSON.stringify(updatedUser));
+        Swal.fire({
+          icon: 'success',
+          title: newStatus === 1 ? 'Você está disponível!' : 'Você está indisponível',
+          timer: 2000,
+          showConfirmButton: false,
+          toast: true,
+          position: 'top-end'
+        });
+      }
+    } catch (e: any) {
+      console.error('Erro ao togglar disponibilidade:', e);
+      Swal.fire({
+        icon: 'error',
+        title: 'Erro',
+        text: e.response?.data?.message || 'Não foi possível atualizar sua disponibilidade.'
+      });
+    } finally {
+      setToggling(false);
+    }
+  };
 
   const handleLogout = () => {
     localStorage.removeItem('@ChamaFrete:token');
@@ -55,6 +94,7 @@ const Sidebar = ({ user }: { user: any }) => {
   const hasGroups = hasModule('groups') || isSuperAdmin;
   const hasPlans = hasModule('plans') || isSuperAdmin;
   const hasSupport = hasModule('support') || isSuperAdmin;
+  const hasAdvertiser = hasModule('advertiser') || isSuperAdmin;
 
   // Driver specific
   const isDriver = role === 'driver';
@@ -75,14 +115,18 @@ const Sidebar = ({ user }: { user: any }) => {
       items: [
         { label: 'BI & Performance', icon: <ShieldCheck size={20} />, path: '/dashboard/admin/bi', visible: isInternal, special: true },
         { label: 'Gestão de Cargas', icon: <Truck size={20}/>, path: '/dashboard/admin/cargas', visible: isInternal },
-        { label: 'Gestão de Comunidades', icon: <Megaphone size={20}/>, path: '/dashboard/admin/comunidades', visible: isInternal },
+        { label: 'Gestão de Comunidade', icon: <Megaphone size={20}/>, path: '/dashboard/admin/comunidades', visible: isInternal },
         { label: 'Gestão de Cotações', icon: <FileText size={20}/>, path: '/dashboard/admin/cotacoes', visible: isInternal },
         { label: 'Gestão de Marketplaces', icon: <ShoppingBag size={20}/>, path: '/dashboard/admin/marketplace', visible: isInternal },
         { label: 'Gestão de Suporte', icon: <Headphones size={20}/>, path: '/dashboard/admin/suporte', visible: isInternal },
         { label: 'Gestão Financeira', icon: <Wallet size={20}/>, path: '/dashboard/admin/financeiro', visible: isInternal },
         { label: 'Gestão de Leads', icon: <Mail size={20}/>, path: '/dashboard/admin/leads', visible: isInternal },
         { label: 'Planos & Precificação', icon: <Tag size={20}/>, path: '/dashboard/admin/precificacao', visible: isSuperAdmin },
+        { label: 'Gestão de Identidade', icon: <ShieldCheck size={20}/>, path: '/dashboard/admin/verificacoes', visible: isInternal },
         { label: 'Gestão de Anúncios', icon: <Megaphone size={20}/>, path: '/dashboard/admin/publicidade', visible: isInternal },
+        { label: 'Avaliações', icon: <Star size={20}/>, path: '/dashboard/admin/avaliacoes', visible: isInternal },
+        { label: 'Denúncias', icon: <Flag size={20}/>, path: '/dashboard/admin/denuncias', visible: isInternal },
+        { label: 'Afiliados', icon: <Star size={20} className="fill-amber-400 text-amber-500"/>, path: '/dashboard/admin/afiliados', visible: isSuperAdmin },
         { label: 'Configurações', icon: <Settings size={20}/>, path: '/dashboard/admin/configuracoes', visible: isInternal },
         { label: 'Log de Atividades', icon: <UserCog size={20}/>, path: '/dashboard/admin/atividade', visible: isInternal },
       ]
@@ -110,8 +154,10 @@ const Sidebar = ({ user }: { user: any }) => {
         },
         // Só empresa vê "Logística / Meus Fretes"
         { label: 'Meus Fretes', icon: <Truck size={20}/>, path: '/dashboard/logistica', visible: isCompany && hasFreights },
-        // Só empresa tem anúncios no marketplace
-        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: isCompany && hasMarketplace },
+        // Só empresa tem anúncios publicitários
+        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: isCompany && hasAdvertiser },
+        // Gestão de equipe para empresas
+        { label: 'Equipe', icon: <Users size={20}/>, path: '/dashboard/equipe', visible: isCompany },
       ]
     },
     {
@@ -122,10 +168,10 @@ const Sidebar = ({ user }: { user: any }) => {
         { label: 'Cotações', icon: <FileText size={20}/>, path: '/dashboard/cotacoes', visible: isCompany && hasQuotes },
         // Marketplace para ambos (driver pode ver/vender itens)
         { label: 'Marketplace', icon: <ShoppingBag size={20}/>, path: '/dashboard/vendas', visible: hasMarketplace },
-        // Financeiro: empresa tem acesso completo, driver só visualização
-        { label: 'Financeiro', icon: <CreditCard size={20}/>, path: '/dashboard/financeiro', visible: isCompany && hasFinancial },
-        // Driver Pro: só para driver
-        { label: 'Driver Pro', icon: <Shield size={20}/>, path: '/dashboard/planos', visible: isDriver && hasPlans },
+        // Financeiro: para empresa e driver (mostra carteira + histórico)
+        { label: 'Financeiro', icon: <CreditCard size={20}/>, path: '/dashboard/financeiro', visible: isExternal && (hasFinancial || isDriver) },
+        // Planos: só para driver
+        { label: 'Planos', icon: <Shield size={20}/>, path: '/dashboard/planos', visible: isDriver && hasPlans },
         // Planos: só empresa vê planos gerais
         { label: 'Planos', icon: <Tag size={20}/>, path: '/dashboard/planos', visible: isCompany && hasPlans },
         { label: 'Suporte', icon: <HelpCircle size={20}/>, path: '/dashboard/suporte', visible: hasSupport },
@@ -153,6 +199,36 @@ const Sidebar = ({ user }: { user: any }) => {
             <span className="text-orange-500">Chama</span><span className="text-blue-500">Frete</span>
           </h1>
         </div>
+
+        {/* Toggle de Disponibilidade - Só para Drivers */}
+        {isDriver && (
+          <div className="mx-2 mb-6 p-4 rounded-2xl bg-slate-800/50 border border-slate-700/50">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${isAvailable === 1 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-500'}`} />
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-300">
+                  {isAvailable === 1 ? 'Disponível' : 'Indisponível'}
+                </span>
+              </div>
+              <button
+                onClick={toggleAvailability}
+                disabled={toggling}
+                className={`relative w-12 h-6 rounded-full transition-all duration-300 ${
+                  isAvailable === 1 ? 'bg-emerald-500' : 'bg-slate-600'
+                } disabled:opacity-50`}
+              >
+                <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow-lg transition-all duration-300 ${
+                  isAvailable === 1 ? 'left-6' : 'left-0.5'
+                }`} />
+              </button>
+            </div>
+            <p className="text-[9px] text-slate-500 mt-2 leading-tight">
+              {isAvailable === 1 
+                ? 'Você aparece nas buscas de empresas' 
+                : 'Você não aparece nas buscas'}
+            </p>
+          </div>
+        )}
 
         <nav className="flex-1 space-y-8">
           {menuSections.map((section, idx) => (

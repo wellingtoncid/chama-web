@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
+import { Button } from '../../components/ui/button';
 import { 
-  Wallet, TrendingUp, TrendingDown, Loader2, 
-  CreditCard, Download, ArrowUpRight, ArrowDownRight,
-  Receipt, Calendar, Filter, Eye, X
+  Wallet, Loader2, 
+  Download, ArrowUpRight, ArrowDownLeft,
+  Receipt, Eye, X, Plus, QrCode, AlertCircle, Clock
 } from 'lucide-react';
 
 interface Transaction {
@@ -35,6 +36,11 @@ interface FinancialStats {
 
 export default function FinancialPage() {
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'wallet' | 'history'>('wallet');
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletTransactions, setWalletTransactions] = useState<any[]>([]);
+  const [rechargeAmount, setRechargeAmount] = useState('');
+  const [recharging, setRecharging] = useState(false);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [stats, setStats] = useState<FinancialStats>({
     total_spent: 0,
@@ -52,10 +58,19 @@ export default function FinancialPage() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const res = await api.get('/payment-history');
       
-      if (res.data) {
-        const data = res.data.data || res.data.transactions || [];
+      const [walletRes, historyRes] = await Promise.all([
+        api.get('/wallet/balance'),
+        api.get('/payment-history')
+      ]);
+      
+      if (walletRes.data?.success) {
+        setWalletBalance(walletRes.data.data?.balance || 0);
+        setWalletTransactions(walletRes.data.data?.transactions || []);
+      }
+      
+      if (historyRes.data) {
+        const data = historyRes.data.data || historyRes.data.transactions || [];
         setTransactions(Array.isArray(data) ? data : []);
         
         const approved = data.filter((t: Transaction) => t.status === 'approved');
@@ -69,10 +84,70 @@ export default function FinancialPage() {
         });
       }
     } catch (e) {
-      console.error("Erro ao carregar transações:", e);
+      console.error("Erro ao carregar dados:", e);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRecharge = async () => {
+    const amount = parseFloat(rechargeAmount.replace(',', '.'));
+    
+    if (isNaN(amount) || amount < 0.01) {
+      alert('Informe um valor válido (mínimo R$ 0,01)');
+      return;
+    }
+
+    setRecharging(true);
+    try {
+      const res = await api.post('/wallet/recharge', { amount });
+      
+      if (res.data?.success && res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        alert(res.data?.message || 'Erro ao gerar PIX');
+      }
+    } catch (error: any) {
+      alert(error.response?.data?.message || 'Erro ao processar recarga');
+    } finally {
+      setRecharging(false);
+    }
+  };
+
+  const formatWalletCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
+  };
+
+  const formatWalletDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
+  const getWalletTransactionIcon = (amount: number) => {
+    if (amount > 0) {
+      return <ArrowDownLeft className="text-green-500" size={18} />;
+    }
+    return <ArrowUpRight className="text-red-500" size={18} />;
+  };
+
+  const getWalletTransactionDescription = (tx: any) => {
+    try {
+      const payload = tx.gateway_payload ? JSON.parse(tx.gateway_payload) : null;
+      if (payload?.description) return payload.description;
+    } catch {}
+    
+    if (tx.transaction_type === 'wallet_recharge') return 'Recarga via PIX';
+    if (tx.transaction_type === 'wallet_debit') return `${tx.module_key} - ${tx.feature_key}`;
+    return tx.feature_key || tx.module_key || 'Transação';
   };
 
   const getStatusColor = (status: string) => {
@@ -164,206 +239,315 @@ export default function FinancialPage() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-[3rem] p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
+      <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-[2rem] p-6 text-white relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full blur-3xl"></div>
         <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="bg-white/20 p-3 rounded-2xl">
-              <Wallet size={28} />
+          <div className="flex items-center gap-4 mb-4">
+            <div className="bg-white/20 p-3 rounded-xl">
+              <Wallet size={24} />
             </div>
             <div>
-              <h2 className="text-3xl font-black uppercase italic">Financeiro</h2>
-              <p className="text-emerald-100 text-sm font-medium">Suas transações e histórico de pagamentos</p>
+              <h2 className="text-2xl font-black uppercase italic">Financeiro</h2>
+              <p className="text-emerald-100 text-xs font-medium">Saldo, recargas e histórico de pagamentos</p>
             </div>
           </div>
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-            <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
-              <p className="text-emerald-200 text-[10px] font-black uppercase">Total Gasto</p>
-              <p className="text-2xl font-black italic">{formatPrice(stats.total_spent)}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
-              <p className="text-emerald-200 text-[10px] font-black uppercase">Aprovado</p>
-              <p className="text-2xl font-black italic">{formatPrice(stats.approved)}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
-              <p className="text-yellow-200 text-[10px] font-black uppercase">Pendente</p>
-              <p className="text-2xl font-black italic">{formatPrice(stats.pending)}</p>
-            </div>
-            <div className="bg-white/10 backdrop-blur rounded-2xl p-4">
-              <p className="text-emerald-200 text-[10px] font-black uppercase">Transações</p>
-              <p className="text-2xl font-black italic">{stats.transaction_count}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-100">
-          {['all', 'approved', 'pending', 'rejected', 'cancelled'].map(status => (
+          {/* Tabs */}
+          <div className="flex items-center gap-2 bg-white/10 backdrop-blur rounded-xl p-1 mt-4 w-fit">
             <button
-              key={status}
-              onClick={() => setFilter(status)}
-              className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all ${
-                filter === status 
-                  ? 'bg-slate-900 text-white' 
-                  : 'text-slate-500 hover:bg-slate-50'
+              onClick={() => setActiveTab('wallet')}
+              className={`px-5 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                activeTab === 'wallet'
+                  ? 'bg-white text-emerald-600'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
               }`}
             >
-              {status === 'all' ? 'Todos' : getStatusLabel(status)}
+              <div className="flex items-center gap-2">
+                <Wallet size={16} />
+                Carteira
+              </div>
             </button>
-          ))}
-        </div>
-        
-        <button className="ml-auto flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-50">
-          <Download size={14} /> Exportar
-        </button>
-      </div>
-
-      {/* Transactions List */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden">
-        {filteredTransactions.length === 0 ? (
-          <div className="p-12 text-center">
-            <Receipt size={48} className="mx-auto mb-4 text-slate-300" />
-            <p className="text-slate-500 font-medium">Nenhuma transação encontrada</p>
-            <p className="text-slate-400 text-sm mt-1">Suas transações aparecerão aqui</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">ID</th>
-                  <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">Descrição</th>
-                  <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">Data</th>
-                  <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">Método</th>
-                  <th className="text-right px-6 py-4 text-[10px] font-black uppercase text-slate-400">Valor</th>
-                  <th className="text-center px-6 py-4 text-[10px] font-black uppercase text-slate-400">Status</th>
-                  <th className="text-right px-6 py-4 text-[10px] font-black uppercase text-slate-400">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredTransactions.map((t) => (
-                  <tr key={t.id} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <span className="font-mono text-xs text-slate-400">#{t.id}</span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="font-bold text-slate-800 text-sm">{getTransactionDescription(t)}</p>
-                      {t.external_reference && (
-                        <p className="text-[10px] text-slate-400">{t.external_reference}</p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4">
-                      <p className="text-xs text-slate-500 font-medium">{formatDate(t.created_at)}</p>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="text-xs font-bold text-slate-600 bg-slate-100 px-2 py-1 rounded-lg">
-                        {getPaymentMethodIcon(t.payment_method || '')}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <p className="font-black italic text-slate-900">{formatPrice(t.amount)}</p>
-                      {t.gateway_fee && parseFloat(t.gateway_fee) > 0 && (
-                        <p className="text-[10px] text-slate-400">Taxa: {formatPrice(t.gateway_fee)}</p>
-                      )}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase ${getStatusColor(t.status)}`}>
-                        {getStatusLabel(t.status)}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <button 
-                        onClick={() => setSelectedTransaction(t)}
-                        className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
-                      >
-                        <Eye size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-
-      {/* Transaction Detail Modal */}
-      {selectedTransaction && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h3 className="text-xl font-black uppercase italic text-slate-900">Detalhes da Transação</h3>
-                <p className="text-slate-400 text-sm">#{selectedTransaction.id}</p>
-              </div>
-              <button 
-                onClick={() => setSelectedTransaction(null)}
-                className="p-2 hover:bg-slate-100 rounded-xl"
-              >
-                <X size={20} className="text-slate-400" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-50 rounded-2xl">
-                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Status</p>
-                <span className={`inline-flex px-3 py-1 rounded-full text-xs font-black uppercase ${getStatusColor(selectedTransaction.status)}`}>
-                  {getStatusLabel(selectedTransaction.status)}
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-50 rounded-2xl">
-                  <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Valor</p>
-                  <p className="font-black italic text-slate-900 text-lg">{formatPrice(selectedTransaction.amount)}</p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-2xl">
-                  <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Valor Líquido</p>
-                  <p className="font-black italic text-emerald-600 text-lg">{formatPrice(selectedTransaction.net_amount || selectedTransaction.amount)}</p>
-                </div>
-              </div>
-
-              <div className="p-4 bg-slate-50 rounded-2xl">
-                <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Descrição</p>
-                <p className="font-bold text-slate-800">{getTransactionDescription(selectedTransaction)}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="p-4 bg-slate-50 rounded-2xl">
-                  <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Criado em</p>
-                  <p className="text-sm font-medium text-slate-700">{formatDate(selectedTransaction.created_at)}</p>
-                </div>
-                {selectedTransaction.approved_at && (
-                  <div className="p-4 bg-slate-50 rounded-2xl">
-                    <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Aprovado em</p>
-                    <p className="text-sm font-medium text-slate-700">{formatDate(selectedTransaction.approved_at)}</p>
-                  </div>
-                )}
-              </div>
-
-              {selectedTransaction.gateway_id && (
-                <div className="p-4 bg-slate-50 rounded-2xl">
-                  <p className="text-[10px] font-black uppercase text-slate-400 mb-1">ID Gateway</p>
-                  <p className="font-mono text-sm text-slate-600">{selectedTransaction.gateway_id}</p>
-                </div>
-              )}
-            </div>
-
-            <button 
-              onClick={() => setSelectedTransaction(null)}
-              className="w-full mt-6 py-3 bg-slate-900 text-white rounded-xl font-black uppercase text-xs hover:bg-slate-800 transition-all"
+            <button
+              onClick={() => setActiveTab('history')}
+              className={`px-5 py-2.5 rounded-lg font-bold text-sm transition-all ${
+                activeTab === 'history'
+                  ? 'bg-white text-emerald-600'
+                  : 'text-white/80 hover:text-white hover:bg-white/10'
+              }`}
             >
-              Fechar
+              <div className="flex items-center gap-2">
+                <Receipt size={16} />
+                Histórico
+              </div>
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'wallet' ? (
+        /* WALLET TAB */
+        <div className="space-y-6">
+          {/* Balance Card */}
+          <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-[2rem] p-6 text-white">
+            <div className="mb-4">
+              <p className="text-orange-100 text-sm font-medium">Saldo disponível</p>
+              <p className="text-4xl font-bold">{formatWalletCurrency(walletBalance)}</p>
+            </div>
+            
+            <div className="bg-white/20 rounded-xl p-4 backdrop-blur-sm">
+              <p className="text-orange-100 text-xs mb-3 flex items-center gap-2">
+                <QrCode size={14} />
+                Recarga via PIX
+              </p>
+              <div className="flex gap-3">
+                <input
+                  type="text"
+                  value={rechargeAmount}
+                  onChange={(e) => setRechargeAmount(e.target.value)}
+                  placeholder="0,00"
+                  className="flex-1 bg-white/20 rounded-lg px-4 py-3 text-white placeholder:text-orange-200 outline-none border border-white/30 focus:border-white"
+                />
+                <Button
+                  variant="hero-outline"
+                  onClick={handleRecharge}
+                  disabled={recharging || !rechargeAmount}
+                  className="bg-white text-orange-600 hover:bg-orange-50"
+                >
+                  {recharging ? 'Gerando...' : 'Recarregar'}
+                </Button>
+              </div>
+              <p className="text-orange-100 text-xs mt-2">
+                Mínimo: R$ 0,01 • Receba o código PIX na hora
+              </p>
+            </div>
+          </div>
+
+          {/* Wallet Transactions */}
+          <div className="bg-white dark:bg-slate-800 rounded-[2rem] shadow-sm overflow-hidden">
+            <div className="p-4 border-b border-slate-100 dark:border-slate-700">
+              <h3 className="font-semibold text-slate-900 dark:text-white flex items-center gap-2">
+                <Clock size={18} />
+                Últimas transações da carteira
+              </h3>
+            </div>
+            
+            {walletTransactions.length === 0 ? (
+              <div className="p-8 text-center">
+                <AlertCircle className="mx-auto text-slate-300 dark:text-slate-600 mb-3" size={32} />
+                <p className="text-slate-500 text-sm">Nenhuma transação ainda</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-slate-100 dark:divide-slate-700">
+                {walletTransactions.slice(0, 10).map((tx) => (
+                  <div key={tx.id} className="p-4 flex items-center gap-4">
+                    <div className="p-2 bg-slate-100 dark:bg-slate-700 rounded-lg">
+                      {getWalletTransactionIcon(tx.amount)}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900 dark:text-white text-sm">
+                        {getWalletTransactionDescription(tx)}
+                      </p>
+                      <p className="text-xs text-slate-500">
+                        {formatWalletDate(tx.created_at)}
+                      </p>
+                    </div>
+                    <div className={`font-semibold ${tx.amount > 0 ? 'text-green-600' : 'text-slate-900 dark:text-white'}`}>
+                      {tx.amount > 0 ? '+' : ''}{formatWalletCurrency(tx.amount)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        /* HISTORY TAB */
+        <div className="space-y-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+              <p className="text-slate-400 text-[10px] font-black uppercase">Total Gasto</p>
+              <p className="text-2xl font-black italic text-slate-900 dark:text-white">{formatPrice(stats.total_spent)}</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+              <p className="text-slate-400 text-[10px] font-black uppercase">Aprovado</p>
+              <p className="text-2xl font-black italic text-emerald-600">{formatPrice(stats.approved)}</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+              <p className="text-slate-400 text-[10px] font-black uppercase">Pendente</p>
+              <p className="text-2xl font-black italic text-yellow-600">{formatPrice(stats.pending)}</p>
+            </div>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-100 dark:border-slate-700">
+              <p className="text-slate-400 text-[10px] font-black uppercase">Transações</p>
+              <p className="text-2xl font-black italic text-slate-900 dark:text-white">{stats.transaction_count}</p>
+            </div>
+          </div>
+
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-100 dark:border-slate-700">
+              {['all', 'approved', 'pending', 'rejected', 'cancelled'].map(status => (
+                <button
+                  key={status}
+                  onClick={() => setFilter(status)}
+                  className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all ${
+                    filter === status 
+                      ? 'bg-slate-900 text-white dark:bg-emerald-600' 
+                      : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700'
+                  }`}
+                >
+                  {status === 'all' ? 'Todos' : getStatusLabel(status)}
+                </button>
+              ))}
+            </div>
+            
+            <button className="ml-auto flex items-center gap-2 px-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700">
+              <Download size={14} /> Exportar
+            </button>
+          </div>
+
+          {/* Transactions List */}
+          {filteredTransactions.length === 0 ? (
+              <div className="p-12 text-center">
+                <Receipt size={48} className="mx-auto mb-4 text-slate-300" />
+                <p className="text-slate-500 font-medium">Nenhuma transação encontrada</p>
+                <p className="text-slate-400 text-sm mt-1">Suas transações aparecerão aqui</p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-slate-50/50 dark:bg-slate-700/50 border-b border-slate-100 dark:border-slate-700">
+                      <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">ID</th>
+                      <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">Descrição</th>
+                      <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">Data</th>
+                      <th className="text-left px-6 py-4 text-[10px] font-black uppercase text-slate-400">Método</th>
+                      <th className="text-right px-6 py-4 text-[10px] font-black uppercase text-slate-400">Valor</th>
+                      <th className="text-center px-6 py-4 text-[10px] font-black uppercase text-slate-400">Status</th>
+                      <th className="text-right px-6 py-4 text-[10px] font-black uppercase text-slate-400">Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredTransactions.map((t) => (
+                      <tr key={t.id} className="border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-colors">
+                        <td className="px-6 py-4">
+                          <span className="font-mono text-xs text-slate-400">#{t.id}</span>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="font-bold text-slate-800 dark:text-white text-sm">{getTransactionDescription(t)}</p>
+                          {t.external_reference && (
+                            <p className="text-[10px] text-slate-400">{t.external_reference}</p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-xs text-slate-500 font-medium">{formatDate(t.created_at)}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <span className="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-lg">
+                            {getPaymentMethodIcon(t.payment_method || '')}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <p className="font-black italic text-slate-900 dark:text-white">{formatPrice(t.amount)}</p>
+                          {t.gateway_fee && parseFloat(t.gateway_fee) > 0 && (
+                            <p className="text-[10px] text-slate-400">Taxa: {formatPrice(t.gateway_fee)}</p>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={`inline-flex px-3 py-1 rounded-full text-[10px] font-black uppercase ${getStatusColor(t.status)}`}>
+                            {getStatusLabel(t.status)}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <button 
+                            onClick={() => setSelectedTransaction(t)}
+                            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400 hover:text-blue-600 transition-colors"
+                          >
+                            <Eye size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+          {/* Transaction Detail Modal */}
+          {selectedTransaction && (
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+              <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div className="flex justify-between items-start mb-6">
+                  <div>
+                    <h3 className="text-xl font-black uppercase italic text-slate-900 dark:text-white">Detalhes da Transação</h3>
+                    <p className="text-slate-400 text-sm">#{selectedTransaction.id}</p>
+                  </div>
+                  <button 
+                    onClick={() => setSelectedTransaction(null)}
+                    className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"
+                  >
+                    <X size={20} className="text-slate-400" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+                    <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Status</p>
+                    <span className={`inline-flex px-3 py-1 rounded-full text-xs font-black uppercase ${getStatusColor(selectedTransaction.status)}`}>
+                      {getStatusLabel(selectedTransaction.status)}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+                      <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Valor</p>
+                      <p className="font-black italic text-slate-900 dark:text-white text-lg">{formatPrice(selectedTransaction.amount)}</p>
+                    </div>
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+                      <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Valor Líquido</p>
+                      <p className="font-black italic text-emerald-600 text-lg">{formatPrice(selectedTransaction.net_amount || selectedTransaction.amount)}</p>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+                    <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Descrição</p>
+                    <p className="font-bold text-slate-800 dark:text-white">{getTransactionDescription(selectedTransaction)}</p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+                      <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Criado em</p>
+                      <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{formatDate(selectedTransaction.created_at)}</p>
+                    </div>
+                    {selectedTransaction.approved_at && (
+                      <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+                        <p className="text-[10px] font-black uppercase text-slate-400 mb-1">Aprovado em</p>
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-300">{formatDate(selectedTransaction.approved_at)}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {selectedTransaction.gateway_id && (
+                    <div className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl">
+                      <p className="text-[10px] font-black uppercase text-slate-400 mb-1">ID Gateway</p>
+                      <p className="font-mono text-sm text-slate-600 dark:text-slate-300">{selectedTransaction.gateway_id}</p>
+                    </div>
+                  )}
+                </div>
+
+                <button 
+                  onClick={() => setSelectedTransaction(null)}
+                  className="w-full mt-6 py-3 bg-slate-900 text-white rounded-xl font-black uppercase text-xs hover:bg-slate-800 transition-all dark:bg-emerald-600 dark:hover:bg-emerald-700"
+                >
+                  Fechar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
-  );
-}
+  )};

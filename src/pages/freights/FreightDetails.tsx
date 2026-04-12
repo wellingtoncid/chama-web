@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../api/api';
 import { 
   Truck, Phone, ArrowLeft, Info, Loader2, 
   AlertTriangle, MessageCircle, Lock, Weight, 
   Package, Star, ShieldCheck, 
-  Calendar, Share2, Eye, TrendingUp
+  Calendar, Share2, Eye, TrendingUp, Building2
 } from 'lucide-react';
 
 import Header from '../../components/shared/Header';
@@ -15,12 +15,48 @@ import AdCard from '../../components/shared/AdCard';
 import FreightCard from '../../components/shared/FreightCard';
 import { useTracker } from '../../services/useTracker';
 
+interface FreightData {
+  id: number;
+  product: string;
+  origin_city: string;
+  origin_state: string;
+  dest_city: string;
+  dest_state: string;
+  price: string | number;
+  vehicle_type: string;
+  body_type: string;
+  weight: string | number;
+  description?: string;
+  status: string;
+  views_count?: number;
+  owner_name?: string;
+  company_name?: string;
+  owner_avatar?: string;
+  owner_slug?: string;
+  owner_is_verified?: number;
+  owner_rating?: number;
+  owner_whatsapp?: string;
+  owner_created_at?: string;
+  total_owner_freights?: number;
+  created_at: string;
+}
+
+interface RelatedFreight {
+  id: number;
+  product: string;
+  origin_city: string;
+  origin_state: string;
+  dest_city: string;
+  dest_state: string;
+  price: string | number;
+}
+
 export default function FreightDetails() {
   const { slug } = useParams(); 
   const navigate = useNavigate();
   
-  const [freight, setFreight] = useState<any>(null);
-  const [relatedFreights, setRelatedFreights] = useState<any[]>([]);
+  const [freight, setFreight] = useState<FreightData | null>(null);
+  const [relatedFreights, setRelatedFreights] = useState<RelatedFreight[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
   const [chatLoading, setChatLoading] = useState(false);
@@ -43,45 +79,43 @@ export default function FreightDetails() {
         const res = await api.get(`/public-freight/${slug}`);
         
         if (res.data?.success) {
-          const data = res.data.data;
+          const data = res.data.data as FreightData;
           setFreight(data);
           
-          // Registro de View
           if (!viewLogged.current) {
-            trackEvent(data.id, 'FREIGHT', 'VIEW'); // Usa o novo sistema unificado
+            trackEvent(data.id, 'FREIGHT', 'VIEW');
             viewLogged.current = true;
           }
 
-          // Busca Similares baseados no destino (Correção da lista vazia)
           try {
             const relatedRes = await api.get('/freights', { 
               params: { dest_state: data.dest_state, limit: 10 } 
             });
-            const filtered = (relatedRes.data?.data || []).filter((f: any) => f.id !== data.id);
+            const filtered = ((relatedRes.data?.data || []) as RelatedFreight[]).filter((f) => f.id !== data.id);
             setRelatedFreights(filtered.slice(0, 4));
-          } catch (e) {
+          } catch {
             console.error("Erro ao carregar similares");
           }
         } else {
           setError(true);
         }
-      } catch (err) { 
+      } catch { 
         setError(true); 
       } finally { 
         setLoading(false); 
       }
     }
     loadData();
-  }, [slug]);
+  }, [slug, trackEvent]);
 
-  // Formatação de data segura (Evita o NaN)
-  const getMemberSince = (dateString: any) => {
+  const getMemberSince = (dateString: string | null | undefined) => {
     if (!dateString || dateString === "NULL") return '2025';
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? '2025' : date.getFullYear();
   };
 
   const handleShare = async () => {
+    if (!freight) return;
     const shareData = {
       title: `Carga: ${freight.product}`,
       text: `Vi este frete no Chama Frete: ${freight.origin_city} para ${freight.dest_city}`,
@@ -93,24 +127,25 @@ export default function FreightDetails() {
         await navigator.clipboard.writeText(window.location.href);
         alert("Link copiado!");
       }
-    } catch (err) { console.log(err); }
+    } catch { console.log("Share cancelled"); }
   };
 
-  const executeWhatsApp = useCallback(async (currentFreight: any) => {
+  const executeWhatsApp = useCallback(async (currentFreight: FreightData | null) => {
     const phone = currentFreight?.display_phone?.replace(/\D/g, ''); 
     if (!phone) return alert("Contato indisponível.");
-    trackEvent(currentFreight.id, 'FREIGHT', 'WHATSAPP_CLICK');
-    const msg = encodeURIComponent(`Olá, vi sua carga de ${currentFreight.product} no Chama Frete. Ainda está disponível?`);
+    if (currentFreight) trackEvent(currentFreight.id, 'FREIGHT', 'WHATSAPP_CLICK');
+    const msg = encodeURIComponent(`Olá, vi sua carga de ${currentFreight?.product} no Chama Frete. Ainda está disponível?`);
     window.open(`https://wa.me/55${phone}?text=${msg}`, '_blank');
-  }, []);
+  }, [trackEvent]);
 
-  const executeChat = useCallback(async (currentFreight: any, currentUserId: any) => {
-    if (currentUserId === currentFreight?.user_id) return alert("Você é o anunciante.");
+  const executeChat = useCallback(async (currentFreight: FreightData | null, currentUserId: number) => {
+    if (!currentFreight) return;
+    if (currentUserId === currentFreight.user_id) return alert("Você é o anunciante.");
     try {
       setChatLoading(true);
       const res = await api.post('/chat/init', { freight_id: currentFreight.id, seller_id: currentFreight.user_id });
       if (res.data?.success) navigate(`/chat/${res.data.room_id}`);
-    } catch (err) { alert("Erro ao abrir chat."); }
+    } catch { alert("Erro ao abrir chat."); }
     finally { setChatLoading(false); }
   }, [navigate]);
 
@@ -309,27 +344,40 @@ export default function FreightDetails() {
                     </button>
                   </div>
 
-                  {/* Sobre o Anunciante (Correção do NaN) */}
+                  {/* Sobre o Anunciante */}
                   <div className="mt-8 pt-8 border-t border-slate-100 text-left">
                       <p className="text-[9px] font-black text-slate-400 uppercase mb-5 text-center">Sobre o Anunciante</p>
-                      <div className="flex items-center gap-4 bg-slate-50 p-5 rounded-[2rem] border border-slate-100">
+                      <Link 
+                        to={freight.owner_slug ? `/perfil/${freight.owner_slug}` : '#'}
+                        className="flex items-center gap-4 bg-slate-50 p-5 rounded-[2rem] border border-slate-100 hover:bg-slate-100 transition-colors"
+                      >
                         <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shrink-0">
-                          {freight.avatar_url ? <img src={freight.avatar_url} alt="Avatar" className="w-full h-full object-cover" /> : freight.company_name?.charAt(0)}
+                          {freight.owner_avatar ? <img src={freight.owner_avatar} alt="Avatar" className="w-full h-full object-cover rounded-2xl" /> : freight.company_name?.charAt(0)?.toUpperCase()}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="font-black text-slate-900 uppercase italic truncate text-sm mb-1">{freight.company_name}</p>
-                          <div className="flex items-center gap-1">
+                          <div className="flex items-center gap-2">
+                            <Building2 size={14} className="text-slate-400" />
+                            <p className="font-black text-slate-900 uppercase italic truncate text-sm">{freight.company_name}</p>
+                            {freight.owner_is_verified == 1 && (
+                              <span className="text-blue-600">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 mt-1">
                             <Star size={12} className="text-amber-400 fill-amber-400" />
                             <span className="text-slate-600 font-black text-[11px]">{Number(freight.owner_rating || 5).toFixed(1)}</span>
-                            <span className="text-blue-600 font-black text-[9px] uppercase ml-2">Verificado</span>
+                            {freight.owner_is_verified == 1 && (
+                              <span className="text-blue-600 font-black text-[9px] uppercase ml-2">Verificado</span>
+                            )}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                       
                       <div className="mt-4 grid grid-cols-2 gap-2">
                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                            <p className="text-[8px] font-black text-slate-400 uppercase">Anúncios</p>
-                            <p className="text-[10px] font-bold text-slate-700 uppercase italic">{freight.total_owner_freights || '10+'} ativos</p>
+                            <p className="text-[8px] font-black text-slate-400 uppercase">Fretes</p>
+                            <p className="text-[10px] font-bold text-slate-700 uppercase italic">{freight.total_owner_freights || '0'} ativo{freight.total_owner_freights !== 1 ? 's' : ''}</p>
                          </div>
                          <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
                             <p className="text-[8px] font-black text-slate-400 uppercase">Desde</p>

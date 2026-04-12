@@ -1,16 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText } from 'lucide-react';
+import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText, Wrench, Award } from 'lucide-react';
 import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
-import { VEHICLE_TYPES, BODY_TYPES } from '../../constants/freightOptions';
+import { useSiteSettings } from '../../hooks/useSiteSettings';
 import WelcomeOnboarding from '../../components/profile/WelcomeOnboarding';
 import Swal from 'sweetalert2';
+
+function parseJsonArray(value: any): string[] {
+  if (Array.isArray(value)) return value;
+  if (typeof value === 'string' && value) {
+    try {
+      const parsed = JSON.parse(value);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+  return [];
+}
 
 export default function CreateFreight() {
   const navigate = useNavigate();
   const location = useLocation();
   const editData = location.state?.editData;
+  
+  // Listas dinâmicas do admin
+  const { vehicleTypes, bodyTypes, equipmentTypes, certificationTypes, loading: settingsLoading } = useSiteSettings();
 
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [originCities, setOriginCities] = useState<string[]>([]);
@@ -45,7 +61,9 @@ export default function CreateFreight() {
     body_type: '',
     price: '',
     description: '',
-    contact_preference: 'both' // Padrão conforme sua regra de negócio
+    contact_preference: 'both',
+    equipment_needed: [] as string[],
+    certifications_needed: [] as string[]
   });
 
   useEffect(() => {
@@ -86,7 +104,9 @@ export default function CreateFreight() {
           body_type: editData.body_type || '',
           price: editData.price !== undefined ? String(editData.price) : '',
           description: editData.description || '',
-          contact_preference: editData.contact_preference || 'both'
+          contact_preference: editData.contact_preference || 'both',
+          equipment_needed: parseJsonArray(editData.equipment_needed),
+          certifications_needed: parseJsonArray(editData.certifications_needed)
         });
       };
       initializeEdit();
@@ -125,8 +145,9 @@ export default function CreateFreight() {
         user_id: Number(formData.user_id),
         account_id: user?.account_id,
         weight: parseFloat(formData.weight) || 0,
-        price: parseFloat(formData.price) || 0
-        //status: formData.id ? undefined : 'OPEN'
+        price: parseFloat(formData.price) || 0,
+        equipment_needed: JSON.stringify(formData.equipment_needed),
+        certifications_needed: JSON.stringify(formData.certifications_needed)
       };
 
       const response = await api.post(`/${endpoint}`, payload);
@@ -259,19 +280,77 @@ export default function CreateFreight() {
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Veículo</label>
                 <select required value={formData.vehicle_type} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, vehicle_type: e.target.value})}>
                   <option value="">Selecione...</option>
-                  {VEHICLE_TYPES.map(v => <option key={v.value} value={v.value}>{v.label}</option>)}
+                  {vehicleTypes.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Carroceria</label>
                 <select required value={formData.body_type} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, body_type: e.target.value})}>
                   <option value="">Selecione...</option>
-                  {BODY_TYPES.map(b => <option key={b} value={b}>{b}</option>)}
+                  {bodyTypes.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-[10px] font-black text-emerald-600 uppercase ml-2 flex items-center gap-1"><DollarSign size={10}/> Preço (R$)</label>
                 <input type="number" required value={formData.price} className="w-full p-4 bg-emerald-50 text-emerald-700 rounded-2xl font-black border border-emerald-100" onChange={e => setFormData({...formData, price: e.target.value})} />
+              </div>
+            </div>
+
+            {/* Equipamentos e Certificações */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-1">
+                  <Wrench size={10}/> Equipamentos Necessários
+                </label>
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100 min-h-[60px]">
+                  {equipmentTypes.map(eq => (
+                    <button
+                      key={eq}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.equipment_needed;
+                        const updated = current.includes(eq) 
+                          ? current.filter(e => e !== eq)
+                          : [...current, eq];
+                        setFormData({...formData, equipment_needed: updated});
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        formData.equipment_needed.includes(eq)
+                          ? 'bg-blue-500 text-white'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300'
+                      }`}
+                    >
+                      {eq}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-1">
+                  <Award size={10}/> Certificações Necessárias
+                </label>
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100 min-h-[60px]">
+                  {certificationTypes.map(cert => (
+                    <button
+                      key={cert}
+                      type="button"
+                      onClick={() => {
+                        const current = formData.certifications_needed;
+                        const updated = current.includes(cert)
+                          ? current.filter(c => c !== cert)
+                          : [...current, cert];
+                        setFormData({...formData, certifications_needed: updated});
+                      }}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+                        formData.certifications_needed.includes(cert)
+                          ? 'bg-purple-500 text-white'
+                          : 'bg-white text-slate-600 border border-slate-200 hover:border-purple-300'
+                      }`}
+                    >
+                      {cert}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 

@@ -1,14 +1,26 @@
-import { Truck, Info } from 'lucide-react';
-import { VEHICLE_TYPES, BODY_TYPES } from '../../constants/freightOptions';
+import { Truck, Info, MapPin, Wrench, Award } from 'lucide-react';
+import { useSiteSettings } from '../../hooks/useSiteSettings';
 
 const DriverFields = ({ formData, setFormData }: any) => {
-  const handleInputChange = (field: string, value: any) => setFormData({ ...formData, [field]: value });
+  const { vehicleTypes, bodyTypes, equipmentTypes, certificationTypes } = useSiteSettings();
+  
+  const handleInputChange = (field: string, value: any) => {
+    setFormData((prev: any) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleArrayField = (field: string, value: string) => {
+    const current = formData[field] || [];
+    const updated = current.includes(value)
+      ? current.filter((v: string) => v !== value)
+      : [...current, value];
+    handleInputChange(field, updated);
+  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
       <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
         <Info size={12} className="text-orange-500" />
-        A descrição completa fica no campo Apresentação abaixo.
+        Complete seu perfil para ser encontrado por empresas.
       </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -22,23 +34,23 @@ const DriverFields = ({ formData, setFormData }: any) => {
             className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold outline-none appearance-none focus:ring-2 ring-orange-500/20"
           >
             <option value="">Selecione...</option>
-            {VEHICLE_TYPES.map((v) => (
-              <option key={v.value} value={v.value}>
-                {v.label}
+            {vehicleTypes.map((v) => (
+              <option key={v} value={v}>
+                {v}
               </option>
             ))}
           </select>
         </div>
 
         <div className="space-y-3">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Implemento</label>
+          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Carroceria</label>
           <select
             value={formData.body_type || ''}
             onChange={(e) => handleInputChange('body_type', e.target.value)}
             className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold outline-none appearance-none focus:ring-2 ring-orange-500/20"
           >
             <option value="">Selecione...</option>
-            {BODY_TYPES.map((b) => (
+            {bodyTypes.map((b) => (
               <option key={b} value={b}>
                 {b}
               </option>
@@ -47,23 +59,67 @@ const DriverFields = ({ formData, setFormData }: any) => {
         </div>
       </div>
 
-      <div className="flex items-center justify-between p-6 bg-emerald-50 dark:bg-emerald-500/5 rounded-[2rem] border border-emerald-100 dark:border-emerald-500/20">
-        <span className="text-xs font-black uppercase text-emerald-700 dark:text-emerald-400">
-          Disponibilidade
-        </span>
-        <button
-          type="button"
-          onClick={() => handleInputChange('is_available', formData.is_available === 1 ? 0 : 1)}
-          className={`w-14 h-8 rounded-full p-1 transition-all ${
-            formData.is_available === 1 ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
-          }`}
-        >
-          <div
-            className={`w-6 h-6 bg-white rounded-full shadow transition-transform ${
-              formData.is_available === 1 ? 'translate-x-6' : 'translate-x-0'
-            }`}
-          />
-        </button>
+      {/* Equipamentos */}
+      <div className="space-y-3">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+          <Wrench size={12} /> Equipamentos do Veículo
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {equipmentTypes.map((eq) => (
+            <button
+              key={eq}
+              type="button"
+              onClick={() => toggleArrayField('available_equipment', eq)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                (formData.available_equipment || []).includes(eq)
+                  ? 'bg-blue-500 text-white shadow-lg'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-blue-100 dark:hover:bg-blue-900'
+              }`}
+            >
+              {eq}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Certificações */}
+      <div className="space-y-3">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+          <Award size={12} /> Certificações
+        </label>
+        <div className="flex flex-wrap gap-2">
+          {certificationTypes.map((cert) => (
+            <button
+              key={cert}
+              type="button"
+              onClick={() => toggleArrayField('certifications', cert)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                (formData.certifications || []).includes(cert)
+                  ? 'bg-purple-500 text-white shadow-lg'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 hover:bg-purple-100 dark:hover:bg-purple-900'
+              }`}
+            >
+              {cert}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Localização */}
+      <div className="space-y-3">
+        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+          <MapPin size={12} /> Localização (CEP)
+        </label>
+        <input
+          type="text"
+          value={formData.home_cep || ''}
+          onChange={(e) => handleInputChange('home_cep', e.target.value)}
+          placeholder="00000-000"
+          className="w-full md:w-64 p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold outline-none focus:ring-2 ring-orange-500/20"
+        />
+        <p className="text-[10px] text-slate-400">
+          Informe seu CEP para definir sua região de atuação
+        </p>
       </div>
     </div>
   );

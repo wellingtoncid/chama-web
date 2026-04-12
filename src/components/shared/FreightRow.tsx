@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ChevronRight, MapPin, Package, Calendar } from 'lucide-react';
+import { Truck, ChevronRight, MapPin, Package, Calendar, ShieldCheck } from 'lucide-react';
 
 interface FreightRowProps {
   data: any;
@@ -13,6 +13,9 @@ export default function FreightRow({ data, onClick, showDate = true }: FreightRo
   const dest = data.dest_city || 'Destino não informado';
   const product = data.product || 'Carga geral';
   const vehicle = data.vehicle_type || data.vehicleType || 'Qualquer';
+
+  // Verificar se driver/empresa está verificado
+  const isVerified = data.user_is_verified == 1 || (data.verified_until && new Date(data.verified_until) > new Date());
 
   return (
     <div 
@@ -30,6 +33,11 @@ export default function FreightRow({ data, onClick, showDate = true }: FreightRo
           <h4 className="text-[13px] font-black text-slate-800 dark:text-slate-100 uppercase truncate">
             {origin} <span className="text-orange-500 mx-1">→</span> {dest}
           </h4>
+          {isVerified && (
+            <span title="Verificado" className="shrink-0">
+              <ShieldCheck size={14} className="text-emerald-500" fill="currentColor" />
+            </span>
+          )}
         </div>
         
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

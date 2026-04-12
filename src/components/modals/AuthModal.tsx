@@ -5,7 +5,7 @@ import { api } from '../../api/api';
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess?: () => void;
 }
 
 export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps) {

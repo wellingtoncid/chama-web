@@ -19,7 +19,7 @@ interface Permission {
   label: string;
 }
 
-const moduleConfig: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+const moduleConfig: Record<string, { icon?: React.ReactNode; label: string; color: string }> = {
   freight: { icon: <Truck size={16} />, label: 'Fretes', color: 'bg-blue-100 text-blue-600' },
   quotes: { icon: <ShoppingCart size={16} />, label: 'Cotações', color: 'bg-purple-100 text-purple-600' },
   marketplace: { icon: <Building2 size={16} />, label: 'Marketplace', color: 'bg-green-100 text-green-600' },

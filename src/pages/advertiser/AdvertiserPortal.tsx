@@ -58,6 +58,7 @@ const getImageUrl = (imageUrl: string) => {
 export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
   const [activeTab, setActiveTab] = useState<'home' | 'create' | 'reports'>('home');
   const [loading, setLoading] = useState(true);
+  const [hasAccess, setHasAccess] = useState(true);
   const [stats, setStats] = useState({ views: 0, clicks: 0, ctr: '0%' });
   const [adRules, setAdRules] = useState<AdPricingRule[]>([]);
   const [myAds, setMyAds] = useState<any[]>([]);
@@ -83,9 +84,29 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
 
   const user = propUser || JSON.parse(localStorage.getItem('@ChamaFrete:user') || '{}');
 
+  // Verificar se o módulo está ativo
+  useEffect(() => {
+    const checkModuleAccess = async () => {
+      try {
+        const res = await api.get('/user/modules');
+        if (res.data?.success) {
+          const modules = res.data.data.modules || [];
+          const advertiserModule = modules.find((m: any) => m.key === 'advertiser');
+          if (!advertiserModule?.is_active) {
+            setHasAccess(false);
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao verificar acesso:', e);
+        setHasAccess(false);
+      }
+    };
+    checkModuleAccess();
+  }, []);
+
   useEffect(() => {
     loadData();
-  }, []);
+  }, [hasAccess]);
 
   const loadData = async () => {
     try {
@@ -282,6 +303,30 @@ useEffect(() => {
     setPreview(getImageUrl(ad.image_url));
     setShowCreateModal(true);
   };
+
+  // Sem acesso ao módulo
+  if (!hasAccess) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
+          <Megaphone size={40} className="text-amber-500" />
+        </div>
+        <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white mb-4">
+          Módulo Indisponível
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
+          O módulo de Publicidade requer aprovação da equipe Chama Frete. 
+          Solicite acesso pelo painel da sua empresa.
+        </p>
+        <button 
+          onClick={() => window.location.href = '/dashboard'}
+          className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-sm"
+        >
+          Voltar ao Dashboard
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">

@@ -3,8 +3,9 @@ import { api } from '../../api/api';
 import { 
   ShoppingCart, Truck, FileText, MessageCircle, CreditCard,
   Users, Tag, Headphones, CheckCircle, XCircle, Loader2, Settings,
-  Package, Zap
+  Package, Zap, Clock
 } from 'lucide-react';
+import RequestModal from '../../components/modals/RequestModal';
 
 interface Module {
   key: string;
@@ -15,6 +16,9 @@ interface Module {
   activated_at: string | null;
   expires_at: string | null;
   is_allowed: boolean;
+  requires_approval?: boolean;
+  approval_status?: 'pending' | 'approved' | 'rejected' | null;
+  requested_at?: string | null;
 }
 
 interface ModuleManagerProps {
@@ -25,6 +29,11 @@ export default function ModuleManager({ user }: ModuleManagerProps) {
   const [modules, setModules] = useState<Module[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [requestModal, setRequestModal] = useState<{isOpen: boolean, moduleKey: string, moduleName: string}>({
+    isOpen: false,
+    moduleKey: '',
+    moduleName: ''
+  });
 
   useEffect(() => {
     fetchModules();
@@ -62,6 +71,14 @@ export default function ModuleManager({ user }: ModuleManagerProps) {
     } finally {
       setUpdating(null);
     }
+  };
+
+  const handleRequestAccess = (moduleKey: string, moduleName: string) => {
+    setRequestModal({ isOpen: true, moduleKey, moduleName });
+  };
+
+  const handleRequestSuccess = () => {
+    fetchModules();
   };
 
   const getModuleIcon = (key: string) => {
@@ -102,6 +119,14 @@ export default function ModuleManager({ user }: ModuleManagerProps) {
     );
   }
 
+  const isPendingApproval = (module: Module) => {
+    return module.requires_approval && module.approval_status === 'pending';
+  };
+
+  const isApprovalRequired = (module: Module) => {
+    return module.requires_approval && !module.is_active && module.approval_status !== 'pending';
+  };
+
   return (
     <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm p-6 md:p-8">
       <div className="flex items-center gap-3 mb-6">
@@ -123,6 +148,8 @@ export default function ModuleManager({ user }: ModuleManagerProps) {
             className={`relative p-5 rounded-2xl border-2 transition-all ${
               module.is_active 
                 ? 'border-emerald-200 bg-emerald-50/30' 
+              : isPendingApproval(module)
+                ? 'border-amber-300 bg-amber-50/50'
                 : 'border-slate-100 bg-slate-50/50 hover:border-slate-200'
             }`}
           >
@@ -137,6 +164,9 @@ export default function ModuleManager({ user }: ModuleManagerProps) {
                   {module.is_active && (
                     <CheckCircle size={14} className="text-emerald-500" />
                   )}
+                  {isPendingApproval(module) && (
+                    <Clock size={14} className="text-amber-500" />
+                  )}
                 </div>
                 <p className="text-[10px] text-slate-400 font-medium">{module.description}</p>
                 
@@ -145,31 +175,56 @@ export default function ModuleManager({ user }: ModuleManagerProps) {
                     Ativado em {new Date(module.activated_at).toLocaleDateString('pt-BR')}
                   </p>
                 )}
+                
+                {isPendingApproval(module) && (
+                  <p className="text-[9px] text-amber-600 mt-2 font-bold flex items-center gap-1">
+                    <Clock size={10} />
+                    Aguardando aprovação...
+                  </p>
+                )}
               </div>
             </div>
 
             {module.is_allowed ? (
-              <button
-                onClick={() => toggleModule(module.key, module.is_active)}
-                disabled={updating === module.key}
-                className={`mt-4 w-full py-3 px-4 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${
-                  module.is_active
-                    ? 'bg-white border-2 border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600'
-                    : 'bg-slate-900 text-white hover:bg-emerald-600'
-                }`}
-              >
-                {updating === module.key ? (
-                  <Loader2 size={14} className="animate-spin" />
-                ) : module.is_active ? (
-                  <>
-                    <XCircle size={14} /> Desativar
-                  </>
+              <>
+                {isPendingApproval(module) ? (
+                  <div className="mt-4 py-3 px-4 rounded-xl bg-amber-100 text-center">
+                    <p className="text-[9px] font-black text-amber-700 uppercase">
+                      Aguardando Aprovação
+                    </p>
+                  </div>
+                ) : isApprovalRequired(module) ? (
+                  <button
+                    onClick={() => handleRequestAccess(module.key, module.name)}
+                    disabled={updating === module.key}
+                    className="mt-4 w-full py-3 px-4 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2 transition-all bg-amber-500 text-white hover:bg-amber-600"
+                  >
+                    <Clock size={14} /> Solicitar Acesso
+                  </button>
                 ) : (
-                  <>
-                    <Zap size={14} /> Ativar
-                  </>
+                  <button
+                    onClick={() => toggleModule(module.key, module.is_active)}
+                    disabled={updating === module.key}
+                    className={`mt-4 w-full py-3 px-4 rounded-xl font-black text-[10px] uppercase flex items-center justify-center gap-2 transition-all ${
+                      module.is_active
+                        ? 'bg-white border-2 border-slate-200 text-slate-600 hover:bg-red-50 hover:border-red-200 hover:text-red-600'
+                        : 'bg-slate-900 text-white hover:bg-emerald-600'
+                    }`}
+                  >
+                    {updating === module.key ? (
+                      <Loader2 size={14} className="animate-spin" />
+                    ) : module.is_active ? (
+                      <>
+                        <XCircle size={14} /> Desativar
+                      </>
+                    ) : (
+                      <>
+                        <Zap size={14} /> Ativar
+                      </>
+                    )}
+                  </button>
                 )}
-              </button>
+              </>
             ) : (
               <div className="mt-4 py-3 px-4 rounded-xl bg-slate-100 text-center">
                 <p className="text-[9px] font-black text-slate-400 uppercase">
@@ -186,6 +241,15 @@ export default function ModuleManager({ user }: ModuleManagerProps) {
           <p className="text-slate-400 font-medium">Nenhum módulo disponível</p>
         </div>
       )}
+
+      {/* MODAL DE SOLICITAÇÃO */}
+      <RequestModal
+        isOpen={requestModal.isOpen}
+        onClose={() => setRequestModal(prev => ({ ...prev, isOpen: false }))}
+        moduleName={requestModal.moduleName}
+        moduleKey={requestModal.moduleKey}
+        onSuccess={handleRequestSuccess}
+      />
     </div>
   );
 }

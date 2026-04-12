@@ -249,17 +249,17 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
   }
 
   return withModal(
-    <div ref={containerRef} onClick={handleAction} className="group relative overflow-hidden rounded-[2.5rem] shadow-sm hover:shadow-xl transition-all h-full min-h-[420px] w-full flex flex-col cursor-pointer border border-slate-100 dark:border-slate-800">
+    <div ref={containerRef} onClick={handleAction} className="group relative overflow-hidden rounded-3xl shadow-sm hover:shadow-xl transition-all h-full min-h-[420px] w-full flex flex-col cursor-pointer border border-slate-100 dark:border-slate-800">
       <div className="absolute inset-0 z-0">
         <AdImage url={adToShow.image_url} className="h-full w-full object-cover transition-transform duration-1000 group-hover:scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent" />
       </div>
       <div className="relative z-10 p-8 flex flex-col h-full text-white">
-        <span className="w-fit text-[9px] bg-blue-600 text-white px-3 py-1 rounded-full font-black uppercase tracking-widest mb-4">Parceiro Oficial</span>
-        <h4 className="font-black italic uppercase text-2xl leading-none mt-2 tracking-tighter">{adToShow.title}</h4>
-        <p className="text-sm text-slate-200 line-clamp-3 font-medium mt-4 italic">{adToShow.description}</p>
+        <span className="w-fit text-[9px] bg-blue-600 text-white px-3 py-1 rounded-full font-bold uppercase tracking-wide mb-4">Parceiro Oficial</span>
+        <h4 className="font-bold uppercase text-2xl leading-tight mt-2 tracking-tight">{adToShow.title}</h4>
+        <p className="text-sm text-slate-200 line-clamp-3 font-medium mt-4">{adToShow.description}</p>
         <div className="mt-auto pt-6">
-          <div className={`w-full py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest flex items-center justify-center gap-2 group-hover:bg-white group-hover:text-slate-900 transition-all ${isWhatsappAction ? 'bg-[#25D366] text-white' : 'bg-white/10 backdrop-blur-md text-white border border-white/20'}`}>
+          <div className={`w-full py-4 rounded-xl font-bold uppercase text-[10px] tracking-wider flex items-center justify-center gap-2 group-hover:bg-white group-hover:text-slate-900 transition-all ${isWhatsappAction ? 'bg-[#25D366] text-white' : 'bg-white/10 backdrop-blur-md text-white border border-white/20'}`}>
             {isWhatsappAction ? 'Chamar no Zap' : 'Saiba Mais'}
             {isWhatsappAction ? <MessageCircle size={14} fill="currentColor" /> : <ExternalLink size={14} />}
           </div>

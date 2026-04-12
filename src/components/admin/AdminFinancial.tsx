@@ -12,9 +12,10 @@ export default function AdminFinancial() {
   useEffect(() => {
     const fetchFinance = async () => {
       try {
-        // O endpoint calcula soma da tabela 'transactions' onde status = 'completed'
         const res = await api.get('/admin-financial-stats');
-        setStats(res.data);
+        if (res.data?.success) {
+          setStats(res.data.data);
+        }
       } catch (err) { console.error(err); } 
       finally { setLoading(false); }
     };
@@ -64,19 +65,27 @@ export default function AdminFinancial() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
-              {stats?.latest_transactions?.map((t: any) => (
+              {stats?.latest_transactions?.length > 0 ? (
+              stats?.latest_transactions?.map((t: any) => (
                 <tr key={t.id} className="text-xs hover:bg-slate-50/50 transition-all">
                   <td className="px-8 py-5 font-bold text-slate-400">#MP-{t.id}</td>
-                  <td className="px-8 py-5 font-black uppercase italic">{t.user_name}</td>
-                  <td className="px-8 py-5 font-bold text-slate-500">{t.plan_name}</td>
-                  <td className="px-8 py-5 font-black text-slate-900">R$ {t.amount}</td>
+                  <td className="px-8 py-5 font-black uppercase italic">{t.user_name || 'N/A'}</td>
+                  <td className="px-8 py-5 font-bold text-slate-500">{t.plan_name || t.feature_key || 'N/A'}</td>
+                  <td className="px-8 py-5 font-black text-slate-900">R$ {Number(t.amount).toFixed(2)}</td>
                   <td className="px-8 py-5">
-                    <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full ${t.status === 'completed' ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
-                      {t.status === 'completed' ? 'Aprovado' : 'Pendente'}
+                    <span className={`text-[8px] font-black uppercase px-3 py-1 rounded-full ${['approved', 'completed'].includes(t.status) ? 'bg-emerald-100 text-emerald-600' : 'bg-orange-100 text-orange-600'}`}>
+                      {['approved', 'completed'].includes(t.status) ? 'Aprovado' : 'Pendente'}
                     </span>
                   </td>
                 </tr>
-              ))}
+              ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-8 py-12 text-center text-slate-400 font-medium">
+                    Nenhuma transação registrada
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

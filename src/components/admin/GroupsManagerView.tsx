@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
+import { AdImage } from '../AdImage';
 import { 
   Plus, Trash2, Eye, MousePointer2, X, 
   Home, Info, Users, ShieldCheck, Globe, Tag,
@@ -140,9 +141,20 @@ export default function GroupsManager() {
               </div>
 
               <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                   <p className="font-black text-slate-800 uppercase italic text-lg tracking-tighter leading-none">{g.region_name}</p>
-                   <span className={`w-2 h-2 rounded-full ${g.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`}></span>
+                <div className="flex items-center gap-3">
+                  {g.image_url && (
+                    <div className="w-12 h-12 rounded-xl overflow-hidden border-2 border-slate-100 flex-shrink-0">
+                      <AdImage 
+                        url={g.image_url} 
+                        alt={g.region_name} 
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-black text-slate-800 uppercase italic text-lg tracking-tighter leading-none">{g.region_name}</p>
+                    <span className={`inline-block w-2 h-2 rounded-full ${g.status === 'active' ? 'bg-emerald-500 animate-pulse' : 'bg-red-400'}`}></span>
+                  </div>
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-2">

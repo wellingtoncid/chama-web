@@ -63,7 +63,7 @@ const AdvertisingSuccessPage = () => {
                 </button>
                 
                 <button 
-                  onClick={() => window.open('https://wa.me/SEUNUMERO', '_blank')}
+                  onClick={() => window.open('https://wa.me/5547992717125', '_blank')}
                   className="px-10 py-8 bg-slate-900 text-white rounded-[2.5rem] font-[1000] uppercase tracking-widest text-sm flex items-center justify-center gap-3 hover:bg-slate-800 transition-all"
                 >
                   Suporte via WhatsApp <MessageSquare size={20} />

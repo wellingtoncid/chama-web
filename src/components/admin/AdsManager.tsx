@@ -1,15 +1,17 @@
 import { useState, useEffect, useRef } from 'react';
-import { api, BASE_URL_API } from '../../api/api'; // Importamos o BASE_URL_API centralizado
+import { api } from '../../api/api';
 import { 
   Megaphone, Eye, Upload, X, 
   Trash2, Loader2, Plus, MousePointer2, Pencil, 
-  Link as LinkIcon, Search, TrendingUp, BarChart3
+  Link as LinkIcon, Search, TrendingUp, BarChart3,
+  Play, Pause, RotateCcw, AlertTriangle
 } from 'lucide-react';
 
 export default function AdsManager() {
   const [ads, setAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [uploading, setUploading] = useState(false);
   
@@ -33,17 +35,27 @@ export default function AdsManager() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Cálculos de Métricas
-  const totalViews = ads.reduce((acc, curr) => acc + (Number(curr.views_count) || 0), 0);
-  const totalClicks = ads.reduce((acc, curr) => acc + (Number(curr.clicks_count) || 0), 0);
+  // Cálculos de Métricas - todos os ads
+  const allAds = ads;
+  const activeAds = allAds.filter(a => a.computed_status === 'active' || a.computed_status === 'expiring_soon');
+  const expiredAds = allAds.filter(a => a.computed_status === 'expired');
+  const pausedAds = allAds.filter(a => a.computed_status === 'paused');
+  
+  const totalViews = allAds.reduce((acc, curr) => acc + (Number(curr.views_count) || 0), 0);
+  const totalClicks = allAds.reduce((acc, curr) => acc + (Number(curr.clicks_count) || 0), 0);
   const averageCTR = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(2) : "0.00";
 
   // Filtro lógico inteligente
-  const filteredAds = ads.filter(ad => 
-    ad.title?.toLowerCase().includes(filter.toLowerCase()) || 
-    ad.location_city?.toLowerCase().includes(filter.toLowerCase()) ||
-    ad.category?.toLowerCase().includes(filter.toLowerCase())
-  );
+  const filteredAds = ads.filter(ad => {
+    const matchesSearch = 
+      ad.title?.toLowerCase().includes(filter.toLowerCase()) || 
+      ad.location_city?.toLowerCase().includes(filter.toLowerCase()) ||
+      ad.category?.toLowerCase().includes(filter.toLowerCase());
+    
+    const matchesStatus = statusFilter === 'all' || ad.computed_status === statusFilter;
+    
+    return matchesSearch && matchesStatus;
+  });
 
   // Unificação da lógica de Imagem 
   const getFullImageUrl = (path: string) => {
@@ -51,20 +63,18 @@ export default function AdsManager() {
     if (path.startsWith('http')) return path;
     
     // Remove any leading slashes and api/ prefix
-    let cleanPath = path.replace(/^\//, '').replace(/^api\//, '');
+    const cleanPath = path.replace(/^\//, '').replace(/^api\//, '');
     
     // For ads, the path is already uploads/ads/filename
     return `http://127.0.0.1:8000/${cleanPath}`;
   };
 
+  // Carregar anúncios do admin endpoint
   const loadAds = async () => {
     try {
       setLoading(true);
-      console.log("Carregando anúncios...");
-      const res = await api.get('/ads');
-      console.log("Resposta da API de ads:", res.data);
-      const adsData = res.data?.data || res.data || [];
-      console.log("Anúncios carregados:", adsData);
+      const res = await api.get('/admin-ads');
+      const adsData = res.data?.data || [];
       setAds(Array.isArray(adsData) ? adsData : []);
     } catch (error) {
       console.error("Erro ao carregar anúncios", error);
@@ -80,6 +90,34 @@ export default function AdsManager() {
     loadCurrentUser();
   }, []);
 
+  // Ações de gerenciamento de anúncios
+  const pauseAd = async (id: number) => {
+    try {
+      await api.post('/admin-manage-ads', { action: 'pause', id });
+      loadAds();
+    } catch (error) {
+      alert("Erro ao pausar anúncio");
+    }
+  };
+
+  const activateAd = async (id: number) => {
+    try {
+      await api.post('/admin-manage-ads', { action: 'activate', id });
+      loadAds();
+    } catch (error) {
+      alert("Erro ao ativar anúncio");
+    }
+  };
+
+  const renewAd = async (id: number, days: number = 30) => {
+    try {
+      await api.post('/admin-manage-ads', { action: 'renew', id, days });
+      loadAds();
+    } catch (error) {
+      alert("Erro ao renovar anúncio");
+    }
+  };
+
   const loadUsers = async () => {
     try {
       const res = await api.get('/companies');
@@ -87,7 +125,6 @@ export default function AdsManager() {
       setUsers(companiesData);
     } catch (error) {
       console.warn("Erro ao carregar empresas - tentando método alternativo", error);
-      // Fallback
       try {
         const res = await api.get('/list-all-users');
         const usersData = res.data?.users || res.data?.data || res.data || [];
@@ -192,7 +229,7 @@ export default function AdsManager() {
   const handleDelete = async (id: number) => {
     if (!confirm("Deseja remover este anúncio definitivamente?")) return;
     try {
-      await api.post('/manage-ads', { id, action: 'delete' });
+      await api.post('/admin-manage-ads', { id, action: 'delete' });
       setAds(prev => prev.filter(ad => ad.id !== id));
     } catch (error) {
       alert("Erro ao excluir anúncio.");
@@ -211,37 +248,45 @@ export default function AdsManager() {
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
       {/* MÉTRICAS GERAIS */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900 p-6 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div className="bg-emerald-500 p-4 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-[10px] font-black uppercase opacity-50 italic mb-1">Visualizações</p>
-            <h3 className="text-3xl font-black italic">{totalViews.toLocaleString()}</h3>
+            <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Ativos</p>
+            <h3 className="text-2xl font-black italic">{activeAds.length}</h3>
           </div>
-          <Eye className="absolute -right-2 -bottom-2 text-white/10 group-hover:scale-110 transition-transform" size={80} />
+          <Play className="absolute -right-2 -bottom-2 text-white/20" size={50} />
         </div>
 
-        <div className="bg-orange-500 p-6 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
+        <div className="bg-amber-500 p-4 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-[10px] font-black uppercase opacity-50 italic mb-1">Cliques Totais</p>
-            <h3 className="text-3xl font-black italic">{totalClicks.toLocaleString()}</h3>
+            <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Expirando</p>
+            <h3 className="text-2xl font-black italic">{expiredAds.length}</h3>
           </div>
-          <MousePointer2 className="absolute -right-2 -bottom-2 text-white/10 group-hover:scale-110 transition-transform" size={80} />
+          <AlertTriangle className="absolute -right-2 -bottom-2 text-white/20" size={50} />
         </div>
 
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden group">
+        <div className="bg-slate-400 p-4 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-[10px] font-black text-slate-400 uppercase italic mb-1">CTR Médio</p>
-            <h3 className="text-3xl font-black italic text-slate-800">{averageCTR}%</h3>
+            <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Pausados</p>
+            <h3 className="text-2xl font-black italic">{pausedAds.length}</h3>
           </div>
-          <TrendingUp className="absolute -right-2 -bottom-2 text-slate-50 group-hover:scale-110 transition-transform" size={80} />
+          <Pause className="absolute -right-2 -bottom-2 text-white/20" size={50} />
         </div>
 
-        <div className="bg-emerald-500 p-6 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden group">
+        <div className="bg-slate-900 p-4 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
           <div className="relative z-10">
-            <p className="text-[10px] font-black uppercase opacity-50 italic mb-1">Ativos</p>
-            <h3 className="text-3xl font-black italic">{ads.length}</h3>
+            <p className="text-[9px] font-black uppercase opacity-50 italic mb-1">Total</p>
+            <h3 className="text-2xl font-black italic">{allAds.length}</h3>
           </div>
-          <BarChart3 className="absolute -right-2 -bottom-2 text-white/10 group-hover:scale-110 transition-transform" size={80} />
+          <BarChart3 className="absolute -right-2 -bottom-2 text-white/20" size={50} />
+        </div>
+
+        <div className="bg-orange-500 p-4 rounded-[2rem] text-white shadow-xl relative overflow-hidden">
+          <div className="relative z-10">
+            <p className="text-[9px] font-black uppercase opacity-50 italic mb-1">CTR Médio</p>
+            <h3 className="text-2xl font-black italic">{averageCTR}%</h3>
+          </div>
+          <TrendingUp className="absolute -right-2 -bottom-2 text-white/20" size={50} />
         </div>
       </div>
 
@@ -258,23 +303,47 @@ export default function AdsManager() {
             </div>
           </div>
           
-          <div className="relative w-full md:w-72 ml-0 md:ml-4">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+          {/* Filtro de Status */}
+          <div className="flex gap-2 ml-0 md:ml-4">
+            {['all', 'active', 'expiring_soon', 'paused', 'expired'].map((status) => (
+              <button
+                key={status}
+                onClick={() => setStatusFilter(status)}
+                className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${
+                  statusFilter === status 
+                    ? status === 'all' ? 'bg-slate-900 text-white' :
+                      status === 'active' ? 'bg-emerald-500 text-white' :
+                      status === 'expiring_soon' ? 'bg-amber-500 text-white' :
+                      status === 'paused' ? 'bg-slate-400 text-white' :
+                      'bg-red-500 text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {status === 'all' ? 'Todos' :
+                 status === 'active' ? 'Ativos' :
+                 status === 'expiring_soon' ? 'Expirando' :
+                 status === 'paused' ? 'Pausados' : 'Expirados'}
+              </button>
+            ))}
+          </div>
+          
+          <div className="relative w-full md:w-56 ml-0 md:ml-4">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
             <input 
               type="text" 
-              placeholder="Filtrar por título ou cidade..." 
+              placeholder="Buscar..." 
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
-              className="w-full bg-slate-50 border-2 border-transparent focus:border-orange-500 transition-all rounded-2xl py-3 pl-12 pr-4 text-xs font-bold outline-none"
+              className="w-full bg-slate-50 border-2 border-transparent focus:border-orange-500 transition-all rounded-xl py-2 pl-10 pr-4 text-[10px] font-bold outline-none"
             />
           </div>
         </div>
 
         <button 
           onClick={() => { resetForm(); setIsModalOpen(true); }}
-          className="w-full md:w-auto bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase italic shadow-lg hover:bg-orange-500 hover:-translate-y-1 transition-all flex items-center justify-center gap-2"
+          className="w-full md:w-auto bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase italic shadow-lg hover:bg-orange-500 transition-all flex items-center justify-center gap-2"
         >
-          <Plus size={16} /> Novo Anúncio
+          <Plus size={14} /> Novo
         </button>
       </div>
 
@@ -284,61 +353,120 @@ export default function AdsManager() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50">
-                <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Preview</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest">Campanha</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest text-center">Performance</th>
-                <th className="px-8 py-5 text-[10px] font-black uppercase text-slate-400 tracking-widest text-right">Ações</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Preview</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Campanha</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Status</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest text-center">Performance</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={4} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
+                <tr><td colSpan={5} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
               ) : filteredAds.length === 0 ? (
-                <tr><td colSpan={4} className="py-20 text-center font-bold text-slate-400 uppercase italic">Nenhum anúncio encontrado</td></tr>
-              ) : filteredAds.map((ad: any) => (
-                <tr key={ad.id} className="hover:bg-slate-50/50 transition-colors group">
-                  <td className="px-8 py-5">
-                    <div className="w-24 h-14 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 relative">
+                <tr><td colSpan={5} className="py-20 text-center font-bold text-slate-400 uppercase italic">Nenhum anúncio encontrado</td></tr>
+              ) : filteredAds.map((ad: any) => {
+                const statusConfig: Record<string, {color: string; bg: string; label: string}> = {
+                  active: { color: 'text-emerald-600', bg: 'bg-emerald-100', label: '● ATIVO' },
+                  expiring_soon: { color: 'text-amber-600', bg: 'bg-amber-100', label: '● EXPIRANDO' },
+                  paused: { color: 'text-slate-500', bg: 'bg-slate-100', label: '○ PAUSADO' },
+                  expired: { color: 'text-red-600', bg: 'bg-red-100', label: '● EXPIRADO' }
+                };
+                const status = statusConfig[ad.computed_status] || statusConfig.active;
+                
+                return (
+                  <tr key={ad.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4">
+                    <div className="w-20 h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 relative">
                       <img src={getFullImageUrl(ad.image_url)} alt="" className="w-full h-full object-cover" />
                     </div>
                   </td>
-                  <td className="px-8 py-5">
-                    <p className="font-black text-slate-800 uppercase italic text-sm">{ad.title}</p>
+                  <td className="px-6 py-4">
+                    <p className="font-black text-slate-800 uppercase italic text-xs">{ad.title}</p>
                     <div className="flex items-center gap-2 mt-1">
                       <span className="text-[8px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500 uppercase">{ad.position}</span>
-                      <span className="text-[8px] text-slate-400 font-bold uppercase tracking-wider">{ad.location_city}</span>
+                      <span className="text-[8px] text-slate-400 font-bold">{ad.location_city}</span>
                     </div>
+                    {ad.expires_at && (
+                      <p className="text-[8px] text-slate-400 mt-1">
+                        Expira: {new Date(ad.expires_at).toLocaleDateString('pt-BR')}
+                        {ad.days_until_expiry !== null && ad.days_until_expiry >= 0 && ad.computed_status !== 'expired' && (
+                          <span className={ad.days_until_expiry <= 3 ? 'text-amber-600 font-bold' : ''}>
+                            {' '} ({ad.days_until_expiry}d)
+                          </span>
+                        )}
+                        {ad.days_until_expiry !== null && ad.days_until_expiry < 0 && (
+                          <span className="text-red-600 font-bold"> expirado há {Math.abs(ad.days_until_expiry)}d</span>
+                        )}
+                      </p>
+                    )}
                   </td>
-                  <td className="px-8 py-5 text-center">
-                    <div className="flex justify-center gap-6">
+                  <td className="px-6 py-4">
+                    <span className={`${status.bg} ${status.color} text-[9px] font-black px-3 py-1.5 rounded-full uppercase`}>
+                      {status.label}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex justify-center gap-4">
                         <div className="flex flex-col">
-                            <span className="text-lg font-black text-slate-800 leading-none">{ad.clicks_count || 0}</span>
-                            <span className="text-[7px] font-black text-orange-500 uppercase mt-1">Cliques</span>
+                            <span className="text-sm font-black text-slate-800 leading-none">{ad.clicks_count || 0}</span>
+                            <span className="text-[7px] font-black text-orange-500 uppercase mt-0.5">Cliques</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-lg font-black text-slate-800 leading-none">{ad.views_count || 0}</span>
-                            <span className="text-[7px] font-black text-blue-500 uppercase mt-1">Views</span>
+                            <span className="text-sm font-black text-slate-800 leading-none">{ad.views_count || 0}</span>
+                            <span className="text-[7px] font-black text-blue-500 uppercase mt-0.5">Views</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-lg font-black text-emerald-600 leading-none">
+                            <span className="text-sm font-black text-emerald-600 leading-none">
                               {ad.views_count > 0 ? ((ad.clicks_count / ad.views_count) * 100).toFixed(1) : 0}%
                             </span>
-                            <span className="text-[7px] font-black text-slate-400 uppercase mt-1">CTR</span>
+                            <span className="text-[7px] font-black text-slate-400 uppercase mt-0.5">CTR</span>
                         </div>
                     </div>
                   </td>
-                  <td className="px-8 py-5 text-right">
+                  <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => handleEdit(ad)} className="p-2.5 bg-slate-100 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
+                      {/* Pausar / Ativar */}
+                      {ad.computed_status === 'active' || ad.computed_status === 'expiring_soon' ? (
+                        <button 
+                          onClick={() => pauseAd(ad.id)} 
+                          className="p-2 bg-amber-100 text-amber-600 rounded-xl hover:bg-amber-500 hover:text-white transition-all"
+                          title="Pausar"
+                        >
+                          <Pause size={14}/>
+                        </button>
+                      ) : (
+                        <button 
+                          onClick={() => activateAd(ad.id)} 
+                          className="p-2 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-500 hover:text-white transition-all"
+                          title="Ativar"
+                        >
+                          <Play size={14}/>
+                        </button>
+                      )}
+                      
+                      {/* Renovar */}
+                      {(ad.computed_status === 'expired' || ad.computed_status === 'paused') && (
+                        <button 
+                          onClick={() => renewAd(ad.id, 30)} 
+                          className="p-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-500 hover:text-white transition-all"
+                          title="Renovar por 30 dias"
+                        >
+                          <RotateCcw size={14}/>
+                        </button>
+                      )}
+                      
+                      <button onClick={() => handleEdit(ad)} className="p-2 bg-slate-100 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
                         <Pencil size={14}/>
                       </button>
-                      <button onClick={() => handleDelete(ad.id)} className="p-2.5 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+                      <button onClick={() => handleDelete(ad.id)} className="p-2 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all">
                         <Trash2 size={14}/>
                       </button>
                     </div>
                   </td>
                 </tr>
-              ))}
+              );
+            })}
             </tbody>
           </table>
         </div>

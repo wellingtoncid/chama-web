@@ -38,12 +38,12 @@ const AdCarousel = ({ searchTerm, state, city }: any) => {
   }, [total]);
 
   if (loading) return <div className="h-28 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl w-full" />;
-  
+   
   // Se não houver anúncios, renderiza o AdCard fixo (ele abrirá o modal)
-  if (total === 0) return <AdCard position="freight_list" variant="horizontal" />;
+  if (total === 0) return <div className="h-28"><AdCard position="freight_list" variant="horizontal" /></div>;
 
   return (
-    <div className="relative overflow-hidden group rounded-2xl w-full bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
+    <div className="relative overflow-hidden group rounded-2xl w-full h-28 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
       
       {/* O SEGREDO DO MOVIMENTO ESTÁ AQUI: Width dinâmica e Flex-row */}
       <div 

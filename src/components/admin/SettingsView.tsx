@@ -4,7 +4,7 @@ import {
   Settings, Save, Clock, ShieldAlert, CheckCircle2,
   Loader2, Star, Image, Trash2, Plus, X, DollarSign, Edit3,
   Building2, Users, Truck, ShoppingCart, Megaphone, MessageSquare,
-  CreditCard, Gift, Globe, Eye, EyeOff
+  CreditCard, Gift, Globe, Eye, EyeOff, Package, Award, Wrench, GripVertical, AlertCircle, ShieldCheck
 } from 'lucide-react';
 
 interface Plan {
@@ -16,7 +16,7 @@ interface Plan {
   description?: string;
 }
 
-type TabId = 'general' | 'modules' | 'registration' | 'finance' | 'payments' | 'referral' | 'plans' | 'system' | 'pricing';
+type TabId = 'general' | 'lists' | 'modules' | 'registration' | 'finance' | 'payments' | 'referral' | 'plans' | 'system' | 'moderation' | 'smtp';
 
 interface Tab {
   id: TabId;
@@ -26,6 +26,7 @@ interface Tab {
 
 const tabs: Tab[] = [
   { id: 'general', label: 'Geral', icon: <Globe size={16} /> },
+  { id: 'lists', label: 'Listas', icon: <Package size={16} /> },
   { id: 'modules', label: 'Módulos', icon: <Settings size={16} /> },
   { id: 'registration', label: 'Cadastro', icon: <Users size={16} /> },
   { id: 'finance', label: 'Financeiro', icon: <DollarSign size={16} /> },
@@ -33,7 +34,8 @@ const tabs: Tab[] = [
   { id: 'referral', label: 'Indicações', icon: <Gift size={16} /> },
   { id: 'plans', label: 'Planos', icon: <Star size={16} /> },
   { id: 'system', label: 'Sistema', icon: <ShieldAlert size={16} /> },
-  { id: 'pricing', label: 'Planos de Preço', icon: <Megaphone size={16} /> },
+  { id: 'moderation', label: 'Moderação', icon: <ShieldCheck size={16} /> },
+  { id: 'smtp', label: 'Email SMTP', icon: <MessageSquare size={16} /> },
 ];
 
 const initialPlanState: Plan = {
@@ -86,9 +88,32 @@ export default function SettingsView() {
     freight_free_limit: '3',
     // Sistema
     maintenance_mode: false,
+    // Moderação
+    review_auto_approve_high_rating: true,
+    review_auto_approve_threshold: '4',
+    review_auto_reject_bad_words: true,
+    report_auto_dismiss_duplicate: true,
+    // SMTP
+    smtp_host: '',
+    smtp_port: '587',
+    smtp_user: '',
+    smtp_pass: '',
+    smtp_from_email: '',
+    smtp_from_name: 'Chama Frete',
   });
 
   const [planData, setPlanData] = useState<Plan>(initialPlanState);
+  
+  const [listSettings, setListSettings] = useState({
+    vehicle_types: [] as string[],
+    body_types: [] as string[],
+    equipment_types: [] as string[],
+    certification_types: [] as string[],
+  });
+  const [editingList, setEditingList] = useState<string | null>(null);
+  const [listInput, setListInput] = useState('');
+  const [editingItem, setEditingItem] = useState<{ key: string; index: number; value: string } | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<{ key: string; index: number } | null>(null);
 
   const loadAll = async () => {
     try {
@@ -121,16 +146,73 @@ export default function SettingsView() {
           default_plan: settings.default_plan || '1',
           freight_free_limit: settings.freight_free_limit || '3',
           maintenance_mode: settings.maintenance_mode === '1' || settings.maintenance_mode === true,
+          // Moderação
+          review_auto_approve_high_rating: settings.review_auto_approve_high_rating === 'true' || settings.review_auto_approve_high_rating === '1' || settings.review_auto_approve_high_rating === true,
+          review_auto_approve_threshold: settings.review_auto_approve_threshold || '4',
+          review_auto_reject_bad_words: settings.review_auto_reject_bad_words === 'true' || settings.review_auto_reject_bad_words === '1' || settings.review_auto_reject_bad_words === true,
+          report_auto_dismiss_duplicate: settings.report_auto_dismiss_duplicate === 'true' || settings.report_auto_dismiss_duplicate === '1' || settings.report_auto_dismiss_duplicate === true,
         }));
       }
       if (res.data?.plans) {
         setPlans(res.data.plans);
+      }
+      if (res.data?.data?.vehicle_types) {
+        setListSettings(prev => ({ ...prev, vehicle_types: JSON.parse(res.data.data.vehicle_types) }));
+      }
+      if (res.data?.data?.body_types) {
+        setListSettings(prev => ({ ...prev, body_types: JSON.parse(res.data.data.body_types) }));
+      }
+      if (res.data?.data?.equipment_types) {
+        setListSettings(prev => ({ ...prev, equipment_types: JSON.parse(res.data.data.equipment_types) }));
+      }
+      if (res.data?.data?.certification_types) {
+        setListSettings(prev => ({ ...prev, certification_types: JSON.parse(res.data.data.certification_types) }));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
     } finally {
       setLoading(false);
     }
+};
+  
+  // Drag & Drop handlers
+  const handleDragStart = (e: React.DragEvent, key: string, index: number) => {
+    e.dataTransfer.setData('text/plain', JSON.stringify({ key, index }));
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, key: string, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex({ key, index });
+  };
+
+  const handleDragLeave = () => {
+    setDragOverIndex(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetKey: string, targetIndex: number) => {
+    e.preventDefault();
+    setDragOverIndex(null);
+
+    try {
+      const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+      const { key, index } = data;
+
+      if (key !== targetKey || index === targetIndex) return;
+
+      const currentList = [...listSettings[key as keyof typeof listSettings]];
+      const [removed] = currentList.splice(index, 1);
+      currentList.splice(targetIndex, 0, removed);
+
+      setListSettings({ ...listSettings, [key]: currentList });
+    } catch (err) {
+      console.error('Erro ao mover item:', err);
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDragOverIndex(null);
   };
 
   useEffect(() => { loadAll(); }, []);
@@ -138,7 +220,14 @@ export default function SettingsView() {
   const handleSaveConfig = async () => {
     try {
       setSaving(true);
-      await api.post('/admin-settings', config);
+      const allConfig = {
+        ...config,
+        vehicle_types: JSON.stringify(listSettings.vehicle_types),
+        body_types: JSON.stringify(listSettings.body_types),
+        equipment_types: JSON.stringify(listSettings.equipment_types),
+        certification_types: JSON.stringify(listSettings.certification_types),
+      };
+      await api.post('/admin-settings', allConfig);
       alert("Configurações salvas com sucesso!");
     } catch (e) {
       alert("Erro ao salvar configurações");
@@ -228,6 +317,181 @@ export default function SettingsView() {
                 />
               </div>
             </div>
+          </div>
+        );
+
+      case 'lists':
+        return (
+          <div className="space-y-6">
+            {[
+              { key: 'vehicle_types', label: 'Tipos de Veículos', icon: <Truck size={20} />, list: listSettings.vehicle_types },
+              { key: 'body_types', label: 'Tipos de Carroceria', icon: <Package size={20} />, list: listSettings.body_types },
+              { key: 'equipment_types', label: 'Equipamentos', icon: <Wrench size={20} />, list: listSettings.equipment_types },
+              { key: 'certification_types', label: 'Certificações', icon: <Award size={20} />, list: listSettings.certification_types },
+            ].map((category) => (
+              <div key={category.key} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-orange-100 text-orange-600 rounded-lg">{category.icon}</div>
+                  <h3 className="font-black uppercase italic">{category.label}</h3>
+                </div>
+                
+                {editingList === category.key ? (
+                  <div className="space-y-3">
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={listInput}
+                        onChange={(e) => setListInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && listInput.trim()) {
+                            const currentList = listSettings[category.key as keyof typeof listSettings];
+                            if (!currentList.includes(listInput.trim())) {
+                              setListSettings({ ...listSettings, [category.key]: [...currentList, listInput.trim()] });
+                            }
+                            setListInput('');
+                          }
+                        }}
+                        placeholder="Digite um item e pressione Enter"
+                        className="flex-1 p-3 bg-slate-50 rounded-xl border border-slate-200 text-sm"
+                      />
+                      <button
+                        onClick={() => {
+                          if (listInput.trim()) {
+                            const currentList = listSettings[category.key as keyof typeof listSettings];
+                            if (!currentList.includes(listInput.trim())) {
+                              setListSettings({ ...listSettings, [category.key]: [...currentList, listInput.trim()] });
+                            }
+                            setListInput('');
+                          }
+                        }}
+                        className="px-4 py-2 bg-orange-500 text-white rounded-xl font-bold text-sm hover:bg-orange-600"
+                      >
+                        <Plus size={18} />
+                      </button>
+                    </div>
+                    <p className="text-xs text-slate-400 mb-2 flex items-center gap-1">
+                      <GripVertical size={12} /> Arraste os itens para reordenar
+                    </p>
+                    <div className="flex flex-wrap gap-2">
+                      {category.list.map((item, idx) => (
+                        <span 
+                          key={idx} 
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, category.key, idx)}
+                          onDragOver={(e) => handleDragOver(e, category.key, idx)}
+                          onDragLeave={handleDragLeave}
+                          onDrop={(e) => handleDrop(e, category.key, idx)}
+                          onDragEnd={handleDragEnd}
+                          className={`flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm cursor-grab active:cursor-grabbing transition-all ${
+                            dragOverIndex?.key === category.key && dragOverIndex?.index === idx 
+                              ? 'ring-2 ring-orange-400 bg-orange-50' 
+                              : 'hover:bg-slate-200'
+                          }`}
+                        >
+                          <GripVertical size={14} className="text-slate-400" />
+                          
+                          {/* Modo de edição inline */}
+                          {editingItem?.key === category.key && editingItem?.index === idx ? (
+                            <>
+                              <input
+                                type="text"
+                                value={editingItem.value}
+                                onChange={(e) => setEditingItem({ ...editingItem, value: e.target.value })}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    const newList = [...category.list];
+                                    newList[idx] = editingItem.value.trim();
+                                    setListSettings({ ...listSettings, [category.key]: newList });
+                                    setEditingItem(null);
+                                  }
+                                  if (e.key === 'Escape') {
+                                    setEditingItem(null);
+                                  }
+                                }}
+                                onBlur={() => {
+                                  const newList = [...category.list];
+                                  newList[idx] = editingItem.value.trim();
+                                  setListSettings({ ...listSettings, [category.key]: newList });
+                                  setEditingItem(null);
+                                }}
+                                autoFocus
+                                className="px-2 py-1 bg-white rounded border border-orange-300 text-sm font-medium w-32"
+                              />
+                              <button
+                                onClick={() => {
+                                  const newList = [...category.list];
+                                  newList[idx] = editingItem.value.trim();
+                                  setListSettings({ ...listSettings, [category.key]: newList });
+                                  setEditingItem(null);
+                                }}
+                                className="text-green-500 hover:text-green-700"
+                              >
+                                <CheckCircle2 size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              <span className="cursor-pointer hover:text-orange-600" onClick={() => setEditingItem({ key: category.key, index: idx, value: item })}>
+                                {item}
+                              </span>
+                              <button
+                                onClick={() => setEditingItem({ key: category.key, index: idx, value: item })}
+                                className="text-blue-400 hover:text-blue-600 ml-1"
+                                title="Editar"
+                              >
+                                <Edit3 size={12} />
+                              </button>
+                              <button
+                                onClick={() => {
+                                  const newList = category.list.filter((_, i) => i !== idx);
+                                  setListSettings({ ...listSettings, [category.key]: newList });
+                                }}
+                                className="text-red-500 hover:text-red-700 ml-1"
+                              >
+                                <X size={14} />
+                              </button>
+                            </>
+                          )}
+                        </span>
+                      ))}
+                    </div>
+                    <button
+                      onClick={() => { setEditingList(null); setListInput(''); }}
+                      className="w-full py-2 bg-slate-200 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-300"
+                    >
+                      Concluir
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {category.list.length > 0 ? (
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {category.list.map((item, idx) => (
+                          <span key={idx} className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm">{item}</span>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-slate-400 italic mb-4">Nenhum item cadastrado</p>
+                    )}
+                    <button
+                      onClick={() => setEditingList(category.key)}
+                      className="px-4 py-2 bg-slate-100 text-slate-700 rounded-xl font-bold text-sm hover:bg-slate-200 flex items-center gap-2"
+                    >
+                      <Edit3 size={14} /> Editar Lista
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+            {listSettings.vehicle_types.length > 0 && listSettings.body_types.length > 0 && (
+              <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
+                <AlertCircle size={20} className="text-blue-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm text-blue-800">
+                  <p className="font-bold">As listas estão sincronizadas!</p>
+                  <p className="text-blue-600">Motoristas e empresas verão essas opções ao cadastrar fretes ou perfis.</p>
+                </div>
+              </div>
+            )}
           </div>
         );
 
@@ -457,43 +721,179 @@ export default function SettingsView() {
           </div>
         );
 
-      case 'pricing':
+      case 'moderation':
+        return (
+          <div className="space-y-6">
+            {/* Reviews Automations */}
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+              <h3 className="text-lg font-black uppercase italic mb-6 flex items-center gap-2">
+                <Star size={20} className="text-amber-500"/> Automação de Avaliações
+              </h3>
+              
+              <div className="space-y-6">
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <div>
+                    <p className="font-bold text-slate-900">Auto-aprovar reviews 4+ estrelas</p>
+                    <p className="text-xs text-slate-500 mt-1">Reviews com nota 4 ou 5 são publicados automaticamente</p>
+                  </div>
+                  <button
+                    onClick={() => setConfig({...config, review_auto_approve_high_rating: !config.review_auto_approve_high_rating})}
+                    className={`relative w-14 h-8 rounded-full transition-colors ${config.review_auto_approve_high_rating ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${config.review_auto_approve_high_rating ? 'translate-x-7' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                  <div>
+                    <p className="font-bold text-slate-900">Rejeitar conteúdo bloqueado</p>
+                    <p className="text-xs text-slate-500 mt-1">Bloquear reviews com palavras ofensivas, spam ou links excessivos</p>
+                  </div>
+                  <button
+                    onClick={() => setConfig({...config, review_auto_reject_bad_words: !config.review_auto_reject_bad_words})}
+                    className={`relative w-14 h-8 rounded-full transition-colors ${config.review_auto_reject_bad_words ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                  >
+                    <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${config.review_auto_reject_bad_words ? 'translate-x-7' : 'translate-x-1'}`} />
+                  </button>
+                </div>
+
+                <div className="p-4 bg-slate-50 rounded-2xl">
+                  <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider block mb-2">Threshold mínimo para auto-aprovar</label>
+                  <select
+                    value={config.review_auto_approve_threshold}
+                    onChange={e => setConfig({...config, review_auto_approve_threshold: e.target.value})}
+                    className="w-full p-4 bg-white rounded-2xl border border-slate-200 font-bold"
+                  >
+                    <option value="4">4 estrelas ou mais</option>
+                    <option value="5">Apenas 5 estrelas</option>
+                  </select>
+                  <p className="text-xs text-slate-500 mt-2">Define a nota mínima para auto-aprovação quando ativado acima</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Reports Automations */}
+            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
+              <h3 className="text-lg font-black uppercase italic mb-6 flex items-center gap-2">
+                <ShieldCheck size={20} className="text-blue-500"/> Automação de Denúncias
+              </h3>
+              
+              <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl">
+                <div>
+                  <p className="font-bold text-slate-900">Auto-descartar denúncias duplicadas</p>
+                  <p className="text-xs text-slate-500 mt-1">Ignorar automaticamente se o mesmo usuário denunciar o mesmo conteúdo novamente</p>
+                </div>
+                <button
+                  onClick={() => setConfig({...config, report_auto_dismiss_duplicate: !config.report_auto_dismiss_duplicate})}
+                  className={`relative w-14 h-8 rounded-full transition-colors ${config.report_auto_dismiss_duplicate ? 'bg-emerald-500' : 'bg-slate-300'}`}
+                >
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${config.report_auto_dismiss_duplicate ? 'translate-x-7' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            </div>
+
+            {/* Info Box */}
+            <div className="bg-amber-50 border border-amber-200 p-6 rounded-2xl">
+              <div className="flex items-start gap-3">
+                <AlertCircle size={20} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-800">Sobre automação</p>
+                  <p className="text-xs text-amber-700 mt-1">
+                    As automações ajudam a reduzir a carga de moderação manual. Reviews e denúncias ainda podem ser revisados manualmente no painel de administração.
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'smtp':
         return (
           <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-            <div className="flex justify-between items-center mb-8">
-              <h3 className="text-lg font-black uppercase italic flex items-center gap-2">
-                <Megaphone size={20} className="text-blue-500"/> Planos de Cobrança
-              </h3>
-              <button 
-                onClick={() => handleOpenModal()} 
-                className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black uppercase text-[10px] hover:bg-orange-500 transition-all flex items-center gap-2 shadow-lg"
-              >
-                <Plus size={14}/> Adicionar Plano
-              </button>
+            <h3 className="text-lg font-black uppercase italic mb-6 flex items-center gap-2">
+              <MessageSquare size={20} className="text-blue-500"/> Configurações de Email (SMTP)
+            </h3>
+            <p className="text-xs text-slate-500 mb-6">
+              Configure o servidor SMTP para envio de emails transacionais (recuperação de senha, notificações, etc.)
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Servidor SMTP</label>
+                <input 
+                  type="text" 
+                  value={config.smtp_host}
+                  onChange={e => setConfig({...config, smtp_host: e.target.value})}
+                  placeholder="smtp.gmail.com"
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Porta</label>
+                <input 
+                  type="text" 
+                  value={config.smtp_port}
+                  onChange={e => setConfig({...config, smtp_port: e.target.value})}
+                  placeholder="587"
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Usuário (Email)</label>
+                <input 
+                  type="email" 
+                  value={config.smtp_user}
+                  onChange={e => setConfig({...config, smtp_user: e.target.value})}
+                  placeholder="seu@email.com"
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Senha</label>
+                <div className="relative">
+                  <input 
+                    type={showPaymentSecrets ? "text" : "password"} 
+                    value={config.smtp_pass}
+                    onChange={e => setConfig({...config, smtp_pass: e.target.value})}
+                    placeholder="Senha ou App Password"
+                    className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2 pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPaymentSecrets(!showPaymentSecrets)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  >
+                    {showPaymentSecrets ? <EyeOff size={20} /> : <Eye size={20} />}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Email Remetente</label>
+                <input 
+                  type="email" 
+                  value={config.smtp_from_email}
+                  onChange={e => setConfig({...config, smtp_from_email: e.target.value})}
+                  placeholder="noreply@chamafrete.com.br"
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                />
+              </div>
+              <div>
+                <label className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Nome do Remetente</label>
+                <input 
+                  type="text" 
+                  value={config.smtp_from_name}
+                  onChange={e => setConfig({...config, smtp_from_name: e.target.value})}
+                  placeholder="Chama Frete"
+                  className="w-full p-4 bg-slate-50 rounded-2xl border-none font-bold mt-2"
+                />
+              </div>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {plans.map((plan) => (
-                <div key={plan.id} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 relative group transition-all hover:border-orange-200">
-                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                    <button onClick={() => handleOpenModal(plan)} className="p-2 bg-white rounded-lg text-blue-500 shadow-sm hover:bg-blue-50" title="Editar"><Edit3 size={14}/></button>
-                    <button onClick={() => handleDeletePlan(plan.id)} className="p-2 bg-white rounded-lg text-red-500 shadow-sm hover:bg-red-50" title="Excluir"><Trash2 size={14}/></button>
-                  </div>
-                  
-                  <div className="mb-4 text-orange-500">
-                    {plan.type === 'featured' ? <Star fill="currentColor" size={24}/> : <Image size={24}/>}
-                  </div>
-                  <p className="font-black uppercase italic text-sm text-slate-800 leading-none">{plan.name}</p>
-                  <p className="text-[10px] font-bold text-slate-400 uppercase mt-1">{plan.duration_days} dias de validade</p>
-                  <p className="text-2xl font-black mt-4 text-slate-900">R$ {plan.price}</p>
-                  {plan.description && <p className="text-[9px] text-slate-400 mt-2 italic line-clamp-2">{plan.description}</p>}
-                </div>
-              ))}
-              {plans.length === 0 && (
-                <div className="col-span-full py-10 text-center border-2 border-dashed border-slate-100 rounded-[2rem] text-slate-400 uppercase text-[10px] font-bold">
-                  Nenhum plano ativo encontrado.
-                </div>
-              )}
+            <div className="mt-6 p-4 bg-blue-50 rounded-xl">
+              <p className="text-xs text-blue-800 font-medium">
+                <strong>Dica:</strong> Para Gmail, use uma "App Password" em vez da senha normal. 
+                Gere em: Google Account → Security → 2-Step Verification → App Passwords
+              </p>
             </div>
           </div>
         );

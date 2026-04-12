@@ -142,10 +142,12 @@ export default function SupportPage() {
         throw new Error(res.data?.message || 'Erro');
       }
     } catch (e: any) {
+      console.error('Erro completo:', e);
+      const errorMsg = e.response?.data?.debug || e.response?.data?.message || e.message || 'Não foi possível criar o ticket';
       Swal.fire({
         icon: 'error',
         title: 'Erro',
-        text: e.response?.data?.message || 'Não foi possível criar o ticket'
+        text: errorMsg
       });
     } finally {
       setSending(false);

@@ -251,6 +251,30 @@ export default function QuotesPage() {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value));
   };
 
+  // Sem acesso ao módulo
+  if (!userModule) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
+          <FileText size={40} className="text-amber-500" />
+        </div>
+        <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white mb-4">
+          Módulo Indisponível
+        </h2>
+        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
+          O módulo de Cotações requer aprovação da equipe Chama Frete. 
+          Solicite acesso pelo painel da sua empresa.
+        </p>
+        <button 
+          onClick={() => window.location.href = '/dashboard'}
+          className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-sm"
+        >
+          Voltar ao Dashboard
+        </button>
+      </div>
+    );
+  }
+
   if (loading) return (
     <div className="p-20 flex flex-col items-center justify-center animate-pulse">
       <Loader2 className="animate-spin text-emerald-500 mb-4" size={48} />
