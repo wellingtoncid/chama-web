@@ -12,6 +12,7 @@ import GroupDetail from '../pages/GroupDetail';
 import ProfileView from '../pages/public/ProfileView';
 import ReviewsPage from '../pages/public/ReviewsPage';
 import AdvertisingLandingPage from '../pages/AdvertisingLandingPage';
+import PublicidadePage from '../pages/PublicidadePage';
 import HowItWorks from '../pages/HowItWorks';
 import HowItWorksCompanies from '../pages/HowItWorksCompanies';
 import HowItWorksDrivers from '../pages/HowItWorksDrivers';
@@ -73,6 +74,7 @@ export default function AppRoutes() {
       <Route path="/avaliacoes/:slug" element={<ReviewsPage />} />
       <Route path="/anuncie" element={<AdvertisingLandingPage />} />
       <Route path="/seja-visto" element={<AdvertisingLandingPage />} />
+      <Route path="/publicidade" element={<PublicidadePage />} />
       <Route path="/como-funciona" element={<HowItWorks />} />
       <Route path="/como-funciona/empresas" element={<HowItWorksCompanies />} />
       <Route path="/como-funciona/motoristas" element={<HowItWorksDrivers />} />

@@ -1,17 +1,21 @@
 import { useState, useEffect } from 'react';
 import { X, Upload, Link as LinkIcon, Type, Loader2, Image as ImageIcon, Layout, Home, FileText, Bell, AlertTriangle, Instagram } from 'lucide-react';
 import { api } from '../../api/api';
+import { useAdPositions } from '../../hooks/useAdPositions';
 
-const AD_POSITIONS = [
-  { key: 'sidebar', name: 'Barra Lateral', icon: Layout, description: 'Exibido na barra lateral', size: '300x250' },
-  { key: 'freight_list', name: 'Lista de Fretes', icon: Layout, description: 'Publicado entre os fretes', size: '728x90' },
-  { key: 'home_hero', name: 'Banner Home', icon: Home, description: 'Destaque no topo da página inicial', size: '1200x400' },
-  { key: 'footer', name: 'Rodapé', icon: FileText, description: 'Exibido no rodapé do site', size: '728x90' },
-  { key: 'popup', name: 'Popup', icon: AlertTriangle, description: 'Popup entre navegações', size: '500x500' },
-  { key: 'header', name: 'Cabeçalho', icon: Bell, description: 'No topo do site', size: '728x90' },
-  { key: 'in-feed', name: 'No Feed', icon: Instagram, description: 'Entre conteúdos do feed', size: '600x300' },
-  { key: 'details_page', name: 'Página de Detalhes', icon: FileText, description: 'Páginas de detalhes', size: '728x90' },
-];
+const POSITION_ICONS: Record<string, any> = {
+  layout: Layout,
+  home: Home,
+  'file-text': FileText,
+  bell: Bell,
+  'alert-triangle': AlertTriangle,
+  star: Layout,
+  maximize: AlertTriangle,
+  repeat: Layout,
+  smartphone: AlertTriangle,
+  monitor: Bell,
+  truck: Layout,
+};
 
 interface AdEditorProps {
   userId: number;
@@ -21,6 +25,7 @@ interface AdEditorProps {
 
 export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorProps) {
   const [loading, setLoading] = useState(false);
+  const { positions } = useAdPositions();
   const [formData, setFormData] = useState({
     title: '',
     destination_url: '',
@@ -113,9 +118,9 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
               onChange={e => setFormData({...formData, position: e.target.value})}
               className="w-full bg-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 outline-none"
             >
-              {AD_POSITIONS.map(pos => (
-                <option key={pos.key} value={pos.key}>
-                  {pos.name} ({pos.size})
+              {positions.filter(p => p.price_monthly > 0).map(pos => (
+                <option key={pos.feature_key} value={pos.feature_key}>
+                  {pos.feature_name} ({pos.ad_size || 'variável'})
                 </option>
               ))}
             </select>

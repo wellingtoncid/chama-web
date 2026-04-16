@@ -707,7 +707,7 @@ export default function PlansPage() {
 
   return (
     <>
-      {showCheckout && null}
+      
       {selectedModule === 'freights' && (
         <FreightModule
           plans={getSubscriptionPlans('freight_subscription')}
@@ -765,13 +765,7 @@ export default function PlansPage() {
         />
       )}
 
-      <RequestModal
-        isOpen={requestModal.isOpen}
-        onClose={() => setRequestModal({ isOpen: false, moduleKey: '', moduleName: '' })}
-        moduleName={requestModal.moduleName}
-        moduleKey={requestModal.moduleKey}
-        onSuccess={handleRequestSuccess}
-      />
+      {/* RequestModal removed as part of canonical flow; cotação module is isolated for future */}
     </>
   );
 }

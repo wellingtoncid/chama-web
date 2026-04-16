@@ -39,7 +39,7 @@ const Index = () => {
         {/* AD POS 2: Banner Vertical ou Especial entre seções de autoridade */}
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto">
-             <AdCard position="in-feed" variant="horizontal" />
+             <AdCard position="infeed" variant="horizontal" />
           </div>
         </div>
 

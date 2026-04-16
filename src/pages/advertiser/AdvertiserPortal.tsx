@@ -1,72 +1,38 @@
 import { useState, useEffect } from 'react';
 import { 
-  Megaphone, LayoutDashboard, BarChart3, CreditCard,
-  PlusCircle, Eye, MousePointer2, Loader2, Check, X,
-  Layout, Home, Tv, FileText, Instagram, Bell, AlertTriangle,
-  Image as ImageIcon, Link as LinkIcon, Type, Pencil, Trash2, Star as StarIcon
+  Megaphone, PlusCircle, Loader2, X,
+  Image as ImageIcon, Pencil, Trash2
 } from 'lucide-react';
 import { api, BASE_URL_API } from '../../api/api';
 import Swal from 'sweetalert2';
-import AdvertiserReports from '../../components/advertiser/AdvertiserReports';
 import { getStates, getCitiesByState } from '../../services/location';
-
-interface AdPricingRule {
-  module_key: string;
-  id: number;
-  feature_key: string;
-  feature_name: string;
-  pricing_type: string;
-  free_limit: number;
-  price_per_use: number;
-  price_monthly: number;
-  price_daily: number;
-  is_active: number;
-}
-
-// Posições reais do banco
-const AD_POSITIONS = [
-  { key: 'sidebar', name: 'Barra Lateral', icon: Layout, description: 'Exibido na barra lateral das páginas', size: '300x250' },
-  { key: 'freight_list', name: 'Lista de Fretes', icon: Megaphone, description: 'Publicado entre os fretes', size: '728x90' },
-  { key: 'home_hero', name: 'Banner Home', icon: Home, description: 'Destaque no topo da página inicial', size: '1200x400' },
-  { key: 'footer', name: 'Rodapé', icon: FileText, description: 'Exibido no rodapé do site', size: '728x90' },
-  { key: 'popup', name: 'Popup', icon: AlertTriangle, description: 'Popup entre navegações', size: '500x500' },
-  { key: 'spotlight', name: 'Destaque', icon: Star, description: 'Banner em destaque', size: '300x600' },
-  { key: 'header', name: 'Cabeçalho', icon: Bell, description: 'No topo do site', size: '728x90' },
-  { key: 'in-feed', name: 'No Feed', icon: Instagram, description: 'Entre conteúdos do feed', size: '600x300' },
-  { key: 'details_page', name: 'Página de Detalhes', icon: FileText, description: 'Páginas de detalhes', size: '728x90' },
-];
-
-function Star({ size, className }: { size: number; className?: string }) {
-  return <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
-}
+import { useAdPositions } from '../../hooks/useAdPositions';
 
 const getImageUrl = (imageUrl: string) => {
   if (!imageUrl) return null;
   if (imageUrl.startsWith('http')) return imageUrl;
   
-  // Remove o '/api' da URL caso ele exista, pois imagens ficam na raiz pública
   const base = BASE_URL_API.replace(/\/api$/, '').endsWith('/') 
                ? BASE_URL_API.replace(/\/api$/, '').slice(0, -1) 
                : BASE_URL_API.replace(/\/api$/, '');
                
-  // Garante que não haja barra dupla se imageUrl já começar com /
   const path = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
   
   return `${base}${path}`;
 };
 
 export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
-  const [activeTab, setActiveTab] = useState<'home' | 'create' | 'reports'>('home');
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(true);
   const [stats, setStats] = useState({ views: 0, clicks: 0, ctr: '0%' });
-  const [adRules, setAdRules] = useState<AdPricingRule[]>([]);
   const [myAds, setMyAds] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
   const [states, setStates] = useState<{sigla: string, nome: string}[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
+  
+  const { positions, loading: positionsLoading, getIcon } = useAdPositions();
   
   // Form
   const [formData, setFormData] = useState({
@@ -125,12 +91,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
         ctr: totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) + '%' : '0%'
       });
 
-      // Load pricing rules
-      const rulesRes = await api.get('/pricing/rules');
-      const allRules = rulesRes.data?.data || [];
-      const advertiserRules = allRules.filter((r: AdPricingRule) => r.module_key === 'advertiser');
-      setAdRules(advertiserRules);
-
     } catch (err) {
       console.error("Erro ao carregar:", err);
     } finally {
@@ -139,13 +99,13 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
   };
 
   // Buscar estados ao montar o componente
-useEffect(() => {
-  const fetchStates = async () => {
-    const data = await getStates();
-    setStates(data);
-  };
-  fetchStates();
-}, []);
+  useEffect(() => {
+    const fetchStates = async () => {
+      const data = await getStates();
+      setStates(data);
+    };
+    fetchStates();
+  }, []);
 
   // Buscar cidades quando o estado selecionado mudar
   useEffect(() => {
@@ -165,25 +125,20 @@ useEffect(() => {
     fetchCities();
   }, [formData.location_state]);
 
-  const getRuleForPosition = (position: string): AdPricingRule | undefined => {
-    const map: Record<string, string> = {
-      'sidebar': 'sidebar_banner',
-      'home_hero': 'home_banner',
-      'freight_list': 'sponsored',
-      'footer': 'footer_banner',
-      'header': 'header_banner',
-      'popup': 'video_ad',
-      'spotlight': 'spotlight_ad',
-      'in-feed': 'infeed_ad',
-      'details_page': 'details_ad'
+  const getPositionInfo = (position: string) => {
+    const pos = positions.find(p => p.feature_key === position);
+    if (!pos) return { name: position, icon: null, ad_size: '', description: '' };
+    const Icon = getIcon(pos.icon_key);
+    return { 
+      name: pos.feature_name, 
+      icon: Icon, 
+      ad_size: pos.ad_size || '',
+      description: pos.description || ''
     };
-    const featureKey = map[position] || position;
-    return adRules.find(r => r.feature_key === featureKey);
   };
 
-  const formatPrice = (value: number | string) => {
-    const num = parseFloat(String(value));
-    return num > 0 ? `R$ ${num.toFixed(2).replace('.', ',')}` : 'Grátis';
+  const formatPrice = (value: number) => {
+    return value > 0 ? `R$ ${value.toFixed(2).replace('.', ',')}` : 'Grátis';
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -247,10 +202,14 @@ useEffect(() => {
             cancelButtonText: 'Cancelar'
           }).then((result) => {
             if (result.isConfirmed && res.data?.feature_name) {
-              // Redirecionar para assinatura
-              const featureKey = formData.position === 'sidebar' ? 'sidebar_banner' : 
-                               formData.position === 'home_hero' ? 'home_banner' : 'publish_ad';
-              api.post('/module/subscribe-monthly', { module_key: 'advertiser', feature_key: featureKey });
+              api.post('/module/subscribe-monthly', { module_key: 'advertiser', feature_key: formData.position })
+                .then(subRes => {
+                  if (subRes.data?.success && subRes.data?.url) {
+                    window.location.href = subRes.data.url;
+                  } else {
+                    Swal.fire({ icon: 'error', title: 'Erro', text: subRes.data?.message || 'Erro ao processar pagamento' });
+                  }
+                });
             }
           });
         } else {
@@ -264,8 +223,6 @@ useEffect(() => {
       setCreating(false);
     }
   };
-
-  const getPositionInfo = (position: string) => AD_POSITIONS.find(p => p.key === position) || { name: position, icon: Layout, description: '', size: '' };
 
   const handleDeleteAd = async (adId: number) => {
     const result = await Swal.fire({
@@ -329,116 +286,134 @@ useEffect(() => {
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-3xl font-black uppercase italic text-slate-800">Publicidade</h1>
-          <p className="text-slate-400 text-xs font-bold uppercase">Anunciante #{user.id}</p>
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+      {/* Header com métricas */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="bg-emerald-500 p-4 rounded-[2rem] text-white shadow-lg">
+          <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Anúncios Ativos</p>
+          <h3 className="text-2xl font-black italic">{myAds.filter(a => a.status === 'active').length}</h3>
+        </div>
+        <div className="bg-blue-500 p-4 rounded-[2rem] text-white shadow-lg">
+          <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Visualizações</p>
+          <h3 className="text-2xl font-black italic">{stats.views.toLocaleString()}</h3>
+        </div>
+        <div className="bg-purple-500 p-4 rounded-[2rem] text-white shadow-lg">
+          <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Cliques</p>
+          <h3 className="text-2xl font-black italic">{stats.clicks.toLocaleString()}</h3>
+        </div>
+        <div className="bg-orange-500 p-4 rounded-[2rem] text-white shadow-lg">
+          <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">CTR</p>
+          <h3 className="text-2xl font-black italic">{stats.ctr}</h3>
+        </div>
+        <div className="bg-slate-900 p-4 rounded-[2rem] text-white shadow-lg">
+          <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Total</p>
+          <h3 className="text-2xl font-black italic">{myAds.length}</h3>
+        </div>
+      </div>
+
+      {/* Toolbar */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-[2rem] border border-slate-200">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white">
+            <Megaphone size={20} />
+          </div>
+          <div>
+            <h2 className="text-lg font-black uppercase italic text-slate-800 leading-tight">Meus Anúncios</h2>
+            <p className="text-[8px] font-bold text-slate-400 uppercase">Painel do Anunciante</p>
+          </div>
         </div>
         <button 
           onClick={() => setShowCreateModal(true)}
-          className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2"
+          className="bg-slate-900 hover:bg-orange-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 transition-all"
         >
-          <PlusCircle size={18} /> Criar Anúncio
+          <PlusCircle size={18} /> Novo Anúncio
         </button>
       </div>
 
-      {/* Navigation */}
-      <div className="flex gap-2">
-        {[
-          { id: 'home', label: 'Visão Geral', icon: LayoutDashboard },
-          { id: 'create', label: 'Meus Anúncios', icon: Megaphone },
-          { id: 'reports', label: 'Relatórios', icon: BarChart3 },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`px-4 py-2 rounded-xl font-bold text-xs uppercase flex items-center gap-2 ${
-              activeTab === tab.id ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border'
-            }`}
-          >
-            <tab.icon size={16} /> {tab.label}
-          </button>
-        ))}
+      {/* Lista de Anúncios */}
+      <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden">
+        {loading || positionsLoading ? (
+          <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-orange-500" size={32} /></div>
+        ) : myAds.length === 0 ? (
+          <div className="p-12 text-center">
+            <Megaphone size={48} className="mx-auto text-slate-200 mb-4" />
+            <p className="text-slate-400 font-bold">Nenhum anúncio criado</p>
+            <button onClick={() => setShowCreateModal(true)} className="mt-4 text-orange-500 font-bold text-sm">
+              Criar primeiro anúncio
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left">
+              <thead className="bg-slate-50/50">
+                <tr>
+                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Preview</th>
+                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Anúncio</th>
+                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Posição</th>
+                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Status</th>
+                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400 text-center">Métricas</th>
+                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {myAds.map(ad => {
+                  const posInfo = getPositionInfo(ad.position);
+                  const statusConfig: Record<string, {color: string; bg: string; label: string}> = {
+                    active: { color: 'text-emerald-600', bg: 'bg-emerald-100', label: '● ATIVO' },
+                    paused: { color: 'text-slate-500', bg: 'bg-slate-100', label: '○ PAUSADO' },
+                    expired: { color: 'text-red-500', bg: 'bg-red-100', label: '● EXPIRADO' }
+                  };
+                  const status = statusConfig[ad.status] || statusConfig.active;
+                  
+                  return (
+                    <tr key={ad.id} className="hover:bg-slate-50/50">
+                      <td className="px-4 py-3">
+                        <div className="w-16 h-10 bg-slate-100 rounded-lg overflow-hidden">
+                          {ad.image_url ? (
+                            <img src={getImageUrl(ad.image_url) || ''} alt={ad.title} className="w-full h-full object-cover" />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-slate-300" size={16} /></div>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <p className="font-bold text-slate-800 text-sm">{ad.title}</p>
+                        <p className="text-[8px] text-slate-400">{ad.location_city || 'Brasil'} • {ad.position}</p>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded font-bold text-slate-600 uppercase">
+                          {posInfo.name}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`${status.bg} ${status.color} text-[9px] font-black px-2 py-1 rounded-full uppercase`}>
+                          {status.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="flex justify-center gap-3 text-xs">
+                          <span><b className="text-slate-800">{ad.views_count || 0}</b> <span className="text-[8px] text-slate-400">views</span></span>
+                          <span><b className="text-slate-800">{ad.clicks_count || 0}</b> <span className="text-[8px] text-slate-400">cliques</span></span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => handleEditAd(ad)} className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-500 hover:text-white transition-all" title="Editar">
+                            <Pencil size={14} />
+                          </button>
+                          <button onClick={() => handleDeleteAd(ad.id)} className="p-2 bg-red-50 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-all" title="Excluir">
+                            <Trash2 size={14} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
-
-      {/* Content */}
-      {loading ? (
-        <div className="flex justify-center py-20"><Loader2 className="animate-spin text-orange-500" size={32} /></div>
-      ) : activeTab === 'home' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100">
-            <Eye className="text-blue-500 mb-2" size={24} />
-            <p className="text-2xl font-black text-slate-800">{stats.views.toLocaleString()}</p>
-            <p className="text-xs text-slate-400 font-bold uppercase">Visualizações</p>
-          </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100">
-            <MousePointer2 className="text-emerald-500 mb-2" size={24} />
-            <p className="text-2xl font-black text-slate-800">{stats.clicks.toLocaleString()}</p>
-            <p className="text-xs text-slate-400 font-bold uppercase">Cliques</p>
-          </div>
-          <div className="bg-white p-6 rounded-[2rem] border border-slate-100">
-            <Megaphone className="text-orange-500 mb-2" size={24} />
-            <p className="text-2xl font-black text-slate-800">{stats.ctr}</p>
-            <p className="text-xs text-slate-400 font-bold uppercase">Taxa de Clique</p>
-          </div>
-        </div>
-      )}
-
-      {activeTab === 'create' && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden">
-          {myAds.length === 0 ? (
-            <div className="p-12 text-center">
-              <Megaphone size={48} className="mx-auto text-slate-200 mb-4" />
-              <p className="text-slate-400 font-bold">Nenhum anúncio criado</p>
-              <button onClick={() => setShowCreateModal(true)} className="mt-4 text-orange-500 font-bold text-sm">
-                Criar primeiro anúncio
-              </button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-6">
-              {myAds.map(ad => {
-                const posInfo = getPositionInfo(ad.position);
-                return (
-                  <div key={ad.id} className="border border-slate-100 rounded-2xl p-4 flex gap-4">
-                    <div className="w-24 h-24 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0">
-                      {ad.image_url ? (
-                         <img src={getImageUrl(ad.image_url) || undefined} alt={ad.title} className="w-full h-full object-cover" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-slate-300" /></div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-bold text-slate-800">{ad.title}</h4>
-                      <p className="text-xs text-slate-400 mt-1">{posInfo.name}</p>
-                      <span className={`inline-block mt-2 px-2 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        ad.status === 'active' ? 'bg-emerald-100 text-emerald-600' : 'bg-yellow-100 text-yellow-600'
-                      }`}>
-                        {ad.status === 'active' ? 'Ativo' : 'Pendente'}
-                      </span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      <button onClick={() => handleEditAd(ad)} className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-200" title="Editar">
-                        <Pencil size={14} />
-                      </button>
-                      <button onClick={() => handleDeleteAd(ad.id)} className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200" title="Excluir">
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                    <div className="text-right text-xs text-slate-400">
-                      <p>{ad.views_count || 0} views</p>
-                      <p>{ad.clicks_count || 0} cliques</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {activeTab === 'reports' && <AdvertiserReports userId={user.id} />}
 
       {/* Modal de Criar Anúncio */}
       {showCreateModal && (
@@ -446,7 +421,7 @@ useEffect(() => {
           <div className="bg-white rounded-[2rem] p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black uppercase italic">{editingId ? 'Editar Anúncio' : 'Novo Anúncio'}</h2>
-              <button onClick={() => { setShowCreateModal(false); setEditingId(null); setFormData({ title: '', description: '', image_url: '', destination_url: '', position: 'sidebar',  location_city: '', location_state: '', image: null }); setPreview(null); }}><X size={24} className="text-slate-400" /></button>
+              <button onClick={() => { setShowCreateModal(false); setEditingId(null); setFormData({ title: '', description: '', image_url: '', destination_url: '', position: 'sidebar', location_city: '', location_state: '', image: null }); setPreview(null); }}><X size={24} className="text-slate-400" /></button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -473,11 +448,11 @@ useEffect(() => {
                   onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                   className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm"
                 >
-                  {AD_POSITIONS.map(pos => {
-                    const rule = getRuleForPosition(pos.key);
+                  {positions.filter(pos => pos.price_monthly > 0).map(pos => {
+                    const Icon = getIcon(pos.icon_key);
                     return (
-                      <option key={pos.key} value={pos.key}>
-                        {pos.name} - {rule ? formatPrice(rule.price_monthly) + '/mês' : 'Grátis'} ({pos.size})
+                      <option key={pos.feature_key} value={pos.feature_key}>
+                        {pos.feature_name} - {formatPrice(pos.price_monthly)}/mês ({pos.ad_size || 'variável'})
                       </option>
                     );
                   })}

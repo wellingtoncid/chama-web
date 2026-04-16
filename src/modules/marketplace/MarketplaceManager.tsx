@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ShoppingBag, Plus, MapPin, Trash2, Edit3, Loader2, Eye, Zap, Clock, AlertTriangle, Star, CheckCircle } from 'lucide-react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { ShoppingBag, Plus, MapPin, Trash2, Edit3, Loader2, Eye, Zap, TrendingUp, CheckCircle, Star } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2';
-import { getImageUrl } from '../../lib/utils';
+import { AdImage } from '../../components/AdImage';
 import AffiliateInterestModal from './components/AffiliateInterestModal';
+import CheckoutModalMarketplace from '../../components/company/CheckoutModalMarketplace';
 
 const MarketplaceManager = ({ user }: { user: any }) => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pricingRules, setPricingRules] = useState<any[]>([]);
@@ -15,6 +17,8 @@ const MarketplaceManager = ({ user }: { user: any }) => {
   const [showAffiliateInterest, setShowAffiliateInterest] = useState(false);
   const [hasAffiliateAccess, setHasAffiliateAccess] = useState(false);
   const [affiliateLoading, setAffiliateLoading] = useState(true);
+  const [showCheckoutModal, setShowCheckoutModal] = useState(false);
+  const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
 
   const fetchMyItems = async () => {
     try {
@@ -44,13 +48,18 @@ const MarketplaceManager = ({ user }: { user: any }) => {
     fetchMyItems();
     fetchPricingRules();
     checkAffiliateAccess();
+    
+    if (searchParams.get('showAffiliateModal') === 'true') {
+      setShowAffiliateInterest(true);
+      navigate('/dashboard/vendas', { replace: true });
+    }
   }, [user.id]);
 
   const checkAffiliateAccess = async () => {
     try {
       const res = await api.get('/affiliate/access');
       if (res.data?.success) {
-        setHasAffiliateAccess(res.data.has_access);
+        setHasAffiliateAccess(res.data.data?.has_access ?? res.data.has_access ?? false);
       }
     } catch (error) {
       console.error('Erro ao verificar acesso de afiliado:', error);
@@ -73,92 +82,8 @@ const MarketplaceManager = ({ user }: { user: any }) => {
   };
 
   const handlePromote = async (item: any) => {
-    const boostRule = pricingRules.find((r: any) => r.feature_key === 'featured_listing');
-    const price = Number(boostRule?.price_per_use) || 9.90;
-    const days = boostRule?.duration_days || 7;
-
-    const result = await Swal.fire({
-      title: 'Impulsionar Anúncio',
-      html: `
-        <div class="text-left space-y-3">
-          <p>Destaque seu anúncio no topo do marketplace por ${days} dias!</p>
-          <div class="bg-amber-50 dark:bg-amber-950/30 p-4 rounded-xl">
-            <p class="font-bold text-2xl text-amber-600">R$ ${price.toFixed(2).replace('.', ',')}</p>
-            <p class="text-xs text-slate-500">por ${days} dias de destaque</p>
-          </div>
-        </div>
-      `,
-      icon: 'info',
-      showCancelButton: true,
-      confirmButtonText: 'Impulsionar',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#F59E0B',
-      background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-      color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-    });
-
-    if (result.isConfirmed) {
-      setProcessingId(`boost-${item.id}`);
-      try {
-        const res = await api.post('/listing/boost', {
-          listing_id: item.id,
-        });
-
-        if (res.data?.success) {
-          Swal.fire({
-            title: 'Sucesso!',
-            text: res.data.message || 'Anúncio impulsionado com sucesso!',
-            icon: 'success',
-            background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-          });
-          fetchMyItems();
-        }
-      } catch (error: any) {
-        const status = error.response?.status;
-        const resData = error.response?.data;
-
-        if (status === 402) {
-          const balance = resData?.balance || 0;
-          const required = resData?.required || price;
-
-          Swal.fire({
-            title: 'Saldo Insuficiente',
-            html: `
-              <div class="text-left space-y-2">
-                <p>Você precisa de <strong>R$ ${required.toFixed(2).replace('.', ',')}</strong> para impulsionar.</p>
-                <p class="text-slate-500">Saldo atual: <strong>R$ ${balance.toFixed(2).replace('.', ',')}</strong></p>
-              </div>
-            `,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonText: 'Recarregar Carteira',
-            cancelButtonText: 'Pagar com Mercado Pago',
-            confirmButtonColor: '#059669',
-            cancelButtonColor: '#3B82F6',
-            reverseButtons: true,
-            background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-          }).then((swalResult) => {
-            if (swalResult.isConfirmed) {
-              navigate('/dashboard/financeiro');
-            } else if (swalResult.isDismissed) {
-              handleMercadoPagoBoost(item.id, price);
-            }
-          });
-        } else {
-          Swal.fire({
-            title: 'Erro',
-            text: resData?.message || 'Erro ao impulsionar.',
-            icon: 'error',
-            background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-          });
-        }
-      } finally {
-        setProcessingId(null);
-      }
-    }
+    setSelectedListingId(item.id);
+    setShowCheckoutModal(true);
   };
 
   const handleMercadoPagoBoost = async (listingId: number, amount: number) => {
@@ -438,122 +363,102 @@ const MarketplaceManager = ({ user }: { user: any }) => {
           <p className="text-slate-400 dark:text-slate-500 text-sm mt-2">Que tal desapegar de algo relacionado a transporte e logística?</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           {items.map((item: any) => {
             const daysLeft = getDaysUntilExpiry(item.expires_at);
             const expired = isExpired(item.expires_at);
-            const isProcessing = processingId === `boost-${item.id}` || processingId === `extend-${item.id}`;
+            const imageUrl = item.main_image || item.images?.[0];
+            const isProcessing = processingId === `boost-${item.id}`;
 
             return (
-              <div key={item.id} className={`bg-white dark:bg-slate-800 rounded-[2.5rem] overflow-hidden border shadow-sm group hover:shadow-xl transition-all ${
-                item.is_featured ? 'border-amber-400 dark:border-amber-600 ring-2 ring-amber-200 dark:ring-amber-800' : 'border-slate-100 dark:border-slate-700'
-              }`}>
-                <div className="h-48 bg-slate-200 dark:bg-slate-700 relative">
-                  <img 
-                    src={getImageUrl(item.main_image || item.images?.[0])} 
-                    className="w-full h-full object-cover transition-transform group-hover:scale-105" 
-                    alt={item.title} 
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = '/placeholder-item.jpg';
-                    }}
-                  />
-                  {item.is_featured === 1 && (
-                    <div className="absolute top-3 left-3 bg-amber-500 text-white text-[8px] font-black px-3 py-1 rounded-full uppercase italic shadow-lg flex items-center gap-1">
-                      <Zap size={10} /> Destaque
+              <div key={item.id} className={`bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border shadow-sm group hover:shadow-lg transition-all cursor-pointer ${
+                item.is_featured ? 'border-amber-400 dark:border-amber-600 ring-2 ring-amber-200 dark:ring-amber-800' : 'border-slate-200 dark:border-slate-700'
+              }`} onClick={() => handleView(item)}>
+                {/* Imagem */}
+                <div className="h-48 bg-slate-100 dark:bg-slate-700 relative overflow-hidden">
+                  {imageUrl ? (
+                    <AdImage url={imageUrl} className="w-full h-full object-cover transition-transform group-hover:scale-105" alt={item.title} />
+                  ) : (
+                    <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-600">
+                      <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-white/30">
+                        <rect width="18" height="18" x="3" y="3" rx="2"/>
+                        <circle cx="9" cy="9" r="2"/>
+                        <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                      </svg>
                     </div>
                   )}
-                  <div className="absolute top-4 right-4 bg-emerald-500 text-white px-2 py-1 rounded-full text-[8px] font-black uppercase">
+                  
+                  {item.is_featured === 1 && (
+                    <div className="absolute top-3 left-3 bg-orange-500 text-white text-[9px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-md">
+                      <TrendingUp size={10} /> DESTAQUE
+                    </div>
+                  )}
+                  <div className="absolute top-3 right-3 bg-emerald-600 text-white px-2.5 py-1 rounded-full text-[9px] font-bold uppercase">
                     {item.category}
                   </div>
-                  <div className="absolute bottom-4 left-4 right-4">
-                    <div className={`px-3 py-2 rounded-xl text-center text-xs font-black uppercase ${
-                      expired ? 'bg-red-500 text-white' : 
-                      daysLeft !== null && daysLeft <= 3 ? 'bg-amber-500 text-white' : 
-                      'bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm text-emerald-600 dark:text-emerald-400'
-                    }`}>
-                      {expired ? (
-                        <span className="flex items-center justify-center gap-1">
-                          <AlertTriangle size={12} /> Expirado
-                        </span>
-                      ) : daysLeft !== null ? (
-                        <span className="flex items-center justify-center gap-1">
-                          <Clock size={12} /> {daysLeft} dia(s)
-                        </span>
-                      ) : (
-                        <span className="flex items-center justify-center gap-1">
-                          <Clock size={12} /> Sem prazo
-                        </span>
-                      )}
+                  {item.item_condition && (
+                    <div className="absolute bottom-3 left-3 bg-black/70 text-white text-[10px] px-2.5 py-1 rounded-lg font-bold">
+                      {item.item_condition}
                     </div>
-                  </div>
+                  )}
                 </div>
                 
-                <div className="p-6">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">{item.status}</span>
-                    <span className="text-lg font-[1000] text-emerald-600 dark:text-emerald-400">
-                      {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
+                {/* Conteúdo */}
+                <div className="p-4">
+                  <div className="flex justify-between items-center mb-2">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                      {item.status}
                     </span>
-                  </div>
-                  <h4 className="font-black text-slate-800 dark:text-slate-100 uppercase italic truncate text-lg">{item.title}</h4>
-                  
-                  <div className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mt-4 text-[10px] font-bold">
-                    <MapPin size={12} className="text-emerald-500" /> {item.location_city || 'N/I'}, {item.location_state || ''}
-                  </div>
-
-                  {/* Botões de Ação */}
-                  <div className="grid grid-cols-3 gap-2 mt-4">
-                    <button 
-                      onClick={() => handleView(item)}
-                      className="flex items-center justify-center gap-1 p-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all font-bold text-[8px] uppercase"
-                    >
-                      <Eye size={10} /> Ver
-                    </button>
-                    <button 
-                      onClick={() => handleEdit(item)}
-                      className="flex items-center justify-center gap-1 p-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400 transition-all font-bold text-[8px] uppercase"
-                    >
-                      <Edit3 size={10} /> Editar
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(item)}
-                      className="flex items-center justify-center gap-1 p-2 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 transition-all font-bold text-[8px] uppercase"
-                    >
-                      <Trash2 size={10} /> Excluir
-                    </button>
-                  </div>
-
-                  {/* Botões de Impulsionar/Prorrogar */}
-                  <div className="grid grid-cols-2 gap-2 mt-2">
-                    {item.is_featured !== 1 && (
-                      <button
-                        onClick={() => handlePromote(item)}
-                        disabled={isProcessing}
-                        className="flex items-center justify-center gap-1 p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-xl hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all font-bold text-[8px] uppercase disabled:opacity-50"
-                      >
-                        {processingId === `boost-${item.id}` ? (
-                          <Loader2 size={10} className="animate-spin" />
-                        ) : (
-                          <Zap size={10} />
-                        )} Impulsionar
-                      </button>
+                    {item.location_state && (
+                      <span className="text-[10px] text-slate-500 flex items-center gap-0.5">
+                        <MapPin size={10} /> {item.location_state}
+                      </span>
                     )}
-                    <button
-                      onClick={() => handleExtend(item)}
-                      disabled={isProcessing}
-                      className={`flex items-center justify-center gap-1 p-2 rounded-xl transition-all font-bold text-[8px] uppercase disabled:opacity-50 ${
-                        expired 
-                          ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50' 
-                          : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                      }`}
-                    >
-                      {processingId === `extend-${item.id}` ? (
-                        <Loader2 size={10} className="animate-spin" />
-                      ) : (
-                        <Clock size={10} />
-                      )} Prorrogar
-                    </button>
                   </div>
+                  
+                  <h4 className="font-bold text-sm text-slate-800 dark:text-slate-100 leading-snug mb-2 uppercase">
+                    {item.title}
+                  </h4>
+                  
+                  <div className="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-slate-700 mt-auto">
+                    <div>
+                      <p className="text-[8px] font-bold uppercase text-slate-400 tracking-wider">Preço</p>
+                      <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
+                      </p>
+                    </div>
+                    <div className="flex gap-1">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleEdit(item); }}
+                        className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 hover:text-blue-600 transition-all"
+                        title="Editar"
+                      >
+                        <Edit3 size={14} />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDelete(item); }}
+                        className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-600 transition-all"
+                        title="Excluir"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Botão Impulsionar */}
+                  {item.is_featured !== 1 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); handlePromote(item); }}
+                      disabled={isProcessing}
+                      className="w-full flex items-center justify-center gap-1 p-2 mt-3 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-xl hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-all font-bold text-[10px] uppercase disabled:opacity-50"
+                    >
+                      {processingId === `boost-${item.id}` ? (
+                        <Loader2 size={12} className="animate-spin" />
+                      ) : (
+                        <Zap size={12} />
+                      )} Impulsionar
+                    </button>
+                  )}
                 </div>
               </div>
             );
@@ -566,6 +471,22 @@ const MarketplaceManager = ({ user }: { user: any }) => {
         <AffiliateInterestModal 
           onClose={() => setShowAffiliateInterest(false)}
           onSuccess={() => setShowAffiliateInterest(false)}
+        />
+      )}
+
+      {/* Checkout Modal Marketplace */}
+      {showCheckoutModal && selectedListingId && (
+        <CheckoutModalMarketplace
+          listingId={selectedListingId}
+          onClose={() => {
+            setShowCheckoutModal(false);
+            setSelectedListingId(null);
+          }}
+          onSuccess={() => {
+            setShowCheckoutModal(false);
+            setSelectedListingId(null);
+            fetchMyItems();
+          }}
         />
       )}
     </div>

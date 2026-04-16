@@ -146,7 +146,7 @@ export default function GroupsList() {
       itemCount++;
     }
 
-    // AdCard in-feed a cada 8 items (após os primeiros 3 grupos)
+    // AdCard infeed a cada 8 items (após os primeiros 3 grupos)
     if (itemCount > 8 && (itemCount - 8) % 8 === 0) {
       gridItems.push({ type: 'ad', key: `ad-${itemCount}` });
     }
@@ -225,7 +225,7 @@ export default function GroupsList() {
       case 'ad':
         return (
           <div key={item.key} className="h-[420px]">
-            <AdCard position="in-feed" variant="vertical" search={searchTerm} />
+            <AdCard position="infeed" variant="vertical" search={searchTerm} />
           </div>
         );
 

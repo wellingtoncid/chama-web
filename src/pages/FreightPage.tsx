@@ -353,7 +353,7 @@ export default function FreightPage() {
                         )}
                         {index >= 4 && (index + 1) % 8 === 0 && (
                           <div className="h-[420px]">
-                            <AdCard position="in-feed" variant="vertical" search={searchTerm} city={item.origin_city} />
+                            <AdCard position="infeed" variant="vertical" search={searchTerm} city={item.origin_city} />
                           </div>
                         )}
                       </React.Fragment>

@@ -514,7 +514,7 @@ export default function MarketplaceExplorer() {
                 {/* In-Feed Ad a cada 8 items (após primeiros 3) */}
                 {index >= 3 && (index + 1) % 8 === 0 && (
                   <div className="col-span-full min-h-[420px]">
-                    <AdCard position="in-feed" variant="vertical" state={item.location_state} search={debouncedSearch} />
+                    <AdCard position="infeed" variant="vertical" state={item.location_state} search={debouncedSearch} />
                   </div>
                 )}
               </React.Fragment>

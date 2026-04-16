@@ -6,6 +6,7 @@ import {
   Link as LinkIcon, Search, TrendingUp, BarChart3,
   Play, Pause, RotateCcw, AlertTriangle
 } from 'lucide-react';
+import { useAdPositions } from '../../hooks/useAdPositions';
 
 export default function AdsManager() {
   const [ads, setAds] = useState<any[]>([]);
@@ -32,6 +33,8 @@ export default function AdsManager() {
   const [targetUserId, setTargetUserId] = useState<number | ''>('');
   const [users, setUsers] = useState<{id: number; name: string; email: string}[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
+
+  const { positions, loading: positionsLoading } = useAdPositions();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -530,19 +533,18 @@ export default function AdsManager() {
 
                 <div className="space-y-1">
                   <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Local de Exibição (onde vai aparecer no site)</label>
-                  <select value={position} onChange={(e) => setPosition(e.target.value)} className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none">
-                    <option value="strategic_partners">⭐ Strategic Partners (VIP)</option>
-                    <option value="home_hero">🏆 Banner Principal Home</option>
-                    <option value="spotlight">⭐ Destaque/Spotlight</option>
-                    <option value="media_network">📺 Anunciantes & Media Network</option>
-                    <option value="sidebar">📱 Barra Lateral</option>
-                    <option value="footer">🔻 Rodapé</option>
-                    <option value="header">🔼 Cabeçalho</option>
-                    <option value="freight_list">🚚 Lista de Fretes</option>
-                    <option value="details_page">📄 Página de Detalhes</option>
-                    <option value="in-feed">📰 No Feed</option>
-                    <option value="popup">🔔 Popup</option>
-                  </select>
+                  {positionsLoading ? (
+                    <div className="p-4 bg-slate-50 rounded-2xl text-xs text-slate-400">Carregando...</div>
+                  ) : (
+                    <select value={position} onChange={(e) => setPosition(e.target.value)} className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none">
+                      <option value="">Selecione uma posição...</option>
+                      {positions.map(pos => (
+                        <option key={pos.feature_key} value={pos.feature_key}>
+                          {pos.feature_name} - R$ {Number(pos.price_monthly).toFixed(2).replace('.', ',')}/mês
+                        </option>
+                      ))}
+                    </select>
+                  )}
                 </div>
               </div>
 

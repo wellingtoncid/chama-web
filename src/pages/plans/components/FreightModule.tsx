@@ -1,8 +1,7 @@
 import { useState } from 'react';
-import { Crown, Loader2, Check, Star } from 'lucide-react';
+import { Crown, Loader2, Check, Star, Truck } from 'lucide-react';
 import Swal from 'sweetalert2';
 import ModuleDetailLayout from './ModuleDetailLayout';
-import { Truck } from 'lucide-react';
 
 interface PricingRule {
   id: number;
@@ -42,7 +41,7 @@ const formatDuration = (days: number) => {
   return `${days} dias`;
 };
 
-export default function FreightModule({ plans, rules, isActive, onBack, onPlanSelect, onPurchase, purchasing, walletBalance = 0, currentPlanId = null }: FreightModuleProps) {
+export default function FreightModule({ plans, rules, isActive, onBack, onPlanSelect, onPurchase, walletBalance = 0, currentPlanId = null }: FreightModuleProps) {
   return (
     <ModuleDetailLayout
       title="Logística"
@@ -53,10 +52,10 @@ export default function FreightModule({ plans, rules, isActive, onBack, onPlanSe
     >
       {/* Planos de Assinatura */}
       {plans.length > 0 && (
-        <div className="bg-white rounded-[2rem] border-2 border-slate-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-slate-800 to-slate-700 p-4">
-            <h3 className="font-black uppercase italic text-white">Planos Mensais</h3>
-            <p className="text-slate-300 text-xs">Escolha um plano com benefícios exclusivos</p>
+        <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 p-4">
+            <h3 className="font-black uppercase italic text-slate-900 dark:text-slate-100">Planos de Assinatura</h3>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">Escolha o melhor para sua operação</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
@@ -113,70 +112,13 @@ export default function FreightModule({ plans, rules, isActive, onBack, onPlanSe
         </div>
       )}
 
-      {/* Recursos Avulsos */}
+      {/* Info sobre Recursos Avulsos */}
       {rules.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden">
-          <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 p-4">
-            <h3 className="font-black uppercase italic text-slate-900 dark:text-slate-100">Recursos Adicionais</h3>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400">Enhance suas publicações</p>
-          </div>
-
-          <div className="divide-y divide-slate-100 dark:divide-slate-700">
-            {rules.map((feature) => {
-              const isPurchasing = purchasing === `freights-${feature.feature_key}`;
-
-              const getPriceInfo = () => {
-                const type = feature.pricing_type;
-                if (type === 'monthly' && Number(feature.price_monthly) > 0) {
-                  return { price: Number(feature.price_monthly), label: '/mês' };
-                }
-                if ((type === 'per_use' || type === 'free_limit') && Number(feature.price_per_use) > 0) {
-                  return { price: Number(feature.price_per_use), label: '' };
-                }
-                return { price: 0, label: '' };
-              };
-
-              const priceInfo = getPriceInfo();
-
-              return (
-                <div key={feature.id} className="p-4 flex items-center justify-between">
-                  <div>
-                    <h4 className="font-bold text-slate-900 dark:text-slate-100">{feature.feature_name}</h4>
-                    {feature.duration_days > 0 && priceInfo.label === '' && (
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Validade: {formatDuration(feature.duration_days)}</p>
-                    )}
-                    {priceInfo.label === '/mês' && (
-                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Validade: {formatDuration(feature.duration_days || 30)}</p>
-                    )}
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    {priceInfo.price > 0 && (
-                      <span className="font-black text-emerald-600 dark:text-emerald-400">
-                        {formatPrice(priceInfo.price)}{priceInfo.label}
-                      </span>
-                    )}
-
-                    <button
-                      onClick={() => onPurchase('freights', feature, walletBalance)}
-                      disabled={isPurchasing}
-                      className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
-                        isPurchasing
-                          ? 'bg-slate-100 text-slate-400'
-                          : 'bg-orange-500 hover:bg-orange-600 text-white'
-                      }`}
-                    >
-                      {isPurchasing ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        'Adicionar'
-                      )}
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
+          <h4 className="font-bold text-blue-900 dark:text-blue-300 text-sm">Quer destacar seus fretes?</h4>
+          <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
+            Na página de cada frete, você encontrará opções para destacar, tornar urgente ou adicionar mais visibilidade ao seu anúncio.
+          </p>
         </div>
       )}
     </ModuleDetailLayout>

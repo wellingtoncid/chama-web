@@ -3,6 +3,7 @@ import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Camera, Loader2, AlertCircle, X, Plus, MapPin, Star, ExternalLink, Search, Eye, MousePointer } from 'lucide-react';
 import { api } from '@/api/api';
 import { getStates, getCitiesByState } from '@/services/location';
+import { AdImage } from '@/components/AdImage';
 import Swal from 'sweetalert2';
 
 const MARKETPLACE_CONFIG = {
@@ -62,6 +63,8 @@ export default function ListingFormPage() {
   const [externalUrl, setExternalUrl] = useState('');
   const [scraping, setScraping] = useState(false);
   const [affiliatePreview, setAffiliatePreview] = useState<AffiliatePreview | null>(null);
+  const [hasAffiliateAccess, setHasAffiliateAccess] = useState(false);
+  const [checkingAffiliate, setCheckingAffiliate] = useState(true);
 
   const [users, setUsers] = useState<UserOption[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
@@ -71,7 +74,21 @@ export default function ListingFormPage() {
 
   useEffect(() => {
     loadInitialData();
+    checkAffiliateAccess();
   }, []);
+
+  const checkAffiliateAccess = async () => {
+    try {
+      const res = await api.get('/affiliate/access');
+      if (res.data?.success) {
+        setHasAffiliateAccess(res.data.data?.has_access ?? res.data.has_access ?? false);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar acesso de afiliado:', error);
+    } finally {
+      setCheckingAffiliate(false);
+    }
+  };
 
   useEffect(() => {
     if (formData.location_state) {
@@ -470,37 +487,72 @@ export default function ListingFormPage() {
         )}
 
         {/* Affiliate Section */}
-        <div className={`rounded-[2rem] p-6 border-2 ${isAffiliate ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-xl ${isAffiliate ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-slate-100 dark:bg-slate-700'}`}>
-                <Star size={20} className={isAffiliate ? 'text-amber-500 fill-amber-400' : 'text-slate-400'} />
-              </div>
-              <div>
-                <h3 className="font-black text-slate-900 dark:text-white uppercase italic text-sm">
-                  Anúncio de Afiliado
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Link do Mercado Livre com sua tag de afiliado
-                </p>
+        {checkingAffiliate ? (
+          <div className="rounded-[2rem] p-6 border-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700">
+            <div className="animate-pulse flex items-center gap-3">
+              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+              <div className="space-y-2">
+                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                <div className="h-3 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
               </div>
             </div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={isAffiliate}
-                onChange={(e) => {
-                  setIsAffiliate(e.target.checked);
-                  if (!e.target.checked) {
-                    setExternalUrl('');
-                    setAffiliatePreview(null);
-                  }
-                }}
-                className="sr-only peer"
-              />
-              <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
-            </label>
           </div>
+        ) : !hasAffiliateAccess ? (
+          <div className="rounded-[2rem] p-6 border-2 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+                  <Star size={20} className="text-amber-500" />
+                </div>
+                <div>
+                  <h3 className="font-black text-amber-700 dark:text-amber-400 uppercase italic text-sm">
+                    Anúncio de Afiliado
+                  </h3>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Libere acesso para criar anúncios do Mercado Livre
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => navigate('/dashboard/vendas?showAffiliateModal=true')}
+                className="px-4 py-2 bg-amber-500 text-white rounded-xl font-bold text-xs uppercase hover:bg-amber-600 transition-all"
+              >
+                Solicitar Acesso
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={`rounded-[2rem] p-6 border-2 ${isAffiliate ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-xl ${isAffiliate ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                  <Star size={20} className={isAffiliate ? 'text-amber-500 fill-amber-400' : 'text-slate-400'} />
+                </div>
+                <div>
+                  <h3 className="font-black text-slate-900 dark:text-white uppercase italic text-sm">
+                    Anúncio de Afiliado
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Link do Mercado Livre com sua tag de afiliado
+                  </p>
+                </div>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isAffiliate}
+                  onChange={(e) => {
+                    setIsAffiliate(e.target.checked);
+                    if (!e.target.checked) {
+                      setExternalUrl('');
+                      setAffiliatePreview(null);
+                    }
+                  }}
+                  className="sr-only peer"
+                />
+                <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
+              </label>
+            </div>
 
           {isAffiliate && (
             <div className="space-y-4 mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
@@ -576,6 +628,7 @@ export default function ListingFormPage() {
             </div>
           )}
         </div>
+        )}
 
         {/* Images Section */}
         <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-700">
@@ -587,7 +640,7 @@ export default function ListingFormPage() {
             <div className="grid grid-cols-5 gap-2 mb-3">
               {existingImages.map((img, index) => (
                 <div key={`existing-${index}`} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600">
-                  <img src={img} alt={`Imagem ${index + 1}`} className="w-full h-full object-cover" />
+                  <AdImage url={img} className="w-full h-full object-cover" alt={`Imagem ${index + 1}`} />
                   <button
                     type="button"
                     onClick={() => removeExistingImage(index)}

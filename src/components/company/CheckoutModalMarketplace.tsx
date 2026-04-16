@@ -6,14 +6,14 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
-interface CheckoutModalProps {
-  freightId: number;
+interface CheckoutModalMarketplaceProps {
+  listingId: number;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 interface PricingOption {
-  type: 'boost' | 'urgent';
+  type: 'featured' | 'bump' | 'sponsored';
   name: string;
   description: string;
   price: number;
@@ -23,7 +23,7 @@ interface PricingOption {
   bgColor: string;
 }
 
-export default function CheckoutModal({ freightId, onClose, onSuccess }: CheckoutModalProps) {
+export default function CheckoutModalMarketplace({ listingId, onClose, onSuccess }: CheckoutModalMarketplaceProps) {
   const [selectedOption, setSelectedOption] = useState<PricingOption | null>(null);
   const [loading, setLoading] = useState(false);
   const [options, setOptions] = useState<PricingOption[]>([]);
@@ -34,54 +34,39 @@ export default function CheckoutModal({ freightId, onClose, onSuccess }: Checkou
 
   const loadPricingOptions = async () => {
     try {
-      const res = await api.get('/wallet/pricing', { params: { module: 'freights' } });
+      const res = await api.get('/wallet/pricing', { params: { module: 'marketplace' } });
       if (res.data?.success) {
         const rules = res.data.data || [];
         
-        // Buscar todas as opções disponíveis
-        const featured = rules.find((r: any) => r.feature_key === 'boost');
-        const urgent = rules.find((r: any) => r.feature_key === 'urgent');
-        const renew = rules.find((r: any) => r.feature_key === 'freight_renew');
+        const featured = rules.find((r: any) => r.feature_key === 'featured_listing');
+        const bump = rules.find((r: any) => r.feature_key === 'bump');
         const sponsored = rules.find((r: any) => r.feature_key === 'sponsored');
         
         const loadedOptions: PricingOption[] = [];
         
         if (featured) {
           loadedOptions.push({
-            type: 'boost',
+            type: 'featured',
             name: featured.feature_name || 'Destaque',
-            description: 'Seu frete aparece em posição destacada nas buscas',
+            description: 'Seu anúncio aparece em posição destacada nas buscas',
             price: Number(featured.price_per_use),
             duration: featured.duration_days || 7,
-            icon: <Star size={28} />,
-            color: 'text-orange-500',
-            bgColor: 'bg-orange-50 dark:bg-orange-900/30'
+            icon: <Star size={20} />,
+            color: 'text-amber-500',
+            bgColor: 'bg-amber-50 dark:bg-amber-900/30'
           });
         }
         
-        if (urgent) {
+        if (bump) {
           loadedOptions.push({
-            type: 'urgent',
-            name: urgent.feature_name || 'Urgente',
-            description: 'Marca como carga urgente com visibilidade máxima',
-            price: Number(urgent.price_per_use),
-            duration: urgent.duration_days || 2,
-            icon: <Zap size={28} />,
-            color: 'text-red-500',
-            bgColor: 'bg-red-50 dark:bg-red-900/30'
-          });
-        }
-
-        if (renew) {
-          loadedOptions.push({
-            type: 'renew',
-            name: renew.feature_name || 'Boost +7 dias',
-            description: 'Estende a validade do seu frete por mais 7 dias',
-            price: Number(renew.price_per_use),
-            duration: renew.duration_days || 7,
-            icon: <Star size={28} />,
-            color: 'text-green-500',
-            bgColor: 'bg-green-50 dark:bg-green-900/30'
+            type: 'bump',
+            name: bump.feature_name || 'Prorrogar',
+            description: 'Adicione mais dias ao seu anúncio',
+            price: Number(bump.price_per_use),
+            duration: bump.duration_days || 7,
+            icon: <Zap size={20} />,
+            color: 'text-blue-500',
+            bgColor: 'bg-blue-50 dark:bg-blue-900/30'
           });
         }
 
@@ -89,10 +74,10 @@ export default function CheckoutModal({ freightId, onClose, onSuccess }: Checkou
           loadedOptions.push({
             type: 'sponsored',
             name: sponsored.feature_name || 'Patrocinado',
-            description: 'Seu frete aparece no topo da primeira linha de resultados',
+            description: 'Seu anúncio aparece no topo da primeira linha de resultados',
             price: Number(sponsored.price_per_use),
             duration: sponsored.duration_days || 7,
-            icon: <Star size={28} />,
+            icon: <Star size={20} />,
             color: 'text-purple-500',
             bgColor: 'bg-purple-50 dark:bg-purple-900/30'
           });
@@ -110,17 +95,17 @@ export default function CheckoutModal({ freightId, onClose, onSuccess }: Checkou
     
     setLoading(true);
     try {
-      const res = await api.post('/freight/promote', {
-        freight_id: freightId,
+      const res = await api.post('/listing/boost', {
+        listing_id: listingId,
         type: selectedOption.type
       });
 
       if (res.data?.success && res.data?.checkout_url) {
         window.location.href = res.data.checkout_url;
-      } else {
+      } else if (res.data?.success) {
         Swal.fire({
           title: '<span class="font-black italic text-green-600">SUCESSO!</span>',
-          text: 'Frete impulsionado com sucesso!',
+          text: 'Anúncio impulsionado com sucesso!',
           icon: 'success',
           confirmButtonColor: '#22c55e',
           customClass: {
@@ -152,10 +137,10 @@ export default function CheckoutModal({ freightId, onClose, onSuccess }: Checkou
       <div className="bg-white dark:bg-slate-800 w-full max-w-xl rounded-[3rem] overflow-hidden shadow-2xl animate-in zoom-in duration-300 max-h-[90vh] overflow-y-auto">
         
         {/* HEADER */}
-        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-gradient-to-r from-slate-900 to-slate-800">
+        <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-gradient-to-r from-amber-600 to-amber-700">
           <div>
-            <h3 className="text-xl font-black uppercase italic text-white">Impulsionar Frete</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase">Escolha como impulsionar sua carga</p>
+            <h3 className="text-xl font-black uppercase italic text-white">Impulsionar Anúncio</h3>
+            <p className="text-[10px] font-bold text-amber-200 uppercase">Escolha como impulsionar</p>
           </div>
           <button onClick={onClose} className="bg-white/10 p-2 rounded-xl hover:bg-white/20 transition-all text-white">
             <X size={18} />
@@ -163,14 +148,14 @@ export default function CheckoutModal({ freightId, onClose, onSuccess }: Checkou
         </div>
 
         <div className="p-6">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {options.map((option) => (
               <div 
                 key={option.type}
                 onClick={() => setSelectedOption(option)}
-                className={`p-4 rounded-xl border-3 cursor-pointer transition-all relative ${
+                className={`p-4 rounded-2xl border-3 cursor-pointer transition-all relative ${
                   selectedOption?.type === option.type 
-                    ? `border-orange-500 ${option.bgColor}` 
+                    ? `border-amber-500 ${option.bgColor}` 
                     : 'border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-700 hover:border-slate-200 dark:hover:border-slate-600'
                 }`}
               >
@@ -191,7 +176,7 @@ export default function CheckoutModal({ freightId, onClose, onSuccess }: Checkou
                         <p className="text-[10px] text-slate-400 font-medium">{option.description}</p>
                       </div>
                       <div className="text-right">
-                        <p className="text-lg font-bold text-slate-900 dark:text-white italic">R$ {option.price.toFixed(2).replace('.', ',')}</p>
+                        <p className="text-lg font-bold text-slate-900 dark:text-white">R$ {option.price.toFixed(2).replace('.', ',')}</p>
                         <p className="text-[10px] text-slate-400">/{option.duration} dias</p>
                       </div>
                     </div>
@@ -204,17 +189,17 @@ export default function CheckoutModal({ freightId, onClose, onSuccess }: Checkou
           <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-3 flex items-start gap-2 border border-blue-100 dark:border-blue-800 mt-4">
             <AlertCircle size={16} className="text-blue-500 dark:text-blue-400 flex-shrink-0 mt-0.5" />
             <p className="text-[10px] text-blue-600 dark:text-blue-300">
-              O pagamento é feito via Mercado Pago. Escolha a forma de pagamento no checkout.
+              Pagamento via Mercado Pago. Escolha a forma no checkout.
             </p>
           </div>
 
           <button 
             disabled={!selectedOption || loading}
             onClick={handlePurchase}
-            className="w-full mt-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white py-4 rounded-2xl font-bold uppercase tracking-wide hover:from-orange-600 hover:to-orange-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
+            className="w-full mt-4 bg-gradient-to-r from-amber-500 to-amber-600 text-white py-4 rounded-2xl font-bold uppercase tracking-wide hover:from-amber-600 hover:to-amber-700 transition-all disabled:opacity-30 disabled:cursor-not-allowed shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2"
           >
             {loading ? (
-              <Loader2 className="animate-spin" size={20} />
+              <Loader2 className="animate-spin" size={18} />
             ) : (
               <>Continuar para Pagamento</>
             )}

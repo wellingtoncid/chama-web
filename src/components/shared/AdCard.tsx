@@ -14,7 +14,7 @@ const DEFAULT_AD = {
 };
 
 interface AdCardProps {
-  position: 'freight_list' | 'sidebar' | 'details_page' | 'home_hero' | 'in-feed' | 'spotlight' | 'header' | 'footer' | 'popup';
+  position: string;
   variant?: 'horizontal' | 'vertical' | 'side-banner' | 'native' | 'bar';
   city?: string;
   state?: string;

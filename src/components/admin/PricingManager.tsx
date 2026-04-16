@@ -12,6 +12,9 @@ interface PricingRule {
   module_key: string;
   feature_key: string;
   feature_name: string;
+  description: string | null;
+  ad_size: string | null;
+  icon_key: string | null;
   pricing_type: string;
   free_limit: number;
   price_per_use: number;
@@ -33,6 +36,9 @@ export default function PricingManager() {
     module_key: 'freights',
     feature_key: '',
     feature_name: '',
+    description: '',
+    ad_size: '',
+    icon_key: '',
     pricing_type: 'free_limit',
     free_limit: 0,
     price_per_use: 0,
@@ -267,11 +273,12 @@ export default function PricingManager() {
               <tr className="bg-slate-50 border-b border-slate-100">
                 <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400">Módulo</th>
                 <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400">Recurso</th>
+                <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400 hidden lg:table-cell">Descrição</th>
+                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400 hidden md:table-cell">Tamanho</th>
                 <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400">Tipo</th>
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Grátis</th>
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Por Uso</th>
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Mensal</th>
-                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Diário</th>
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Duração</th>
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Status</th>
                 <th className="text-right p-4 text-[10px] font-black uppercase text-slate-400">Ações</th>
@@ -293,6 +300,16 @@ export default function PricingManager() {
                         <p className="text-[10px] text-slate-400 font-mono">{rule.feature_key}</p>
                       </div>
                     </td>
+                    <td className="p-4 hidden lg:table-cell">
+                      <p className="text-xs text-slate-500 max-w-[200px] truncate" title={rule.description || '-'}>
+                        {rule.description || '-'}
+                      </p>
+                    </td>
+                    <td className="p-4 text-center hidden md:table-cell">
+                      <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">
+                        {rule.ad_size || '-'}
+                      </span>
+                    </td>
                     <td className="p-4">
                       <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
                         {getPricingTypeLabel(rule.pricing_type)}
@@ -306,9 +323,6 @@ export default function PricingManager() {
                     </td>
                     <td className="p-4 text-center font-bold text-blue-600 text-sm">
                       {formatPrice(rule.price_monthly)}
-                    </td>
-                    <td className="p-4 text-center font-bold text-purple-600 text-sm">
-                      {formatPrice(rule.price_daily)}
                     </td>
                     <td className="p-4 text-center font-bold text-slate-600 text-sm">
                       {rule.duration_days || 30} dias
@@ -359,7 +373,7 @@ export default function PricingManager() {
               </button>
             </div>
 
-            <div className="space-y-4">
+          <div className="space-y-4">
               <div>
                 <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Módulo</label>
                 <select 
@@ -380,7 +394,7 @@ export default function PricingManager() {
                     type="text" 
                     value={ruleData.feature_key}
                     onChange={(e) => setRuleData({...ruleData, feature_key: e.target.value})}
-                    placeholder="publish, boost, radar..."
+                    placeholder="sidebar, footer..."
                     className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
                   />
                 </div>
@@ -390,7 +404,41 @@ export default function PricingManager() {
                     type="text" 
                     value={ruleData.feature_name}
                     onChange={(e) => setRuleData({...ruleData, feature_name: e.target.value})}
-                    placeholder="Publicar Frete"
+                    placeholder="Banner Lateral"
+                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Descrição</label>
+                <input 
+                  type="text" 
+                  value={ruleData.description || ''}
+                  onChange={(e) => setRuleData({...ruleData, description: e.target.value})}
+                  placeholder="Banner exibido na barra lateral..."
+                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Tamanho (ex: 300x600)</label>
+                  <input 
+                    type="text" 
+                    value={ruleData.ad_size || ''}
+                    onChange={(e) => setRuleData({...ruleData, ad_size: e.target.value})}
+                    placeholder="300x600"
+                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Ícone (lucide key)</label>
+                  <input 
+                    type="text" 
+                    value={ruleData.icon_key || ''}
+                    onChange={(e) => setRuleData({...ruleData, icon_key: e.target.value})}
+                    placeholder="layout, star..."
                     className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
                   />
                 </div>
@@ -422,7 +470,7 @@ export default function PricingManager() {
                 />
               </div>
 
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Por Uso (R$)</label>
                   <input 
@@ -443,16 +491,6 @@ export default function PricingManager() {
                     className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
                   />
                 </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Diário (R$)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={ruleData.price_daily}
-                    onChange={(e) => setRuleData({...ruleData, price_daily: parseFloat(e.target.value) || 0})}
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
-                  />
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -465,17 +503,16 @@ export default function PricingManager() {
                     className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
                   />
                 </div>
-              </div>
-
-              <div className="flex items-center gap-3 pt-4">
-                <input 
-                  type="checkbox" 
-                  id="is_active"
-                  checked={ruleData.is_active}
-                  onChange={(e) => setRuleData({...ruleData, is_active: e.target.checked ? 1 : 0})}
-                  className="w-5 h-5 rounded"
-                />
-                <label htmlFor="is_active" className="font-bold text-sm text-slate-600">Regra ativa</label>
+                <div className="flex items-center gap-3 pt-6">
+                  <input 
+                    type="checkbox" 
+                    id="is_active"
+                    checked={ruleData.is_active}
+                    onChange={(e) => setRuleData({...ruleData, is_active: e.target.checked ? 1 : 0})}
+                    className="w-5 h-5 rounded"
+                  />
+                  <label htmlFor="is_active" className="font-bold text-sm text-slate-600">Regra ativa</label>
+                </div>
               </div>
             </div>
 
