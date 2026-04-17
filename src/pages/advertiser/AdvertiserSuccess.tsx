@@ -1,5 +1,5 @@
 import React from 'react';
-import { CheckCircle, ArrowRight, LayoutDashboard, MessageSquare, ShieldCheck, Zap } from 'lucide-react';
+import { CheckCircle, LayoutDashboard, MessageSquare, ShieldCheck, Zap } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../../components/shared/Header';
 import Footer from '../../components/shared/Footer';

@@ -2,12 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, Save, Loader2, Camera, AlertCircle, 
   Globe, MapPin, MessageCircle, Copy, ExternalLink, Image as ImageIcon,
-  LayoutDashboard, User, Building2, Briefcase, ShoppingBag, Check, Search, FileText
+  LayoutDashboard, User, Building2, Briefcase
 } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2'; 
 
-// IMPORTAÇÃO DOS COMPONENTES DE ALINHAMENTO
 import DriverFields from '../../components/driver/DriverFields';
 import CompanyFields from '../../components/company/CompanyFields';
 
@@ -25,31 +24,43 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   
-  const [modulesLoading, setModulesLoading] = useState(false);
   const [marketplaceEnabled, setMarketplaceEnabled] = useState(false);
   const [identityConfirmed, setIdentityConfirmed] = useState(false);
   
-  // CNPJ Verification
   const [cnpjData, setCnpjData] = useState<any>(null);
   const [cnpjInput, setCnpjInput] = useState('');
   const [verifyingCnpj, setVerifyingCnpj] = useState(false);
+
+  const role = (user?.role || '').toLowerCase();
+  const isDriver = role === 'driver';
+  const isCompany = role === 'company';
+
+  // Cores dinâmicas baseadas no tipo de usuário
+  const themeClasses = isDriver ? {
+    bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-100', 
+    light: 'bg-orange-50 dark:bg-orange-500/5', hover: 'hover:bg-orange-700', shadow: 'shadow-orange-500/20'
+  } : {
+    bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-100', 
+    light: 'bg-blue-50 dark:bg-blue-500/5', hover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/20'
+  };
 
   useEffect(() => {
     loadModules();
     if (isCompany) {
       loadCnpjData();
     }
-  }, []);
+  }, [isCompany]);
 
   const loadModules = async () => {
     try {
       const res = await api.get('/user/modules');
       if (res.data?.success) {
-        const marketplace = res.data.data?.modules?.find((m: any) => m.key === 'marketplace');
-        setMarketplaceEnabled(marketplace?.is_active || false);
+        const modules = res.data.data?.modules || [];
+        const marketplace = modules.find((m: any) => m.key === 'marketplace');
+        const identity = modules.find((m: any) => m.key === 'identity_verification');
         
-        const identityModule = res.data.data?.modules?.find((m: any) => m.key === 'identity_verification');
-        setIdentityConfirmed(identityModule?.is_active || false);
+        setMarketplaceEnabled(marketplace?.is_active || false);
+        setIdentityConfirmed(identity?.is_active || false);
       }
     } catch (e) {
       console.error("Erro ao carregar módulos:", e);
@@ -71,11 +82,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const verifyCnpj = async () => {
     const cleanCnpj = cnpjInput.replace(/\D/g, '');
     if (cleanCnpj.length !== 14) {
-      Swal.fire({
-        icon: 'warning',
-        title: 'CNPJ inválido',
-        text: 'O CNPJ deve ter 14 dígitos.'
-      });
+      Swal.fire({ icon: 'warning', title: 'CNPJ inválido', text: 'O CNPJ deve ter 14 dígitos.' });
       return;
     }
 
@@ -87,54 +94,13 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         Swal.fire({
           icon: 'success',
           title: 'CNPJ verificado!',
-          text: res.data.is_active 
-            ? 'Sua empresa está ativa na Receita Federal.' 
-            : 'Atenção: Empresa não está ativa.'
-        });
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Erro',
-          text: res.data.message || 'Não foi possível verificar o CNPJ.'
+          text: res.data.is_active ? 'Sua empresa está ativa.' : 'Atenção: Empresa inativa.'
         });
       }
     } catch (e: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Erro',
-        text: e.response?.data?.message || 'Erro ao verificar CNPJ.'
-      });
+      Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || 'Erro ao verificar CNPJ.' });
     } finally {
       setVerifyingCnpj(false);
-    }
-  };
-
-  const toggleModule = async (moduleKey: string, enable: boolean) => {
-    try {
-      setModulesLoading(true);
-      const res = await api.post('/user/modules', {
-        module_key: moduleKey,
-        action: enable ? 'activate' : 'deactivate'
-      });
-      
-      if (res.data?.success) {
-        if (moduleKey === 'marketplace') setMarketplaceEnabled(enable);
-        Swal.fire({
-          icon: 'success',
-          title: enable ? 'Módulo Ativado!' : 'Módulo Desativado',
-          text: enable ? 'O Marketplace agora está disponível no seu painel.' : 'O Marketplace foi desativado.',
-          timer: 2000,
-          showConfirmButton: false
-        });
-      }
-    } catch (e: any) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Erro',
-        text: e.response?.data?.message || 'Não foi possível atualizar o módulo.'
-      });
-    } finally {
-      setModulesLoading(false);
     }
   };
 
@@ -155,11 +121,9 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         state: user.state || '',
         slug: user.slug || '',
         document: user.document || user.document_number || '',
-        // Garante que campos de motorista existam para o DriverFields não quebrar
         vehicle_type: user.vehicle_type || extras.vehicle_type || '',
         body_type: user.body_type || extras.body_type || '',
         trade_name: user.trade_name || user.name || '',
-        // Disponibilidade do motorista - usa 0 se existir no banco, senão default 1
         is_available: user.is_available ?? 0
       });
       
@@ -168,26 +132,14 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     }
   }, [user]);
 
-  const role = (user.role || '').toLowerCase();
-  const isDriver = role === 'driver';
-  const isCompany = role === 'company';
-
-  const themeClasses = isDriver ? {
-    bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-100', 
-    light: 'bg-orange-50 dark:bg-orange-500/5', hover: 'hover:bg-orange-700', shadow: 'shadow-orange-500/20'
-  } : {
-    bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-100', 
-    light: 'bg-blue-50 dark:bg-blue-500/5', hover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/20'
-  };
-
   const calculateLiveScore = () => {
-      let score = 0;
-      if (formData.trade_name) score += 20;
-      if (formData.whatsapp) score += 20;
-      if (avatarPreview) score += 20;
-      if (formData.city) score += 20;
-      if (formData.bio && formData.bio.length > 10) score += 20;
-      return score;
+    let score = 0;
+    if (formData.trade_name) score += 20;
+    if (formData.whatsapp) score += 20;
+    if (avatarPreview) score += 20;
+    if (formData.city) score += 20;
+    if (formData.bio && formData.bio.length > 10) score += 20;
+    return score;
   };
 
   const generateSlug = (text: string) => {
@@ -199,8 +151,13 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
-        type === 'avatar' ? setAvatarPreview(reader.result as string) : setCoverPreview(reader.result as string);
-        type === 'avatar' ? setAvatarFile(file) : setCoverFile(file);
+        if (type === 'avatar') {
+          setAvatarPreview(reader.result as string);
+          setAvatarFile(file);
+        } else {
+          setCoverPreview(reader.result as string);
+          setCoverFile(file);
+        }
       };
       reader.readAsDataURL(file);
     }
@@ -210,17 +167,13 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     setLoading(true);
     try {
       const data = new FormData();
-      
-      // Campos que vão para extended_attributes
       const extendedKeys = [
         'instagram', 'website', 'website_url', 'business_type', 'commercial_email',
         'special_courses', 'intl_license', 'fleet_size', 'preferred_regions', 
         'specific_regions', 'load_volume'
       ];
 
-      // Campos que são números inteiros e devem ser enviados mesmo sendo 0
       const integerFields = ['is_available'];
-
       const extras: any = {};
       
       Object.keys(formData).forEach(key => {
@@ -229,7 +182,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         } else if (integerFields.includes(key)) {
           data.append(key, String(formData[key]));
         } else {
-          // Campos nativos do banco (city, state, vehicle_type, body_type, etc)
           if (Array.isArray(formData[key])) {
             data.append(key, JSON.stringify(formData[key]));
           } else if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
@@ -239,11 +191,9 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
       });
 
       data.append('extended_attributes', JSON.stringify(extras));
-
       if (avatarFile) data.append('avatar_file', avatarFile);
       if (coverFile) data.append('cover_file', coverFile);
 
-      // Axios configura automaticamente Content-Type com boundary ao enviar FormData
       const response = await api.post('/update-profile', data);
 
       if (response.data.success) {
@@ -261,32 +211,16 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const score = calculateLiveScore();
 
   const determineProfileStatus = () => {
-    if (user.is_verified) {
+    if (user?.is_verified) {
       return { 
         text: 'Verificado', 
         Icon: ShieldCheck,
         className: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-100 dark:border-emerald-500/20' 
       };
     }
-    if (score === 100) {
-      return { 
-        text: 'Perfil Concluído', 
-        Icon: ShieldCheck,
-        className: 'bg-green-50 dark:bg-green-500/10 text-green-600 border border-green-100 dark:border-green-500/20'
-      };
-    }
-    if (score >= 80) {
-      return { 
-        text: 'Em Análise', 
-        Icon: AlertCircle,
-        className: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border border-amber-100 dark:border-amber-500/20'
-      };
-    }
-    return { 
-      text: isCompany ? 'Dados Incompletos' : 'Perfil Incompleto', 
-      Icon: AlertCircle,
-      className: 'bg-red-50 dark:bg-red-500/10 text-red-600 border border-red-100 dark:border-red-500/20' 
-    };
+    if (score === 100) return { text: 'Perfil Concluído', Icon: ShieldCheck, className: 'bg-green-50 dark:bg-green-500/10 text-green-600 border border-green-100 dark:border-green-500/20' };
+    if (score >= 80) return { text: 'Em Análise', Icon: AlertCircle, className: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border border-amber-100 dark:border-amber-500/20' };
+    return { text: isCompany ? 'Dados Incompletos' : 'Perfil Incompleto', Icon: AlertCircle, className: 'bg-red-50 dark:bg-red-500/10 text-red-600 border border-red-100 dark:border-red-500/20' };
   };
 
   const profileStatus = determineProfileStatus();
@@ -301,13 +235,15 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
               <div className="relative w-16 h-16">
                   <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
                       <circle cx="18" cy="18" r="16" className="text-slate-100 dark:text-slate-800" strokeWidth="3" fill="none" />
-                      <circle cx="18" cy="18" r="16" className={`${themeClasses.text} transition-all duration-1000`} strokeWidth="3" strokeDasharray={`${calculateLiveScore()}, 100`} strokeLinecap="round" fill="none" />
+                      <circle cx="18" cy="18" r="16" className={`${themeClasses.text} transition-all duration-1000`} strokeWidth="3" strokeDasharray={`${score}, 100`} strokeLinecap="round" fill="none" />
                   </svg>
-                  <div className="absolute inset-0 flex items-center justify-center font-black text-xs text-slate-700 dark:text-slate-300">{calculateLiveScore()}%</div>
+                  <div className="absolute inset-0 flex items-center justify-center font-black text-xs text-slate-700 dark:text-slate-300">{score}%</div>
               </div>
               <div>
                   <h4 className="font-black uppercase italic text-slate-800 dark:text-white leading-tight">Força do Perfil</h4>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">{isCompany ? 'Preencha seus dados para habilitar módulos e funcionalidades' : 'Complete para o Radar Smart te encontrar'}</p>
+                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
+                    {isCompany ? 'Preencha seus dados para habilitar módulos' : 'Complete para ser encontrado no Radar'}
+                  </p>
               </div>
           </div>
           <div className="flex items-center gap-3">
@@ -384,7 +320,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
       <div className="grid lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2 space-y-8">
           
-          {/* DADOS BÁSICOS E PROFISSIONAIS (DRIVER OU COMPANY) */}
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
             <h3 className="text-xl font-black uppercase italic text-slate-800 dark:text-white mb-10 flex items-center gap-3">
                <Briefcase size={24} className={themeClasses.text} /> Informações Profissionais
@@ -395,7 +330,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                <Input label={isCompany ? "CNPJ" : "CPF"} value={formData.document} onChange={(v: string) => setFormData({...formData, document: v})} />
             </div>
 
-            {/* AQUI ESTÁ O ALINHAMENTO PERFEITO: INJEÇÃO DOS CAMPOS DE BANCO */}
             {isDriver ? (
               <DriverFields formData={formData} setFormData={setFormData} />
             ) : (
@@ -406,7 +340,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
           {/* BIO */}
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
             <h3 className="text-xl font-black uppercase italic mb-8 text-slate-800 dark:text-white flex items-center gap-3"><MessageCircle size={24} className={themeClasses.text} /> Apresentação / Bio</h3>
-            <textarea value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-transparent focus:border-slate-200 outline-none font-medium text-slate-700 dark:text-slate-300 min-h-[200px]" placeholder="Conte sua experiência, rotas que atende e diferenciais..." />
+            <textarea value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-transparent focus:border-slate-200 outline-none font-medium text-slate-700 dark:text-slate-300 min-h-[200px]" placeholder="Conte sua experiência..." />
             {(formData.bio?.length ?? 0) <= 20 && (
               <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 px-2">
                 Para melhor pontuação do perfil, preencha mais de 20 caracteres.
@@ -415,7 +349,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
           </div>
         </div>
 
-        {/* COLUNA LATERAL: CONTATOS E REDES */}
+        {/* COLUNA LATERAL */}
         <div className="space-y-8">
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
             <h3 className="text-sm font-black uppercase italic mb-8 text-slate-400 tracking-widest">Localização e Contato</h3>
@@ -427,7 +361,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
               </div>
               <div>
                 <Input label="WhatsApp" value={formData.whatsapp} onChange={(v: string) => setFormData({...formData, whatsapp: v})} />
-                <p className="text-[9px] text-slate-400 mt-1 ml-2">Visível apenas para usuários logados na plataforma.</p>
               </div>
             </div>
           </div>
@@ -445,7 +378,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         </div>
       </div>
 
-      {/* Identidade Confirmada - only show if not contracted */}
       {!identityConfirmed && (
         <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-500/10 dark:to-yellow-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[2rem] p-6">
           <div className="flex items-start gap-4">
@@ -457,7 +389,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                 Aumente a confiança dos clientes
               </h3>
               <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-                Contrate "Identidade Confirmada" para verificar sua {isDriver ? 'identidade' : 'empresa'} e destacar seu perfil com um badge especial.
+                Contrate "Identidade Confirmada" e destaque seu perfil.
               </p>
               <button
                 onClick={() => window.location.href = '/dashboard/plans'}
@@ -470,7 +402,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         </div>
       )}
 
-      {/* FOOTER SAVE BAR STICKY */}
+      {/* FOOTER SAVE BAR */}
       <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-[3rem] p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-white/20 sticky bottom-6 z-40">
           <div className="flex items-center gap-4 text-slate-400 px-4">
               <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500"><ShieldCheck size={24} /></div>
@@ -488,7 +420,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   );
 };
 
-// COMPONENTE DE INPUT REUTILIZÁVEL E CONSISTENTE
 const Input = ({ label, value, onChange, placeholder, disabled, dark }: any) => (
   <div className="w-full">
     <label className={`text-[9px] font-black uppercase tracking-[0.2em] mb-3 block ml-2 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{label}</label>

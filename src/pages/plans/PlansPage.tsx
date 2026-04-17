@@ -147,7 +147,7 @@ export default function PlansPage() {
       if (results[1].data?.success) setPlans(results[1].data.plans || results[1].data.data || []);
       if (results[2].data?.success) setUserModules(results[2].data.data?.modules || []);
       
-      let moduleIndex = 3;
+      const moduleIndex = 3;
       if (isDriver && results[moduleIndex]?.data?.success) {
         const statusData = results[moduleIndex].data.data;
         setDriverHasContracted(statusData.is_verified || false);

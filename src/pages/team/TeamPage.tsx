@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 import { 
   Users, UserPlus, Mail, Shield, MoreVertical,
-  Check, X, Clock, Trash2, Edit, Copy,
-  Loader2, UserCheck, UserX, ChevronDown
+  CheckClock, Trash2, Edit,
+  Loader2, UserX, ChevronDown
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -88,7 +88,7 @@ export default function TeamPage() {
       if (invitesRes.data?.success) {
         setInvitations(invitesRes.data.data || []);
       }
-    } catch (e) {
+    } catch {
       console.error('Erro ao carregar dados:', e);
     } finally {
       setLoading(false);
@@ -151,7 +151,7 @@ export default function TeamPage() {
         Swal.fire({ icon: 'success', title: 'Sucesso', text: 'Convite cancelado' });
         loadData();
       }
-    } catch (e) {
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro ao cancelar convite' });
     }
   };
@@ -174,7 +174,7 @@ export default function TeamPage() {
         Swal.fire({ icon: 'success', title: 'Sucesso', text: 'Membro removido' });
         loadData();
       }
-    } catch (e) {
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro ao remover membro' });
     }
   };
@@ -190,7 +190,7 @@ export default function TeamPage() {
         setEditingMember(null);
         loadData();
       }
-    } catch (e) {
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro ao atualizar cargo' });
     }
   };

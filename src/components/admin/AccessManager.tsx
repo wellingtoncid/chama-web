@@ -3,7 +3,7 @@ import { api } from '../../api/api';
 import { 
   Shield, Plus, Trash2, Edit3, X, Check, Loader2,
   Users, Truck, ShoppingCart, Building2, Users2, Megaphone, MessageSquare, 
-  DollarSign, Lock, Eye, EyeOff
+  DollarSign, Lock
 } from 'lucide-react';
 
 interface Role {
@@ -77,7 +77,7 @@ export default function AccessManager() {
         });
         setRolePermissions(perms);
       }
-    } catch (error) {
+    } catch {
       console.error("Erro ao carregar:", error);
     } finally {
       setLoading(false);
@@ -99,7 +99,7 @@ export default function AccessManager() {
       setEditingRole(null);
       setRoleForm({ name: '', slug: '', permission_ids: [] });
       await loadData();
-    } catch (error) {
+    } catch {
       alert("Erro ao salvar cargo");
     } finally {
       setSaving(false);
@@ -129,7 +129,7 @@ export default function AccessManager() {
       setEditingPerm(null);
       setPermForm({ slug: '', label: '' });
       await loadData();
-    } catch (error) {
+    } catch {
       alert("Erro ao salvar permissão");
     } finally {
       setSaving(false);
@@ -141,7 +141,7 @@ export default function AccessManager() {
     try {
       await api.delete('/admin-permissions', { data: { id } });
       await loadData();
-    } catch (error) {
+    } catch {
       alert("Erro ao excluir");
     }
   };

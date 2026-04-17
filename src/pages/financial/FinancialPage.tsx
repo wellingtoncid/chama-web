@@ -4,7 +4,7 @@ import { Button } from '../../components/ui/button';
 import { 
   Wallet, Loader2, 
   Download, ArrowUpRight, ArrowDownLeft,
-  Receipt, Eye, X, Plus, QrCode, AlertCircle, Clock
+  Receipt, Eye, X, QrCode, AlertCircle, Clock
 } from 'lucide-react';
 
 interface Transaction {
@@ -83,8 +83,8 @@ export default function FinancialPage() {
           transaction_count: data.length
         });
       }
-    } catch (e) {
-      console.error("Erro ao carregar dados:", e);
+    } catch {
+      console.error("Erro ao carregar dados");
     } finally {
       setLoading(false);
     }
@@ -107,8 +107,9 @@ export default function FinancialPage() {
       } else {
         alert(res.data?.message || 'Erro ao gerar PIX');
       }
-    } catch (error: any) {
-      alert(error.response?.data?.message || 'Erro ao processar recarga');
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      alert(err.response?.data?.message || 'Erro ao processar recarga');
     } finally {
       setRecharging(false);
     }
@@ -139,11 +140,13 @@ export default function FinancialPage() {
     return <ArrowUpRight className="text-red-500" size={18} />;
   };
 
-  const getWalletTransactionDescription = (tx: any) => {
+  const getWalletTransactionDescription = (tx: { gateway_payload?: string; transaction_type?: string; module_key?: string; feature_key?: string }) => {
     try {
-      const payload = tx.gateway_payload ? JSON.parse(tx.gateway_payload) : null;
-      if (payload?.description) return payload.description;
-    } catch {}
+      if (tx.gateway_payload) {
+        const payload = JSON.parse(tx.gateway_payload);
+        if (payload?.description) return payload.description;
+      }
+    } catch { /* empty */ }
     
     if (tx.transaction_type === 'wallet_recharge') return 'Recarga via PIX';
     if (tx.transaction_type === 'wallet_debit') return `${tx.module_key} - ${tx.feature_key}`;
@@ -550,4 +553,5 @@ export default function FinancialPage() {
         </div>
       )}
     </div>
-  )};
+  );
+}

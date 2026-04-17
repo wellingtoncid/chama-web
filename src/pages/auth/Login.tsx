@@ -73,7 +73,7 @@ export default function Login() {
       } else {
         setErrorMsg(res?.data?.message || "Acesso negado. Verifique suas credenciais.");
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       const backendMessage = error.response?.data?.message;
       
       if (backendMessage) {

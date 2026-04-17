@@ -41,7 +41,7 @@ export default function PermissionsManager() {
         setPermissions(res.data.data);
         setGrouped(res.data.grouped || {});
       }
-    } catch (error) {
+    } catch {
       console.error("Erro ao carregar permissões:", error);
     } finally {
       setLoading(false);
@@ -63,7 +63,7 @@ export default function PermissionsManager() {
       setEditingPerm(null);
       setFormData({ slug: '', label: '' });
       await loadPermissions();
-    } catch (error) {
+    } catch {
       alert("Erro ao salvar");
     } finally {
       setSaving(false);
@@ -75,7 +75,7 @@ export default function PermissionsManager() {
     try {
       await api.delete('/admin-permissions', { data: { id } });
       await loadPermissions();
-    } catch (error) {
+    } catch {
       alert("Erro ao excluir");
     }
   };

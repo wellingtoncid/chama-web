@@ -1,8 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Wallet, ArrowUpRight, ArrowDownLeft, Plus, QrCode, Clock, AlertCircle } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, QrCode, Clock, AlertCircle } from 'lucide-react';
 import { api } from '@/api/api';
 import { Button } from '@/components/ui/button';
-import Input from '@/components/ui/Input';
 
 export default function WalletPage() {
   const [balance, setBalance] = useState<number>(0);
@@ -10,7 +9,7 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [rechargeAmount, setRechargeAmount] = useState('');
   const [recharging, setRecharging] = useState(false);
-  const [pixUrl, setPixUrl] = useState<string | null>(null);
+  const [_pixUrl, _setPixUrl] = useState<string | null>(null);
 
   useEffect(() => {
     loadData();
@@ -47,7 +46,7 @@ export default function WalletPage() {
       } else {
         alert(res.data?.message || 'Erro ao gerar PIX');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       alert(error.response?.data?.message || 'Erro ao processar recarga');
     } finally {
       setRecharging(false);
@@ -79,11 +78,11 @@ export default function WalletPage() {
     return <ArrowUpRight className="text-red-500" size={18} />;
   };
 
-  const getTransactionDescription = (tx: any) => {
+  const getTransactionDescription = (tx: unknown) => {
     try {
       const payload = tx.gateway_payload ? JSON.parse(tx.gateway_payload) : null;
       if (payload?.description) return payload.description;
-    } catch {}
+    } catch { // empty }
     
     if (tx.transaction_type === 'wallet_recharge') return 'Recarga via PIX';
     if (tx.transaction_type === 'wallet_debit') return `${tx.module_key} - ${tx.feature_key}`;

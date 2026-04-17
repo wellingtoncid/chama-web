@@ -1,7 +1,7 @@
 /**
  * Verifica se o usuário logado tem uma permissão específica
  */
-export const hasPermission = (user: any, permissionKey: string): boolean => {
+export const hasPermission = (user: unknown, permissionKey: string): boolean => {
   if (!user) return false;
   
   // Se o usuário for ADMIN e não tiver o campo permissions definido,

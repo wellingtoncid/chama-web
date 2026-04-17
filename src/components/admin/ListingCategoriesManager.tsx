@@ -36,7 +36,7 @@ export default function ListingCategoriesManager() {
       if (res.data?.success) {
         setCategories(res.data.data);
       }
-    } catch (error) {
+    } catch {
       console.error('Erro ao carregar categorias:', error);
     } finally {
       setLoading(false);
@@ -132,7 +132,7 @@ export default function ListingCategoriesManager() {
     try {
       await api.post(`/listing-category/${category.id}/toggle`);
       fetchCategories();
-    } catch (error) {
+    } catch {
       Swal.fire({
         title: 'Erro',
         text: 'Erro ao alterar status.',
@@ -167,7 +167,7 @@ export default function ListingCategoriesManager() {
           color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
         });
         fetchCategories();
-      } catch (error) {
+      } catch {
         Swal.fire({
           title: 'Erro',
           text: 'Erro ao excluir categoria.',

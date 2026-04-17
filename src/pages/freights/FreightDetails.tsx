@@ -280,7 +280,7 @@ export default function FreightDetails() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="details_page" variant="horizontal" city={freight.origin_city} state={freight.origin_state} />
+            <AdCard position="spotlight" variant="banner-wide" city={freight.origin_city} state={freight.origin_state} />
 
             {/* Fretes Similares (Correção Visual) */}
             {relatedFreights.length > 0 && (

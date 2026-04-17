@@ -4,7 +4,7 @@ import { api } from '../../api/api';
 import { MessageSquare, Clock, ChevronRight, Loader2, Search } from 'lucide-react';
 
 export default function ChatList() {
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [rooms, setRooms] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const navigate = useNavigate();

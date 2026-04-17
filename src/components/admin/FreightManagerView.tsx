@@ -21,7 +21,7 @@ export default function FreightsManagerView() {
       const rawData = res.data?.data || res.data;
       // Garante que o que vai para o estado é um Array
       setFreights(Array.isArray(rawData) ? rawData : []);
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar fretes:", e);
       setFreights([]); // Limpa para evitar erros de loop
     } finally {
@@ -43,7 +43,7 @@ export default function FreightsManagerView() {
       });
       
       setFreights(prev => prev.map(f => f.id === id ? { ...f, is_featured: newStatus, requested_featured: "0" } : f));
-    } catch (e) {
+    } catch {
       alert("Erro ao atualizar destaque");
     }
   };
@@ -62,7 +62,7 @@ export default function FreightsManagerView() {
         // Em vez de recarregar tudo do banco, remove localmente para ser instantâneo
         setFreights(prev => prev.filter(f => f.id !== id));
       }
-    } catch (e) {
+    } catch {
       alert("Erro ao excluir frete");
     }
   };

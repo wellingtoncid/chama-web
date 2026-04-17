@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { 
-  FileText, Search, Loader2, MapPin, Package, Truck, 
-  Warehouse, Box, X, Send, Trash2, Edit, Eye, CheckCircle, Plus
+  FileText, Search, Loader2, Package, Truck, 
+  Warehouse, Box, X, Send, Trash2, Edit, Eye, Plus
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -86,7 +86,7 @@ export default function QuotesManager() {
       if (res.data?.success) {
         setQuotes(res.data.data || []);
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar:", e);
     } finally {
       setLoading(false);
@@ -101,7 +101,7 @@ export default function QuotesManager() {
       if (res.data?.success) {
         setResponses(res.data.data?.responses || []);
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar respostas:", e);
     } finally {
       setLoadingDetail(false);
@@ -114,7 +114,7 @@ export default function QuotesManager() {
       if (res.data?.companies) {
         setCompanies(res.data.companies);
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar empresas:", e);
     }
   };
@@ -132,7 +132,7 @@ export default function QuotesManager() {
         setCreateData({ user_id: '', type: 'frete', title: '', origin_city: '', dest_city: '', commodity_type: '', weight: '', volume: '', description: '' });
         loadQuotes();
       }
-    } catch (e) {
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro' });
     } finally {
       setSaving(false);
@@ -164,7 +164,7 @@ export default function QuotesManager() {
         setShowEditModal(false);
         loadQuotes();
       }
-    } catch (e) {
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro' });
     } finally {
       setSaving(false);
@@ -189,7 +189,7 @@ export default function QuotesManager() {
           loadQuotes();
           if (selectedQuote?.id === id) setSelectedQuote(null);
         }
-      } catch (e) {
+      } catch {
         Swal.fire({ icon: 'error', title: 'Erro' });
       }
     }
@@ -213,7 +213,7 @@ export default function QuotesManager() {
         setShowResponseModal(false);
         loadResponses();
       }
-    } catch (e) {
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro' });
     } finally {
       setSaving(false);

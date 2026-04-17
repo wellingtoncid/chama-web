@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { 
-  FileText, Plus, Loader2, Search, MapPin, Package, 
-  Truck, Warehouse, Box, Clock, CheckCircle, X, Send,
+  FileText, Plus, Loader2, MapPin, Package, 
+  Truck, Warehouse, Box, X, Send,
   DollarSign, Calendar, Scale, ChevronRight
 } from 'lucide-react';
 import { api } from '../../api/api';
@@ -107,7 +107,7 @@ export default function QuotesPage() {
           setUserModule('quotes');
         }
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao verificar módulos:", e);
     } finally {
       setLoading(false);
@@ -208,14 +208,14 @@ export default function QuotesPage() {
 
   const handleAcceptResponse = async (quoteId: number, responseId: number) => {
     const result = await Swal.fire({
-      title: 'Aceitar resposta?',
-      text: 'Esta ação fechará a cotação',
+      title: 'Aceitar esta resposta?',
+      text: 'Ao aceitar, a cotação será encerrada.',
       icon: 'question',
       showCancelButton: true,
       confirmButtonText: 'Sim, aceitar',
       cancelButtonText: 'Cancelar'
     });
-
+    
     if (result.isConfirmed) {
       try {
         const res = await api.post(`/quotes/${quoteId}/accept`, { response_id: responseId });
@@ -223,7 +223,7 @@ export default function QuotesPage() {
           Swal.fire({ icon: 'success', title: 'Resposta aceita!', timer: 2000 });
           loadQuotes();
         }
-      } catch (e) {
+      } catch {
         Swal.fire({ icon: 'error', title: 'Erro' });
       }
     }
@@ -246,10 +246,6 @@ export default function QuotesPage() {
     });
   };
 
-  const formatCurrency = (value: string) => {
-    if (!value) return '-';
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(value));
-  };
 
   // Sem acesso ao módulo
   if (!userModule) {

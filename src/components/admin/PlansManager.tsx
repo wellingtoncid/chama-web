@@ -22,7 +22,7 @@ export default function PlansManager() {
       const res = await api.get('/admin-manage-plans'); 
       const data = res.data.success === false ? [] : (res.data.plans || res.data.data || []);
       setPlans(Array.isArray(data) ? data : []);
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar planos:", e);
     } finally { 
       setLoading(false); 
@@ -38,7 +38,7 @@ export default function PlansManager() {
       await api.post('/manage-plans', { ...planData, action: 'save' });
       setShowModal(false);
       loadPlans();
-    } catch (e) { 
+    } catch { 
       alert("Erro ao salvar no banco."); 
     } finally { setSaving(false); }
   };
@@ -50,7 +50,7 @@ export default function PlansManager() {
       setLoading(true);
       await api.post('/manage-plans', { ...plan, active: newStatus, action: 'save' });
       loadPlans();
-    } catch (e) {
+    } catch {
       alert("Erro ao alterar status.");
     } finally {
       setLoading(false);

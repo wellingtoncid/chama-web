@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { 
   Plus, Edit3, Trash2, X, Loader2, 
-  Tag, DollarSign, Calendar, Layers, Truck,
-  ShoppingBag, Megaphone, FileText, Shield, Zap
+  Tag, Truck,
+  ShoppingBag, Megaphone, FileText, Shield
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -93,7 +93,7 @@ export default function PricingManager() {
       if (res.data && res.data.ad_rotation_seconds) {
         setRotationSeconds(parseInt(res.data.ad_rotation_seconds) || 8);
       }
-    } catch (e) { /* usa padrão */ }
+    } catch { /* usa padrão */ }
   };
 
   useEffect(() => { loadRules(); loadSettings(); }, []);
@@ -103,7 +103,7 @@ export default function PricingManager() {
       await api.post('/admin-settings', { ad_rotation_seconds: value.toString() });
       setRotationSeconds(value);
       Swal.fire({ icon: 'success', title: 'Salvo!', timer: 1500, showConfirmButton: false });
-    } catch (e) {
+    } catch {
       alert("Erro ao salvar");
     }
   };
@@ -150,7 +150,7 @@ export default function PricingManager() {
         action: 'save' 
       });
       loadRules();
-    } catch (e) {
+    } catch {
       alert("Erro ao alterar status");
     }
   };
@@ -174,7 +174,7 @@ export default function PricingManager() {
         await api.post('/admin-pricing', { id, action: 'delete' });
         loadRules();
         Swal.fire({ icon: 'success', title: 'Excluído!', timer: 1500, showConfirmButton: false });
-      } catch (e) {
+      } catch {
         alert("Erro ao excluir");
       }
     }
@@ -187,7 +187,7 @@ export default function PricingManager() {
       setShowModal(false);
       loadRules();
       Swal.fire({ icon: 'success', title: 'Salvo!', timer: 1500, showConfirmButton: false });
-    } catch (e) {
+    } catch {
       alert("Erro ao salvar");
     } finally {
       setSaving(false);

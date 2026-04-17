@@ -17,15 +17,15 @@ const Footer = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <AdCard 
               position="footer" 
-              variant="horizontal"
+              variant="banner-compact"
               />
             <AdCard 
               position="footer" 
-              variant="horizontal" 
+              variant="banner-compact" 
               />
             <AdCard 
               position="footer" 
-              variant="horizontal" 
+              variant="banner-compact" 
               />
           </div>
         </div>

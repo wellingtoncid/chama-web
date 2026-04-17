@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Link2, Check, AlertCircle, Truck, Building2, 
+  Check, AlertCircle, Truck, Building2, 
   Instagram, Globe, MessageCircle, Save, Loader2, 
   ExternalLink, Camera, MapPinned, Calendar, Info
 } from 'lucide-react';
@@ -8,7 +8,7 @@ import { api } from '../../api/api';
 import confetti from 'canvas-confetti';
 
 interface MyProfileEditorProps {
-  user: any;
+  user: unknown;
 }
 
 export default function MyProfileEditor({ user }: MyProfileEditorProps) {
@@ -16,7 +16,7 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
   const [slug, setSlug] = useState('');
   const [slugAvailable, setSlugAvailable] = useState<null | boolean>(null);
   
-  const [extraData, setExtraData] = useState<any>({
+  const [extraData, setExtraData] = useState<unknown>({
     cnpj: user.cnpj || '',
     razao_social: user.company_name || '',
     veiculo_modelo: '',
@@ -57,7 +57,7 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
             }));
           }
         }
-      } catch (e) { 
+      } catch { 
         console.error("Erro ao carregar perfil:", e); 
       }
     };
@@ -73,7 +73,7 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
           params: { endpoint: 'check-slug', slug: slug, user_id: user.id } 
         });
         setSlugAvailable(res.data.available);
-      } catch (e) { setSlugAvailable(false); }
+      } catch { setSlugAvailable(false); }
     }, 400);
     return () => clearTimeout(check);
   }, [slug, user.id]);
@@ -96,7 +96,7 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
       localStorage.setItem('@ChamaFrete:user', JSON.stringify(updatedUser));
       
       alert("Vitrine Profissional atualizada!");
-    } catch (e) { 
+    } catch { 
       alert("Erro ao salvar perfil."); 
     } finally { 
       setLoading(false); 

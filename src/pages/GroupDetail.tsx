@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Share2, Loader2, ShieldCheck, Users,
-  MessageCircle, ExternalLink, MousePointer, Calendar, Star, Building2
+  MessageCircle, ExternalLink
 } from 'lucide-react';
 import { api } from '@/api/api';
 import { AdImage } from '@/components/AdImage';
@@ -56,7 +56,7 @@ export default function GroupDetail() {
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   
-  const user = JSON.parse(localStorage.getItem("@ChamaFrete:user") || "null");
+  const user = JSON.parse(localStorage.getItem("@ChamaFrete:user") || "null") as { id?: number } | null;
   const isLogged = !!localStorage.getItem("@ChamaFrete:token");
   const viewLogged = useRef(false);
   
@@ -255,7 +255,7 @@ export default function GroupDetail() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="details_page" variant="horizontal" />
+            <AdCard position="spotlight" variant="banner-wide" />
 
             {/* Grupos Relacionados */}
             {relatedGroups.length > 0 && (

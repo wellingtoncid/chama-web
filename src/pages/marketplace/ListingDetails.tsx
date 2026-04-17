@@ -288,7 +288,7 @@ export default function ListingDetails() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="details_page" variant="horizontal" city={listing.location_city} state={listing.location_state} />
+            <AdCard position="spotlight" variant="banner-wide" city={listing.location_city} state={listing.location_state} />
 
             {/* Anúncios Relacionados */}
             {listing.related && listing.related.length > 0 && (

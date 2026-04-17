@@ -1,18 +1,39 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { ShoppingBag, Plus, MapPin, Trash2, Edit3, Loader2, Eye, Zap, TrendingUp, CheckCircle, Star } from 'lucide-react';
+import { ShoppingBag, Plus, MapPin, Trash2, Edit3, Loader2, Zap, TrendingUp, CheckCircle, Star } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2';
 import { AdImage } from '../../components/AdImage';
 import AffiliateInterestModal from './components/AffiliateInterestModal';
 import CheckoutModalMarketplace from '../../components/company/CheckoutModalMarketplace';
 
-const MarketplaceManager = ({ user }: { user: any }) => {
+interface ListingItem {
+  id: number;
+  slug: string;
+  title: string;
+  main_image?: string;
+  images?: string[];
+  is_featured?: number;
+  category?: string;
+  status?: string;
+  location_state?: string;
+  price: number;
+  item_condition?: string;
+  expires_at?: string;
+}
+
+interface PricingRule {
+  feature_key: string;
+  price_per_use?: number;
+  duration_days?: number;
+}
+
+const MarketplaceManager = ({ user }: { user: { id: number } }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const [items, setItems] = useState([]);
+  const [items, setItems] = useState<ListingItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [pricingRules, setPricingRules] = useState<any[]>([]);
+  const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showAffiliateInterest, setShowAffiliateInterest] = useState(false);
   const [hasAffiliateAccess, setHasAffiliateAccess] = useState(false);
@@ -36,7 +57,7 @@ const MarketplaceManager = ({ user }: { user: any }) => {
     try {
       const res = await api.get('/pricing/rules');
       if (res.data?.success) {
-        const mpRules = res.data.data.filter((r: any) => r.module_key === 'marketplace');
+        const mpRules = res.data.data.filter((r: { module_key: string }) => r.module_key === 'marketplace');
         setPricingRules(mpRules);
       }
     } catch (error) {
@@ -81,7 +102,7 @@ const MarketplaceManager = ({ user }: { user: any }) => {
     return new Date(expiresAt) < new Date();
   };
 
-  const handlePromote = async (item: any) => {
+  const handlePromote = async (item: ListingItem) => {
     setSelectedListingId(item.id);
     setShowCheckoutModal(true);
   };
@@ -99,10 +120,10 @@ const MarketplaceManager = ({ user }: { user: any }) => {
       if (res.data?.success && res.data?.url) {
         window.location.href = res.data.url;
       }
-    } catch (error: any) {
+    } catch {
       Swal.fire({
         title: 'Erro',
-        text: error.response?.data?.message || 'Erro ao processar pagamento.',
+        text: 'Erro ao processar pagamento.',
         icon: 'error',
         background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
         color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
@@ -123,10 +144,10 @@ const MarketplaceManager = ({ user }: { user: any }) => {
       if (res.data?.success && res.data?.url) {
         window.location.href = res.data.url;
       }
-    } catch (error: any) {
+    } catch {
       Swal.fire({
         title: 'Erro',
-        text: error.response?.data?.message || 'Erro ao processar pagamento.',
+        text: 'Erro ao processar pagamento.',
         icon: 'error',
         background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
         color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
@@ -134,8 +155,8 @@ const MarketplaceManager = ({ user }: { user: any }) => {
     }
   };
 
-  const handleExtend = async (item: any) => {
-    const bumpRule = pricingRules.find((r: any) => r.feature_key === 'bump');
+  const handleExtend = async (item: ListingItem) => {
+    const bumpRule = pricingRules.find((r) => r.feature_key === 'bump');
     const price = Number(bumpRule?.price_per_use) || 6.90;
     const days = bumpRule?.duration_days || 7;
 
@@ -176,9 +197,10 @@ const MarketplaceManager = ({ user }: { user: any }) => {
           });
           fetchMyItems();
         }
-      } catch (error: any) {
-        const status = error.response?.status;
-        const resData = error.response?.data;
+      } catch (error: unknown) {
+        const err = error as { response?: { status?: number; data?: { message?: string; balance?: number; required?: number } } };
+        const status = err.response?.status;
+        const resData = err.response?.data;
 
         if (status === 402) {
           const balance = resData?.balance || 0;
@@ -223,15 +245,15 @@ const MarketplaceManager = ({ user }: { user: any }) => {
     }
   };
 
-  const handleView = (item: any) => {
+  const handleView = (item: ListingItem) => {
     navigate(`/anuncio/${item.slug}`);
   };
 
-  const handleEdit = (item: any) => {
+  const handleEdit = (item: ListingItem) => {
     navigate(`/editar-anuncio/${item.id}`);
   };
 
-  const handleDelete = async (item: any) => {
+  const handleDelete = async (item: ListingItem) => {
     const result = await Swal.fire({
       title: 'Excluir Anúncio?',
       text: `Tem certeza que deseja excluir "${item.title}"? Esta ação não pode ser desfeita.`,
@@ -259,7 +281,7 @@ const MarketplaceManager = ({ user }: { user: any }) => {
           });
           fetchMyItems();
         }
-      } catch (error) {
+      } catch {
         Swal.fire({
           title: 'Erro',
           text: 'Erro ao excluir anúncio.',
@@ -364,9 +386,7 @@ const MarketplaceManager = ({ user }: { user: any }) => {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          {items.map((item: any) => {
-            const daysLeft = getDaysUntilExpiry(item.expires_at);
-            const expired = isExpired(item.expires_at);
+          {items.map((item) => {
             const imageUrl = item.main_image || item.images?.[0];
             const isProcessing = processingId === `boost-${item.id}`;
 

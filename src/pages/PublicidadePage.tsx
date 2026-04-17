@@ -1,13 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  Check, Loader2, ExternalLink
-} from 'lucide-react';
+import { Check, Loader2 } from 'lucide-react';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import { api } from '../api/api';
 import Swal from 'sweetalert2';
-import { useAdPositions, AD_COLOR_MAP } from '../hooks/useAdPositions';
+import { useAdPositions } from '../hooks/useAdPositions';
 
 export default function PublicidadePage() {
   const navigate = useNavigate();
@@ -41,10 +39,11 @@ export default function PublicidadePage() {
           icon: 'error'
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
       Swal.fire({
         title: 'Erro',
-        text: error.response?.data?.message || 'Erro ao processar pagamento.',
+        text: err.response?.data?.message || 'Erro ao processar pagamento.',
         icon: 'error'
       });
     } finally {
@@ -54,10 +53,6 @@ export default function PublicidadePage() {
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(price);
-  };
-
-  const formatSize = (size: string | null) => {
-    return size ? `${size}px` : '';
   };
 
   return (

@@ -1,12 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle2, MapPin, Phone, Package, Truck, Star } from 'lucide-react';
+import { CheckCircle2, Truck, Star } from 'lucide-react';
 import { api } from '../api/api';
 
+interface Company {
+  name: string;
+  logo?: string;
+  is_verified?: boolean;
+}
+
+interface CompanyItem {
+  id: number;
+  product: string;
+  origin_city: string;
+  dest_city?: string;
+  price: string;
+}
+
 const CompanyProfile = () => {
-  const { companyId } = useParams(); // Pega o ID da URL
-  const [company, setCompany] = useState<any>(null);
-  const [items, setItems] = useState([]);
+  const { companyId } = useParams();
+  const [company, setCompany] = useState<Company | null>(null);
+  const [items, setItems] = useState<CompanyItem[]>([]);
 
   useEffect(() => {
     // Busca dados da empresa e seus anúncios ativos
@@ -18,61 +32,6 @@ const CompanyProfile = () => {
   }, [companyId]);
 
   if (!company) return <div className="p-20 text-center font-black uppercase italic">Carregando Perfil...</div>;
-
-  const RatingSystem = ({ targetId }: { targetId: number }) => {
-  const user = JSON.parse(localStorage.getItem('@ChamaFrete:user') || 'null');
-  const [rating, setRating] = useState(0);
-  const [comment, setComment] = useState('');
-
-  const submitReview = async () => {
-    if (!user) {
-      alert("Você precisa estar logado para avaliar!");
-      return;
-    }
-    
-    await api.post('', {
-      endpoint: 'submit_review',
-      reviewer_id: user.id,
-      target_id: targetId,
-      rating: rating,
-      comment: comment
-    });
-    alert("Avaliação enviada!");
-  };
-
-  return (
-    <div className="mt-10 bg-white p-8 rounded-[2rem] border border-slate-100">
-      <h3 className="text-lg font-black uppercase italic mb-6">Deixe sua <span className="text-blue-600">Avaliação</span></h3>
-      
-      {!user ? (
-        <p className="text-slate-400 text-sm font-bold uppercase">Faça login para avaliar este perfil.</p>
-      ) : (
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            {[1,2,3,4,5].map(star => (
-              <Star 
-                key={star} 
-                size={24} 
-                onClick={() => setRating(star)}
-                className={`cursor-pointer ${rating >= star ? 'text-amber-500' : 'text-slate-200'}`}
-                fill={rating >= star ? 'currentColor' : 'none'}
-              />
-            ))}
-          </div>
-          <textarea 
-            className="w-full bg-slate-50 rounded-xl p-4 text-sm font-bold outline-none" 
-            placeholder="Como foi sua experiência com esta empresa/motorista?"
-            value={comment}
-            onChange={(e) => setComment(e.target.value)}
-          />
-          <button onClick={submitReview} className="bg-blue-600 text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] tracking-widest">
-            Enviar Avaliação
-          </button>
-        </div>
-      )}
-    </div>
-  );
-};
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -102,7 +61,7 @@ const CompanyProfile = () => {
           </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {items.map((item: any) => (
+            {items.map((item) => (
               <div key={item.id} className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 hover:border-blue-200 transition-all">
                 <p className="text-[10px] font-black text-blue-600 uppercase mb-1">{item.product}</p>
                 <h3 className="font-black text-slate-900 uppercase italic">

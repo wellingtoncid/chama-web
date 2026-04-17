@@ -1,5 +1,5 @@
 import { User, Loader2, Check, Clock, AlertTriangle } from 'lucide-react';
-import Swal from 'sweetalert2';
+// Swal removed 'sweetalert2';
 import ModuleDetailLayout from './ModuleDetailLayout';
 
 interface PricingRule {

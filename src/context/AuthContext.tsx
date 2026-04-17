@@ -1,8 +1,13 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
+interface User {
+  id: number;
+  [key: string]: unknown;
+}
+
 interface AuthContextType {
-  user: any;
-  login: (userData: any) => void;
+  user: User | null;
+  login: (userData: User) => void;
   logout: () => void;
   loading: boolean;
 }
@@ -10,19 +15,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Busca o usuário no storage ao iniciar o app
     const savedUser = localStorage.getItem('@ChamaFrete:user');
     if (savedUser) {
-      setUser(JSON.parse(savedUser));
+      try {
+        setUser(JSON.parse(savedUser));
+      } catch {
+        setUser(null);
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = (userData: any) => {
+  const login = (userData: User) => {
     localStorage.setItem('@ChamaFrete:user', JSON.stringify(userData));
     setUser(userData);
   };

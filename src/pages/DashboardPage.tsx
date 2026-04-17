@@ -3,7 +3,6 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../api/api';
 
-// COMPONENTES EXTERNOS
 import CompanyCommandCenter from '../components/company/CompanyCommandCenter';
 import DriverView from '../components/driver/DriverView';
 import FreightManager from '../components/company/FreightManager';
@@ -12,7 +11,6 @@ import MyProfile from '../pages/profile/MyProfile';
 import ChatList from './chat/ChatList';
 import WelcomeOnboarding from '../components/profile/WelcomeOnboarding';
 
-// PÁGINAS
 import PlansPage from './plans/PlansPage';
 import CompanyProPage from './company/CompanyProPage';
 import FinancialPage from './financial/FinancialPage';
@@ -20,8 +18,6 @@ import SupportPage from './support/SupportPage';
 import QuotesPage from './quotes/QuotesPage';
 import MarketplaceManager from '../modules/marketplace/MarketplaceManager';
 
-// COMPONENTES INTERNOS (ADMIN)
-import DashboardAdmin from '../components/admin/DashboardAdmin'; 
 import FreightsManagerView from '../components/admin/FreightManagerView';
 import UsersManager from '../components/admin/UsersManagerView';
 import GroupsManager from '../components/admin/GroupsManagement'; 
@@ -48,14 +44,21 @@ import ReviewsManager from '../components/admin/ReviewsManager';
 import ReportsManager from '../components/admin/ReportsManager';
 import AffiliateManager from '../components/admin/AffiliateManager';
 
-// PÁGINAS DE COMUNIDADES
 import CommunityPlatform from './community/CommunityPlatform';
 import TeamPage from './team/TeamPage';
+
+interface User {
+  role?: string;
+  company_name?: string;
+  document?: string;
+  completion_score?: number;
+  [key: string]: unknown;
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
   const [hasDismissedOnboarding, setHasDismissedOnboarding] = useState(false);
-  const [user, setUser] = useState<any>(() => {
+  const [user, setUser] = useState<User | null>(() => {
     const saved = localStorage.getItem('@ChamaFrete:user');
     return saved ? JSON.parse(saved) : null;
   });
@@ -69,8 +72,9 @@ export default function DashboardPage() {
         setUser(userData);
         localStorage.setItem('@ChamaFrete:user', JSON.stringify(userData));
       }
-    } catch (err: any) {
-      if (err.response?.status === 401 || err.response?.status === 403) {
+    } catch (err: unknown) {
+      const error = err as { response?: { status?: number } };
+      if (error.response?.status === 401 || error.response?.status === 403) {
         localStorage.removeItem('@ChamaFrete:token');
         localStorage.removeItem('@ChamaFrete:user');
         navigate('/login');
@@ -117,7 +121,7 @@ export default function DashboardPage() {
         <WelcomeOnboarding 
           user={user} 
           onClose={() => setHasDismissedOnboarding(true)}
-          onComplete={(updatedData: any) => {
+          onComplete={(updatedData: Partial<User>) => {
             const newUser = { ...user, ...updatedData };
             setUser(newUser);
             localStorage.setItem('@ChamaFrete:user', JSON.stringify(newUser));

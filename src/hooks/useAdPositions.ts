@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { api } from '../api/api';
 import { 
   Layout, Home, FileText, Bell, AlertTriangle, 
-  Star as StarIcon, Maximize2, Repeat, Smartphone, Monitor, Truck
+  Star as StarIcon, Maximize2, Repeat, Smartphone, Monitor, Truck,
+  type LucideIcon
 } from 'lucide-react';
 
-export const AD_ICON_MAP: Record<string, any> = {
+export const AD_ICON_MAP: Record<string, LucideIcon> = {
   layout: Layout,
   home: Home,
   'file-text': FileText,
@@ -21,19 +22,11 @@ export const AD_ICON_MAP: Record<string, any> = {
 
 export const AD_COLOR_MAP: Record<string, string> = {
   sidebar: 'from-blue-500 to-cyan-600',
-  header: 'from-purple-500 to-indigo-600',
   footer: 'from-emerald-500 to-teal-600',
   spotlight: 'from-amber-500 to-yellow-600',
-  infeed: 'from-pink-500 to-rose-600',
-  interstitial: 'from-fuchsia-500 to-pink-600',
-  return_banner: 'from-red-500 to-orange-600',
-  details: 'from-sky-500 to-blue-600',
-  sponsor_section: 'from-indigo-500 to-blue-600',
-  floating_button: 'from-violet-500 to-purple-600',
+  infeed_wide: 'from-pink-500 to-rose-600',
+  infeed_compact: 'from-orange-500 to-red-600',
   freight_list: 'from-green-500 to-emerald-600',
-  popup: 'from-rose-500 to-pink-600',
-  strategic_partners: 'from-yellow-500 to-amber-600',
-  media_network: 'from-cyan-500 to-teal-600',
 };
 
 export interface AdPosition {

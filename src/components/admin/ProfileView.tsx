@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { 
   User, Mail, Phone, MapPin, Calendar, Shield, Camera,
-  Loader2, Save, Edit3, X, Check
+  Loader2, Save, Edit3
 } from 'lucide-react';
 
 interface Profile {
@@ -46,7 +46,7 @@ export default function ProfileView() {
         setProfile(res.data.data);
         setFormData(res.data.data);
       }
-    } catch (error) {
+    } catch {
       console.error("Erro ao carregar perfil:", error);
     } finally {
       setLoading(false);
@@ -61,7 +61,7 @@ export default function ProfileView() {
       await api.put('/profile', formData);
       setEditing(false);
       await loadProfile();
-    } catch (error) {
+    } catch {
       alert("Erro ao salvar perfil");
     } finally {
       setSaving(false);

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { 
   Flame, TrendingUp, Users, Edit3, 
-  Download, Search, Calendar, Info, 
+  Download, Search, Calendar, 
   MessageCircle, Loader2, Check, Trash2, X, AlertTriangle,
   History, User, Clock // Novos ícones
 } from 'lucide-react';
@@ -46,7 +46,7 @@ export default function AdminPortalRequests() {
       setRequests(prev => prev.filter(r => !selectedIds.includes(r.id)));
       setSelectedIds([]);
       alert("Leads arquivados com sucesso!");
-    } catch (error) {
+    } catch {
       alert("Erro ao processar exclusão em massa.");
     } finally {
       setLoading(false);
@@ -65,7 +65,7 @@ export default function AdminPortalRequests() {
       const response = await api.get('admin-portal-requests');
       const data = Array.isArray(response.data.data) ? response.data.data : [];
       setRequests(data);
-    } catch (error) { 
+    } catch { 
       console.error("Erro ao carregar dados", error); 
       setRequests([]); 
     } finally { 
@@ -85,7 +85,7 @@ export default function AdminPortalRequests() {
         leadId: req.id,
         title: req.title || 'Lead'
       });
-    } catch (error) {
+    } catch {
       alert("Erro ao carregar histórico de interações.");
     }
   };
@@ -125,7 +125,7 @@ export default function AdminPortalRequests() {
       }
 
       setTimeout(() => setSavingId(null), 1000);
-    } catch (error) {
+    } catch {
       console.error("Erro ao salvar", error);
       setSavingId(null);
       alert("Erro ao salvar alterações.");
@@ -138,7 +138,7 @@ export default function AdminPortalRequests() {
       await api.post('admin-update-lead', { id: deleteModal.id, action: 'delete' });
       setRequests(prev => prev.filter(r => r.id !== deleteModal.id));
       setDeleteModal({ show: false, id: null });
-    } catch (error) {
+    } catch {
       alert("Erro ao arquivar lead.");
     }
   };
@@ -196,7 +196,7 @@ export default function AdminPortalRequests() {
         const response = await api.get(`admin-lead-history?id=${req.id}`);
         setHistoryDrawer(prev => ({ ...prev, notes: response.data.data }));
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao registrar clique no WhatsApp");
     }
   };

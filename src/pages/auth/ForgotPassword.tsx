@@ -32,7 +32,7 @@ export default function ForgotPassword() {
         // mesmo que o usuário não exista, para evitar "User Enumeration".
         alert(res.data.message || "Erro ao processar solicitação.");
       }
-    } catch (err) {
+    } catch {
       alert("Erro ao conectar com o servidor.");
     } finally {
       setLoading(false);
@@ -60,7 +60,7 @@ export default function ForgotPassword() {
       } else {
         alert(res.data.message || "Código inválido ou expirado.");
       }
-    } catch (err) {
+    } catch {
       alert("Erro ao processar alteração.");
     } finally {
       setLoading(false);

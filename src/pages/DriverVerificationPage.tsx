@@ -12,7 +12,7 @@ const DriverVerificationPage = () => {
       // Chamamos um endpoint específico para ativação gratuita (Beta)
       await api.post('?endpoint=activate-free-verification');
       setSuccess(true);
-    } catch (error) {
+    } catch {
       alert("Erro ao ativar verificação. Tente novamente.");
     } finally {
       setLoading(false);

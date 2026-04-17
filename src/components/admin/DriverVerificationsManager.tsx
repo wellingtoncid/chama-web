@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
-import { Loader2, Shield, ShieldCheck, X, Check, Clock, FileText, Image, ExternalLink, Eye } from 'lucide-react';
+import { Loader2, Shield, ShieldCheck, X, Check, Clock, FileText, ExternalLink, Eye } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 interface DriverDocument {
@@ -50,7 +50,7 @@ const DOCUMENT_LABELS: Record<string, string> = {
   'address_proof': 'Comprovante de Endereço'
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
+// API_BASE removed import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
 const STATIC_BASE = import.meta.env.VITE_STATIC_URL || 'http://127.0.0.1:8000';
 
 type TabType = 'awaiting_review' | 'approved' | 'rejected';

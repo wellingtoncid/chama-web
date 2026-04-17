@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, Loader2, Globe, ArrowRight, Users, Zap } from 'lucide-react';
+import { Search, SlidersHorizontal, X, Loader2, ArrowRight, Users, Zap } from 'lucide-react';
 import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import AdCard from '../../components/shared/AdCard';
@@ -513,8 +513,8 @@ export default function MarketplaceExplorer() {
 
                 {/* In-Feed Ad a cada 8 items (após primeiros 3) */}
                 {index >= 3 && (index + 1) % 8 === 0 && (
-                  <div className="col-span-full min-h-[420px]">
-                    <AdCard position="infeed" variant="vertical" state={item.location_state} search={debouncedSearch} />
+                  <div className="col-span-full min-h-[280px]">
+                    <AdCard position="infeed_compact" variant="banner-compact" state={item.location_state} search={debouncedSearch} />
                   </div>
                 )}
               </React.Fragment>

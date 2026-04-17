@@ -1,18 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
-import { Send, ArrowLeft, Loader2, User, Phone } from 'lucide-react';
+import { Send, ArrowLeft, Loader2, User } from 'lucide-react';
 
 export default function ChatRoom() {
   const { roomId } = useParams();
   const navigate = useNavigate();
   const scrollRef = useRef<HTMLDivElement>(null);
   
-  const [messages, setMessages] = useState<any[]>([]);
+  const [messages, setMessages] = useState<unknown[]>([]);
   const [loading, setLoading] = useState(true);
   const [newMessage, setNewMessage] = useState("");
   const [sending, setSending] = useState(false);
-  const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [roomInfo] = useState<unknown>(null);
 
   const loggedUser = JSON.parse(localStorage.getItem('user') || '{}');
 
@@ -23,7 +23,7 @@ export default function ChatRoom() {
       if (res.data.success) {
         setMessages(res.data.data);
       }
-    } catch (err) {
+    } catch {
       console.error("Erro ao carregar mensagens");
     } finally {
       setLoading(false);
@@ -55,7 +55,7 @@ export default function ChatRoom() {
         }]);
         setNewMessage("");
       }
-    } catch (err) {
+    } catch {
       alert("Erro ao enviar mensagem");
     } finally {
       setSending(false);

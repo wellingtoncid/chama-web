@@ -40,7 +40,7 @@ const AdCarousel = ({ searchTerm, state, city }: any) => {
   if (loading) return <div className="h-28 bg-slate-100 dark:bg-slate-800 animate-pulse rounded-2xl w-full" />;
    
   // Se não houver anúncios, renderiza o AdCard fixo (ele abrirá o modal)
-  if (total === 0) return <div className="h-28"><AdCard position="freight_list" variant="horizontal" /></div>;
+  if (total === 0) return <div className="h-28"><AdCard position="freight_list" variant="banner-wide" /></div>;
 
   return (
     <div className="relative overflow-hidden group rounded-2xl w-full h-28 bg-white dark:bg-slate-950 border border-slate-100 dark:border-slate-800">
@@ -61,10 +61,10 @@ const AdCarousel = ({ searchTerm, state, city }: any) => {
           >
             <div className="p-1">
                <AdCard 
-                position="freight_list" 
-                variant="horizontal" 
-                forcedAd={ad} 
-              />
+                 position="freight_list" 
+                 variant="banner-wide" 
+                 forcedAd={ad} 
+               />
             </div>
           </div>
         ))}

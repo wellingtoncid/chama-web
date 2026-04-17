@@ -1,8 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { X, Camera, Loader2, Tag, DollarSign, MapPin, Image as ImageIcon, Trash2, AlertCircle } from 'lucide-react';
+import { X, Camera, Loader2, AlertCircle } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2';
+
+interface NewListingModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  user: { id: number };
+  onRefresh: () => void;
+  editingItem?: { id?: number; [key: string]: unknown };
+}
 
 const MARKETPLACE_CONFIG = {
   maxImages: 5,
@@ -11,7 +19,7 @@ const MARKETPLACE_CONFIG = {
   recommendedSize: '1200x800px'
 };
 
-export default function NewListingModal({ isOpen, onClose, user, onRefresh, editingItem }: any) {
+export default function NewListingModal({ isOpen, onClose, user, onRefresh, editingItem }: NewListingModalProps) {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [images, setImages] = useState<File[]>([]);
@@ -124,9 +132,10 @@ export default function NewListingModal({ isOpen, onClose, user, onRefresh, edit
       setImages([]);
       onRefresh();
       onClose();
-    } catch (error: any) {
-      const status = error.response?.status;
-      const data = error.response?.data;
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number; data?: { message?: string; code?: string; required?: number; balance?: number; free_limit?: number; used_free?: number } } };
+      const status = err.response?.status;
+      const data = err.response?.data;
       
       if (status === 402 && data?.code === 'INSUFFICIENT_BALANCE') {
         const required = data.required || 9.90;
@@ -192,21 +201,16 @@ export default function NewListingModal({ isOpen, onClose, user, onRefresh, edit
           color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
         });
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
       Swal.fire({
         title: 'Erro',
-        text: e.response?.data?.message || 'Erro ao processar pagamento.',
+        text: err.response?.data?.message || 'Erro ao processar pagamento.',
         icon: 'error',
         background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
         color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
       });
     }
-  };
-
-  const formatFileSize = (bytes: number) => {
-    if (bytes < 1024) return `${bytes} B`;
-    if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
   return (

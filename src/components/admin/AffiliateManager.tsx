@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
-import { Loader2, Star, Check, X, User, Calendar, DollarSign, MessageSquare, RefreshCcw } from 'lucide-react';
+import { Loader2, Star, Check, X, User, Calendar, RefreshCcw } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { Link } from 'react-router-dom';
 

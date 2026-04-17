@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, User, Mail, Shield, Building2, Truck } from 'lucide-react';
+import { X, User, Shield, Building2, Truck } from 'lucide-react';
 import { api } from '../../api/api';
 
 export default function ProfilePermissionsModal({ user, onClose, onSave }: any) {
@@ -94,7 +94,7 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
       } else {
         alert("Erro: " + (res.data.error || "Erro desconhecido"));
       }
-    } catch (e) { 
+    } catch { 
       alert("Erro ao salvar."); 
     } finally { 
       setLoading(false); 

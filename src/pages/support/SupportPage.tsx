@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/api';
 import { 
-  Headphones, Plus, Loader2, MessageCircle, Clock, 
-  CheckCircle, X, Send, Paperclip, User, ChevronRight,
+  Headphones, Plus, Loader2, MessageCircle, 
+  CheckCircle, X, Send, User,
   AlertCircle, Search
 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -94,7 +94,7 @@ export default function SupportPage() {
       if (res.data?.success) {
         setTickets(res.data.data || []);
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar tickets:", e);
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ export default function SupportPage() {
       if (res.data?.success) {
         setMessages(res.data.data || []);
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar mensagens:", e);
     } finally {
       setLoadingMessages(false);
@@ -202,7 +202,7 @@ export default function SupportPage() {
             setSelectedTicket(null);
           }
         }
-      } catch (e) {
+      } catch {
         Swal.fire({ icon: 'error', title: 'Erro' });
       }
     }

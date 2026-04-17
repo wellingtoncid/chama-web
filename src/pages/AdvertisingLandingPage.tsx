@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
 import { 
   Check, Eye, MousePointer2, BarChart3, Target, 
-  ArrowRight, Loader2, CheckCircle, Zap, TrendingUp, Shield, X, ChevronRight
+  ArrowRight, Loader2, CheckCircle, TrendingUp, Shield, X, ChevronRight
 } from 'lucide-react';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import { api } from '../api/api';
+import { useAdPositions } from '../hooks/useAdPositions';
 
 const AdvertisingLandingPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [modalForm, setModalForm] = useState({ title: '', contact: '', description: '' });
+  const { positions, loading } = useAdPositions();
 
   const handleModalSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,7 +26,7 @@ const AdvertisingLandingPage = () => {
         description: modalForm.description
       });
       setShowSuccess(true);
-    } catch (error) {
+    } catch {
       alert("Erro ao processar.");
     } finally {
       setIsSending(false);
@@ -35,6 +37,10 @@ const AdvertisingLandingPage = () => {
     window.location.href = '/cadastro?redirect=/anuncie';
   };
 
+  const handleViewPricing = () => {
+    window.location.href = '/publicidade';
+  };
+
   const benefits = [
     { icon: Eye, title: 'Visibilidade Exclusiva', desc: 'Destaque-se da concorrência sendo o primeiro a ser visto.' },
     { icon: MousePointer2, title: 'Tráfego Qualificado', desc: 'Pessoas interessadas em fretes e produtos, não apenas visitantes casuais.' },
@@ -42,32 +48,14 @@ const AdvertisingLandingPage = () => {
     { icon: Shield, title: 'Exposição Segura', desc: 'Seus dados protegidos enquanto sua marca ganha destaque.' },
   ];
 
-  const adPositions = [
-    { 
-      name: 'Sidebar', 
-      desc: 'Exposição lateral permanente nas listagens de fretes e produtos',
-      badge: 'Alta Visibilidade',
-      mockup: 'sidebar'
-    },
-    { 
-      name: 'No Feed', 
-      desc: 'Seu anúncio aparece entre os resultados de busca',
-      badge: 'Alta Conversão',
-      mockup: 'feed'
-    },
-    { 
-      name: 'Destaque', 
-      desc: 'Posição premium na página de detalhes do anúncio',
-      badge: 'Premium',
-      mockup: 'details'
-    },
-    { 
-      name: 'Footer', 
-      desc: 'Visibilidade garantida na parte inferior de todas as páginas',
-      badge: 'Constante',
-      mockup: 'footer'
-    },
-  ];
+  const positionDescriptions: Record<string, { desc: string; badge: string; mockup: string }> = {
+    sidebar: { desc: 'Exposição lateral permanente nas listagens', badge: 'Alta Visibilidade', mockup: 'sidebar' },
+    freight_list: { desc: 'Banner no topo das listagens de fretes', badge: 'Alta Exposição', mockup: 'feed' },
+    spotlight: { desc: 'Posição premium na página de detalhes', badge: 'Premium', mockup: 'details' },
+    footer: { desc: 'Visibilidade na parte inferior das páginas', badge: 'Constante', mockup: 'footer' },
+    infeed_wide: { desc: 'Banner largo entre os resultados de busca', badge: 'Alta Conversão', mockup: 'feed' },
+    infeed_compact: { desc: 'Banner compacto entre cards de anúncios', badge: 'Alta Conversão', mockup: 'footer' },
+  };
 
   return (
     <div className="min-h-screen bg-white text-slate-900">
@@ -172,45 +160,55 @@ const AdvertisingLandingPage = () => {
           </div>
           
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
-            {adPositions.map((pos, i) => (
-              <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all">
-                <div className="flex flex-col items-center text-center">
-                  <div className="mb-4">
-                    {pos.mockup === 'sidebar' && (
-                      <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2">
-                        <div className="w-6 h-8 bg-orange-500/30 rounded mb-1" />
-                        <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-600 rounded mb-1" />
-                        <div className="w-8 h-1.5 bg-slate-200 dark:bg-slate-700 rounded" />
+            {loading ? (
+              <div className="col-span-4 text-center py-8 text-slate-400">Carregando posições...</div>
+            ) : (
+              positions
+                .filter(p => !['header', 'popup'].includes(p.feature_key))
+                .slice(0, 4)
+                .map((pos, i) => {
+                  const info = positionDescriptions[pos.feature_key] || { desc: pos.description || '', badge: 'Visível', mockup: 'footer' };
+                  return (
+                    <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-lg transition-all">
+                      <div className="flex flex-col items-center text-center">
+                        <div className="mb-4">
+                          {info.mockup === 'sidebar' && (
+                            <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2">
+                              <div className="w-6 h-8 bg-orange-500/30 rounded mb-1" />
+                              <div className="w-10 h-1.5 bg-slate-300 dark:bg-slate-600 rounded mb-1" />
+                              <div className="w-8 h-1.5 bg-slate-200 dark:bg-slate-700 rounded" />
+                            </div>
+                          )}
+                          {info.mockup === 'feed' && (
+                            <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2 gap-1">
+                              <div className="w-14 h-5 bg-slate-200 dark:bg-slate-600 rounded" />
+                              <div className="w-14 h-5 bg-orange-500/30 rounded border border-orange-400" />
+                              <div className="w-14 h-5 bg-slate-200 dark:bg-slate-600 rounded" />
+                            </div>
+                          )}
+                          {info.mockup === 'details' && (
+                            <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2 gap-1">
+                              <div className="w-14 h-6 bg-slate-200 dark:bg-slate-600 rounded" />
+                              <div className="w-12 h-3 bg-orange-500/40 rounded" />
+                              <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-700 rounded" />
+                            </div>
+                          )}
+                          {info.mockup === 'footer' && (
+                            <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2">
+                              <div className="w-16 h-3 bg-slate-200 dark:bg-slate-600 rounded mb-1" />
+                              <div className="w-12 h-2 bg-slate-200 dark:bg-slate-700 rounded mb-1" />
+                              <div className="w-10 h-2 bg-orange-500/30 rounded" />
+                            </div>
+                          )}
+                        </div>
+                        <h3 className="text-lg font-black uppercase italic mb-1">{pos.feature_name}</h3>
+                        <span className="text-[9px] font-black uppercase bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full mb-2">{info.badge}</span>
+                        <p className="text-slate-500 text-xs font-bold leading-relaxed">{info.desc}</p>
                       </div>
-                    )}
-                    {pos.mockup === 'feed' && (
-                      <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2 gap-1">
-                        <div className="w-14 h-5 bg-slate-200 dark:bg-slate-600 rounded" />
-                        <div className="w-14 h-5 bg-orange-500/30 rounded border border-orange-400" />
-                        <div className="w-14 h-5 bg-slate-200 dark:bg-slate-600 rounded" />
-                      </div>
-                    )}
-                    {pos.mockup === 'details' && (
-                      <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2 gap-1">
-                        <div className="w-14 h-6 bg-slate-200 dark:bg-slate-600 rounded" />
-                        <div className="w-12 h-3 bg-orange-500/40 rounded" />
-                        <div className="w-10 h-1.5 bg-slate-200 dark:bg-slate-700 rounded" />
-                      </div>
-                    )}
-                    {pos.mockup === 'footer' && (
-                      <div className="w-20 h-28 bg-slate-100 dark:bg-slate-700 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-600 flex flex-col items-center justify-center p-2">
-                        <div className="w-16 h-3 bg-slate-200 dark:bg-slate-600 rounded mb-1" />
-                        <div className="w-12 h-2 bg-slate-200 dark:bg-slate-700 rounded mb-1" />
-                        <div className="w-10 h-2 bg-orange-500/30 rounded" />
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="text-lg font-black uppercase italic mb-1">{pos.name}</h3>
-                  <span className="text-[9px] font-black uppercase bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full mb-2">{pos.badge}</span>
-                  <p className="text-slate-500 text-xs font-bold leading-relaxed">{pos.desc}</p>
-                </div>
-              </div>
-            ))}
+                    </div>
+                  );
+                })
+            )}
           </div>
         </div>
       </section>
@@ -234,10 +232,10 @@ const AdvertisingLandingPage = () => {
                 Cadastrar e Ver Investimento <ArrowRight size={18} />
               </button>
               <button 
-                onClick={() => setIsModalOpen(true)}
+                onClick={handleViewPricing}
                 className="px-12 py-6 bg-white/10 border-2 border-white/20 text-white rounded-xl font-black uppercase text-sm tracking-wider hover:bg-white/20 transition-all flex items-center justify-center gap-3 flex-1 max-w-sm mx-auto sm:mx-0"
               >
-                Falar com Equipe <ChevronRight size={18} />
+                Ver Preços <ChevronRight size={18} />
               </button>
             </div>
           </div>

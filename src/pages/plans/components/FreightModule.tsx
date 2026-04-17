@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { Crown, Loader2, Check, Star, Truck } from 'lucide-react';
-import Swal from 'sweetalert2';
+// useState removed 'react';
+import { Crown, Loader2, Check, Truck } from 'lucide-react';
+// Swal removed 'sweetalert2';
 import ModuleDetailLayout from './ModuleDetailLayout';
 
 interface PricingRule {
@@ -29,19 +29,7 @@ interface FreightModuleProps {
   currentPlanId?: number | null;
 }
 
-const formatPrice = (value: any) => {
-  const num = Number(value) || 0;
-  return num > 0 ? `R$ ${num.toFixed(2).replace('.', ',')}` : 'Grátis';
-};
-
-const formatDuration = (days: number) => {
-  if (days === 1) return '1 dia';
-  if (days === 7) return '7 dias';
-  if (days === 30) return '30 dias';
-  return `${days} dias`;
-};
-
-export default function FreightModule({ plans, rules, isActive, onBack, onPlanSelect, onPurchase, walletBalance = 0, currentPlanId = null }: FreightModuleProps) {
+export default function FreightModule({ plans, rules, isActive, onBack, onPlanSelect = 0, currentPlanId = null }: FreightModuleProps) {
   return (
     <ModuleDetailLayout
       title="Logística"

@@ -171,7 +171,7 @@ const FreightList = () => {
                       <span className="text-[9px] font-black text-slate-400 dark:text-slate-600 uppercase tracking-[0.3em]">Publicidade Recomendada</span>
                       <div className="h-[1px] flex-1 bg-slate-200 dark:bg-slate-800"></div>
                    </div>
-                   <AdCard position="freight_list" variant="horizontal" search={searchTerm} city={freights.length > 0 ? freights[0].origin_city : undefined} />
+                   <AdCard position="freight_list" variant="banner-wide" search={searchTerm} city={freights.length > 0 ? freights[0].origin_city : undefined} />
                 </div>
               </div>
             )}

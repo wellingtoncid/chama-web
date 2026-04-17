@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { api } from '../../api/api';
 import { 
-  BarChart3, Zap, DollarSign, Users, Truck, 
+  BarChart3, Zap, Users, Truck, 
   MousePointer2, TrendingUp, Megaphone, Wallet
 } from 'lucide-react';
 

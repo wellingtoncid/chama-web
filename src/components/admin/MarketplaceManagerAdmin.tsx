@@ -80,7 +80,7 @@ export default function MarketplaceManagerAdmin() {
       if (res.data?.success) {
         setListings(res.data.data || []);
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar:", e);
     } finally {
       setLoading(false);
@@ -113,7 +113,7 @@ export default function MarketplaceManagerAdmin() {
           Swal.fire({ icon: 'success', title: 'Excluído!', timer: 1500 });
           loadListings();
         }
-      } catch (e) {
+      } catch {
         Swal.fire({ icon: 'error', title: 'Erro' });
       }
     }

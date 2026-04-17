@@ -34,8 +34,9 @@ export default function AffiliateInterestModal({ onClose, onSuccess }: Affiliate
         });
         onSuccess();
       }
-    } catch (error: any) {
-      const message = error.response?.data?.message || 'Erro ao enviar solicitação.';
+    } catch (error: unknown) {
+      const err = error as { response?: { data?: { message?: string } } };
+      const message = err.response?.data?.message || 'Erro ao enviar solicitação.';
       Swal.fire({
         title: 'Erro',
         text: message,

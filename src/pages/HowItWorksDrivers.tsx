@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ArrowRight, MapPinned, MessageCircle, Star, ShieldCheck, Clock, Target, FileCheck, TrendingUp } from 'lucide-react';
+import { Truck, ArrowRight, MapPinned, MessageCircle, Star, ShieldCheck, Target, FileCheck, TrendingUp } from 'lucide-react';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import { Link } from 'react-router-dom';

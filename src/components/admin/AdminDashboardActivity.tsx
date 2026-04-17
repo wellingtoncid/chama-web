@@ -3,7 +3,7 @@ import { api } from '../../api/api';
 import { 
   Clock, User, Activity, ShieldCheck, 
   Trash2, Edit3, MessageSquare, AlertCircle, RefreshCw,
-  TrendingUp, Users, Package, Loader2, X, Info
+  TrendingUp, Users, Package, Loader2, X
 } from 'lucide-react';
 
 export default function AdminDashboardActivity() {

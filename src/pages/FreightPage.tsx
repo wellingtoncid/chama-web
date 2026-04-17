@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Search, Zap, Globe, X, ArrowRight, Users, Building2, Truck, Loader2, SlidersHorizontal } from 'lucide-react';
+import { Search, Zap, X, ArrowRight, Users, Building2, Truck, Loader2, SlidersHorizontal } from 'lucide-react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { api } from '../api/api';
 import { getStates } from '../services/location';
@@ -352,8 +352,8 @@ export default function FreightPage() {
                           </div>
                         )}
                         {index >= 4 && (index + 1) % 8 === 0 && (
-                          <div className="h-[420px]">
-                            <AdCard position="infeed" variant="vertical" search={searchTerm} city={item.origin_city} />
+                          <div className="h-[280px]">
+                            <AdCard position="infeed_compact" variant="banner-compact" search={searchTerm} city={item.origin_city} />
                           </div>
                         )}
                       </React.Fragment>

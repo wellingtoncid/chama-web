@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from '../../api/api';
 import { 
-  Megaphone, Eye, Upload, X, 
-  Trash2, Loader2, Plus, MousePointer2, Pencil, 
+  Megaphone, Upload, X, 
+  Trash2, Loader2, Plus, Pencil, 
   Link as LinkIcon, Search, TrendingUp, BarChart3,
   Play, Pause, RotateCcw, AlertTriangle
 } from 'lucide-react';
@@ -29,7 +29,7 @@ export default function AdsManager() {
   const [whatsapp, setWhatsapp] = useState('');
   const [description, setDescription] = useState('');
   const [locationCity, setLocationCity] = useState('Brasil');
-  const [viewLimit, setViewLimit] = useState<number | ''>('');
+  const [_viewLimit, _setViewLimit] = useState<number | ''>('');
   const [targetUserId, setTargetUserId] = useState<number | ''>('');
   const [users, setUsers] = useState<{id: number; name: string; email: string}[]>([]);
   const [currentUser, setCurrentUser] = useState<any>(null);
@@ -77,10 +77,13 @@ export default function AdsManager() {
     try {
       setLoading(true);
       const res = await api.get('/admin-ads');
-      const adsData = res.data?.data || [];
+      console.log('API Response:', res.data);
+      const adsData = res.data?.data || res.data || [];
       setAds(Array.isArray(adsData) ? adsData : []);
-    } catch (error) {
+      console.log('Ads loaded:', adsData.length);
+    } catch (error: any) {
       console.error("Erro ao carregar anúncios", error);
+      console.error("Response:", error.response?.data);
       setAds([]);
     } finally {
       setLoading(false);
@@ -98,7 +101,7 @@ export default function AdsManager() {
     try {
       await api.post('/admin-manage-ads', { action: 'pause', id });
       loadAds();
-    } catch (error) {
+    } catch {
       alert("Erro ao pausar anúncio");
     }
   };
@@ -107,7 +110,7 @@ export default function AdsManager() {
     try {
       await api.post('/admin-manage-ads', { action: 'activate', id });
       loadAds();
-    } catch (error) {
+    } catch {
       alert("Erro ao ativar anúncio");
     }
   };
@@ -116,7 +119,7 @@ export default function AdsManager() {
     try {
       await api.post('/admin-manage-ads', { action: 'renew', id, days });
       loadAds();
-    } catch (error) {
+    } catch {
       alert("Erro ao renovar anúncio");
     }
   };
@@ -126,14 +129,14 @@ export default function AdsManager() {
       const res = await api.get('/companies');
       const companiesData = res.data?.companies || res.data?.data || res.data || [];
       setUsers(companiesData);
-    } catch (error) {
+    } catch {
       console.warn("Erro ao carregar empresas - tentando método alternativo", error);
       try {
         const res = await api.get('/list-all-users');
         const usersData = res.data?.users || res.data?.data || res.data || [];
         const companies = usersData.filter((u: any) => u.type === 'COMPANY' || u.user_type === 'COMPANY');
         setUsers(companies);
-      } catch (e) {
+      } catch {
         setUsers([]); 
       }
     }
@@ -145,7 +148,7 @@ export default function AdsManager() {
       if (userData) {
         setCurrentUser(JSON.parse(userData));
       }
-    } catch (e) {
+    } catch {
       console.error("Erro ao carregar usuário atual", e);
     }
   };
@@ -169,6 +172,7 @@ export default function AdsManager() {
       setCategory(ad.category || 'PROMOÇÃO');
       setPosition(ad.position || 'sidebar');
       setLocationCity(ad.location_city || 'Brasil');
+      setTargetUserId(ad.user_id || '');
       
       if (ad.image_url) {
           if (ad.image_url.startsWith('http')) {
@@ -184,7 +188,10 @@ export default function AdsManager() {
   };
 
   const handleUpload = async () => {
-    if (!title || !whatsapp) return alert("Preencha título e Link/WhatsApp");
+    if (!title) return alert("Preencha o título");
+    if (!link) return alert("Preencha o link de destino");
+    if (imageMode === 'upload' && !selectedFile && !editingId) return alert("Carregue uma imagem");
+    if (imageMode === 'url' && !externalImageUrl && !editingId) return alert("Informe a URL da imagem");
     setUploading(true);
     try {
       if (imageMode === 'upload' && selectedFile) {
@@ -222,7 +229,7 @@ export default function AdsManager() {
       setIsModalOpen(false);
       resetForm();
       loadAds();
-    } catch (error) {
+    } catch {
       alert("Erro ao salvar anúncio. Verifique o console.");
     } finally {
       setUploading(false);
@@ -234,7 +241,7 @@ export default function AdsManager() {
     try {
       await api.post('/admin-manage-ads', { id, action: 'delete' });
       setAds(prev => prev.filter(ad => ad.id !== id));
-    } catch (error) {
+    } catch {
       alert("Erro ao excluir anúncio.");
     }
   };
@@ -358,6 +365,7 @@ export default function AdsManager() {
               <tr className="bg-slate-50/50">
                 <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Preview</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Campanha</th>
+                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Anunciante</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Status</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest text-center">Performance</th>
                 <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest text-right">Ações</th>
@@ -365,9 +373,9 @@ export default function AdsManager() {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={5} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
+                <tr><td colSpan={6} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
               ) : filteredAds.length === 0 ? (
-                <tr><td colSpan={5} className="py-20 text-center font-bold text-slate-400 uppercase italic">Nenhum anúncio encontrado</td></tr>
+                <tr><td colSpan={6} className="py-20 text-center font-bold text-slate-400 uppercase italic">Nenhum anúncio encontrado</td></tr>
               ) : filteredAds.map((ad: any) => {
                 const statusConfig: Record<string, {color: string; bg: string; label: string}> = {
                   active: { color: 'text-emerald-600', bg: 'bg-emerald-100', label: '● ATIVO' },
@@ -403,6 +411,11 @@ export default function AdsManager() {
                         )}
                       </p>
                     )}
+                  </td>
+                  <td className="px-6 py-4">
+                    <p className="text-xs font-black text-slate-700">{ad.user_name || 'Desconhecido'}</p>
+                    <p className="text-[9px] text-slate-400 truncate max-w-[150px]">{ad.location_city || 'Nacional'}{ad.location_state ? `, ${ad.location_state}` : ''}</p>
+                    {ad.destination_url && <p className="text-[8px] text-blue-500 truncate max-w-[150px]" title={ad.destination_url}>Link: {ad.destination_url}</p>}
                   </td>
                   <td className="px-6 py-4">
                     <span className={`${status.bg} ${status.color} text-[9px] font-black px-3 py-1.5 rounded-full uppercase`}>
@@ -572,8 +585,13 @@ export default function AdsManager() {
                 </div>
                 
                 <div className="space-y-1">
-                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">WhatsApp ou Link de Destino</label>
-                  <input type="text" placeholder="WhatsApp ou URL completa" value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none" />
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Link de Destino (URL)</label>
+                  <input type="text" placeholder="https://..." value={link} onChange={(e) => setLink(e.target.value)} className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none" />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-[9px] font-black uppercase text-slate-400 ml-2">WhatsApp (opicional)</label>
+                  <input type="text" placeholder="https://wa.me/..." value={whatsapp} onChange={(e) => setWhatsapp(e.target.value)} className="w-full p-4 bg-slate-50 border-none rounded-2xl font-bold text-xs outline-none" />
                 </div>
 
                 <div className="space-y-1">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Truck, ChevronRight, MapPin, Package, Calendar, ShieldCheck } from 'lucide-react';
+import { Truck, ChevronRight, Package, Calendar, ShieldCheck } from 'lucide-react';
 
 interface FreightRowProps {
   data: any;

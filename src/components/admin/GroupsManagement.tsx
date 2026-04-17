@@ -9,6 +9,7 @@ import { api } from "@/api/api";
 import GroupForm from "../../components/groups/GroupForm";
 import Swal from "sweetalert2";
 
+// --- Interfaces ---
 interface GroupCategory {
   id: number;
   name: string;
@@ -38,6 +39,7 @@ interface WhatsAppGroup {
   internal_notes: string;
   views_count: number;
   clicks_count: number;
+  image_url?: string; // Adicionado para evitar erro no render
 }
 
 const PRESET_COLORS = [
@@ -109,17 +111,14 @@ const GroupsManagement = () => {
         </div>
 
         <div className="p-6">
-          {activeTab === 'groups' ? (
-            <GroupsTab />
-          ) : (
-            <CategoriesTab />
-          )}
+          {activeTab === 'groups' ? <GroupsTab /> : <CategoriesTab />}
         </div>
       </div>
     </div>
   );
 };
 
+// --- Sub-componente Categorias ---
 function CategoriesTab() {
   const [categories, setCategories] = useState<GroupCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -195,8 +194,8 @@ function CategoriesTab() {
       
       setIsModalOpen(false);
       fetchCategories();
-      Swal.fire({ icon: 'success', title: 'Categoria salva com sucesso!', timer: 2000, showConfirmButton: false });
-    } catch (error) {
+      Swal.fire({ icon: 'success', title: 'Categoria salva!', timer: 2000, showConfirmButton: false });
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro ao salvar categoria' });
     } finally {
       setSaving(false);
@@ -219,7 +218,7 @@ function CategoriesTab() {
         await api.delete(`/admin/group-categories/${id}`);
         fetchCategories();
         Swal.fire({ icon: 'success', title: 'Categoria excluída!', timer: 2000, showConfirmButton: false });
-      } catch (error) {
+      } catch {
         Swal.fire({ icon: 'error', title: 'Erro ao excluir categoria' });
       }
     }
@@ -230,7 +229,7 @@ function CategoriesTab() {
       await api.post(`/admin/group-categories/${id}/toggle`);
       fetchCategories();
       Swal.fire({ icon: 'success', title: 'Status alterado!', timer: 1500, showConfirmButton: false });
-    } catch (error) {
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro ao alterar status' });
     }
   };
@@ -240,9 +239,7 @@ function CategoriesTab() {
     e.dataTransfer.effectAllowed = 'move';
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-  };
+  const handleDragOver = (e: React.DragEvent) => e.preventDefault();
 
   const handleDrop = async (e: React.DragEvent, targetId: number) => {
     e.preventDefault();
@@ -260,7 +257,7 @@ function CategoriesTab() {
 
     try {
       await api.post('/admin/group-categories/reorder', { ids: newOrder.map(c => c.id) });
-    } catch (error) {
+    } catch {
       fetchCategories();
     }
   };
@@ -268,22 +265,15 @@ function CategoriesTab() {
   return (
     <div>
       <div className="flex justify-end mb-4">
-        <Button 
-          onClick={() => openModal()}
-          className="bg-[#1f4ead] hover:bg-blue-700 rounded-xl font-bold py-3 px-4"
-        >
+        <Button onClick={() => openModal()} className="bg-[#1f4ead] hover:bg-blue-700 rounded-xl font-bold">
           <Plus className="w-4 h-4 mr-2" /> Nova Categoria
         </Button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
       ) : categories.length === 0 ? (
-        <div className="text-center py-12 text-slate-400 font-medium">
-          Nenhuma categoria cadastrada.
-        </div>
+        <div className="text-center py-12 text-slate-400 font-medium">Nenhuma categoria cadastrada.</div>
       ) : (
         <div className="space-y-2">
           {categories.map((category) => (
@@ -293,53 +283,20 @@ function CategoriesTab() {
               onDragStart={(e) => handleDragStart(e, category.id)}
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, category.id)}
-              className={`flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all ${
-                draggedId === category.id ? 'opacity-50' : ''
-              }`}
+              className={`flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all ${draggedId === category.id ? 'opacity-50' : ''}`}
             >
               <GripVertical className="w-5 h-5 text-slate-300 cursor-grab" />
-              
-              <div 
-                className="w-4 h-4 rounded-full"
-                style={{ backgroundColor: category.color || '#64748b' }}
-              />
-              
+              <div className="w-4 h-4 rounded-full" style={{ backgroundColor: category.color || '#64748b' }} />
               <div className="flex-1">
                 <p className="font-bold text-slate-800">{category.name}</p>
-                {category.description && (
-                  <p className="text-xs text-slate-400">{category.description}</p>
-                )}
+                {category.description && <p className="text-xs text-slate-400">{category.description}</p>}
               </div>
-
-              <code className="text-xs font-mono bg-white px-2 py-1 rounded border border-slate-200">
-                {category.slug}
-              </code>
-
-              <button
-                onClick={() => handleToggle(category.id)}
-                className={`p-2 rounded-lg transition-colors ${
-                  category.is_active 
-                    ? 'bg-emerald-100 text-emerald-600 hover:bg-emerald-200' 
-                    : 'bg-slate-100 text-slate-400 hover:bg-slate-200'
-                }`}
-                title={category.is_active ? 'Ativo' : 'Inativo'}
-              >
+              <code className="text-xs font-mono bg-white px-2 py-1 rounded border border-slate-200">{category.slug}</code>
+              <button onClick={() => handleToggle(category.id)} className={`p-2 rounded-lg ${category.is_active ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'}`}>
                 {category.is_active ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
               </button>
-
-              <button
-                onClick={() => openModal(category)}
-                className="p-2 text-slate-400 hover:text-blue-600 bg-white hover:bg-blue-50 rounded-lg border border-slate-200 transition-colors"
-              >
-                <Edit className="w-4 h-4"/>
-              </button>
-
-              <button
-                onClick={() => handleDelete(category.id)}
-                className="p-2 text-slate-400 hover:text-red-600 bg-white hover:bg-red-50 rounded-lg border border-slate-200 transition-colors"
-              >
-                <Trash2 className="w-4 h-4"/>
-              </button>
+              <button onClick={() => openModal(category)} className="p-2 text-slate-400 hover:text-blue-600 bg-white rounded-lg border border-slate-200"><Edit className="w-4 h-4"/></button>
+              <button onClick={() => handleDelete(category.id)} className="p-2 text-slate-400 hover:text-red-600 bg-white rounded-lg border border-slate-200"><Trash2 className="w-4 h-4"/></button>
             </div>
           ))}
         </div>
@@ -348,94 +305,34 @@ function CategoriesTab() {
       {isModalOpen && (
         <div className="fixed inset-0 z-[1200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
           <div className="bg-white w-full max-w-2xl rounded-[2rem] shadow-2xl overflow-hidden">
-            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-              <div>
-                <h2 className="text-lg font-black text-slate-800 uppercase italic">
-                  {editingCategory ? "Editar Categoria" : "Nova Categoria"}
-                </h2>
-              </div>
-              <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-white rounded-xl">
-                <X size={20} className="text-slate-400" />
-              </button>
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center">
+              <h2 className="text-lg font-black text-slate-800 uppercase italic">{editingCategory ? "Editar Categoria" : "Nova Categoria"}</h2>
+              <button onClick={() => setIsModalOpen(false)}><X size={20} className="text-slate-400" /></button>
             </div>
-
             <div className="p-6 space-y-4">
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase">Nome *</label>
-                <input
-                  className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none font-bold"
-                  value={formData.name}
-                  onChange={e => setFormData({ 
-                    ...formData, 
-                    name: e.target.value,
-                    slug: editingCategory ? formData.slug : generateSlug(e.target.value)
-                  })}
-                  placeholder="Ex: Grãos, Bau/Sider"
-                />
+                <input className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none font-bold" value={formData.name} onChange={e => setFormData({ ...formData, name: e.target.value, slug: editingCategory ? formData.slug : generateSlug(e.target.value) })} />
               </div>
-
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase">Slug</label>
-                <input
-                  className="w-full mt-1 px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl outline-none font-mono text-sm text-slate-500"
-                  value={formData.slug}
-                  onChange={e => setFormData({ ...formData, slug: e.target.value })}
-                />
+                <input className="w-full mt-1 px-4 py-3 bg-slate-100 border border-slate-200 rounded-xl outline-none font-mono text-sm" value={formData.slug} onChange={e => setFormData({ ...formData, slug: e.target.value })} />
               </div>
-
               <div>
                 <label className="text-[10px] font-black text-slate-400 uppercase">Descrição</label>
-                <input
-                  className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
-                  value={formData.description}
-                  onChange={e => setFormData({ ...formData, description: e.target.value })}
-                />
+                <input className="w-full mt-1 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" value={formData.description} onChange={e => setFormData({ ...formData, description: e.target.value })} />
               </div>
-
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase flex items-center gap-1.5">
-                  <Palette className="w-3 h-3" /> Cor
-                </label>
+                <label className="text-[10px] font-black text-slate-400 uppercase">Cor</label>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {PRESET_COLORS.map(color => (
-                    <button
-                      key={color.value}
-                      onClick={() => setFormData({ ...formData, color: color.value })}
-                      className={`w-8 h-8 rounded-lg transition-all ${
-                        formData.color === color.value ? 'ring-2 ring-offset-2 ring-slate-400 scale-110' : 'hover:scale-105'
-                      }`}
-                      style={{ backgroundColor: color.value }}
-                      title={color.name}
-                    />
-                  ))}
-                </div>
-                <div className="mt-3 flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={formData.color}
-                    onChange={e => setFormData({ ...formData, color: e.target.value })}
-                    className="w-10 h-10 rounded-lg border border-slate-200 cursor-pointer"
-                  />
-                  <input
-                    className="flex-1 px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg font-mono text-sm"
-                    value={formData.color}
-                    onChange={e => setFormData({ ...formData, color: e.target.value })}
-                  />
+                  {PRESET_COLORS.map(c => <button key={c.value} onClick={() => setFormData({ ...formData, color: c.value })} className={`w-8 h-8 rounded-lg ${formData.color === c.value ? 'ring-2 ring-slate-400 scale-110' : ''}`} style={{ backgroundColor: c.value }} />)}
                 </div>
               </div>
             </div>
-
             <div className="px-6 py-4 border-t border-slate-100 flex gap-3 bg-slate-50/50">
-              <Button onClick={() => setIsModalOpen(false)} variant="ghost" className="flex-1 py-4 rounded-xl font-bold text-xs">
-                Cancelar
-              </Button>
-              <Button 
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-[2] py-4 bg-[#1f4ead] hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-2"
-              >
-                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                {saving ? 'Salvando...' : 'Salvar'}
+              <Button onClick={() => setIsModalOpen(false)} variant="ghost" className="flex-1">Cancelar</Button>
+              <Button onClick={handleSave} disabled={saving} className="flex-[2] bg-[#1f4ead] text-white">
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} Salvar
               </Button>
             </div>
           </div>
@@ -445,6 +342,7 @@ function CategoriesTab() {
   );
 }
 
+// --- Sub-componente Grupos ---
 function GroupsTab() {
   const [groups, setGroups] = useState<WhatsAppGroup[]>([]);
   const [categories, setCategories] = useState<GroupCategory[]>([]);
@@ -485,20 +383,21 @@ function GroupsTab() {
     fetchCategories();
   }, []);
 
+  const filteredGroups = groups.filter(group => {
+    const matchesSearch = !searchQuery || group.region_name.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = !filterCategory || String(group.category_id) === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   const handleSave = async (formData: any) => {
     try {
-      const payload = {
-        action: editingGroup ? 'update' : 'create',
-        id: editingGroup?.id,
-        ...formData
-      };
-      
+      const payload = { action: editingGroup ? 'update' : 'create', id: editingGroup?.id, ...formData };
       await api.post('/admin-groups', payload);
       setIsSlideOverOpen(false);
       setEditingGroup(null);
       fetchData();
-      Swal.fire({ icon: 'success', title: 'Grupo salvo com sucesso!', timer: 2000, showConfirmButton: false });
-    } catch (error) {
+      Swal.fire({ icon: 'success', title: 'Sucesso!', timer: 2000, showConfirmButton: false });
+    } catch {
       Swal.fire({ icon: 'error', title: 'Erro ao salvar o grupo.' });
     }
   };
@@ -506,36 +405,20 @@ function GroupsTab() {
   const handleDelete = async (ids: number[]) => {
     const result = await Swal.fire({
       icon: 'warning',
-      title: ids.length === 1 ? 'Excluir grupo?' : `Excluir ${ids.length} grupos?`,
-      text: 'Esta ação não pode ser desfeita.',
+      title: ids.length === 1 ? 'Excluir?' : `Excluir ${ids.length}?`,
       showCancelButton: true,
-      confirmButtonText: 'Sim, excluir',
-      cancelButtonText: 'Cancelar',
       confirmButtonColor: '#ef4444'
     });
-      
     if (result.isConfirmed) {
       try {
-        for (const id of ids) {
-          await api.post('/admin-groups', { action: 'delete', id });
-        }
+        for (const id of ids) { await api.post('/admin-groups', { action: 'delete', id }); }
         setSelectedGroups([]);
         fetchData();
-        Swal.fire({ icon: 'success', title: 'Grupo(s) excluído(s)!', timer: 2000, showConfirmButton: false });
-      } catch (error) {
+        Swal.fire({ icon: 'success', title: 'Excluído!' });
+      } catch {
         Swal.fire({ icon: 'error', title: 'Erro ao excluir.' });
       }
     }
-  };
-
-  const openEdit = (group: WhatsAppGroup) => {
-    setEditingGroup(group);
-    setIsSlideOverOpen(true);
-  };
-
-  const openCreate = () => {
-    setEditingGroup(null);
-    setIsSlideOverOpen(true);
   };
 
   const toggleSelectAll = () => {
@@ -547,23 +430,12 @@ function GroupsTab() {
   };
 
   const toggleSelect = (id: number) => {
-    setSelectedGroups(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    );
+    setSelectedGroups(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
   };
-
-  const filteredGroups = groups.filter(group => {
-    const matchesSearch = !searchQuery || 
-      group.region_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !filterCategory || 
-      String(group.category_id) === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   const getCategoryColor = (categoryId: number | null) => {
     if (!categoryId) return '#64748b';
-    const cat = categories.find(c => c.id === categoryId);
-    return cat?.color || '#64748b';
+    return categories.find(c => c.id === categoryId)?.color || '#64748b';
   };
 
   const totals = {
@@ -573,179 +445,64 @@ function GroupsTab() {
 
   return (
     <div>
-      {/* Header com métricas */}
       <div className="flex flex-wrap gap-4 mb-6 p-4 bg-slate-50 rounded-xl">
         <div className="flex items-center gap-2">
           <EyeIcon className="w-5 h-5 text-slate-400" />
-          <span className="text-sm font-bold text-slate-600">Total Views:</span>
-          <span className="text-sm font-black text-blue-600">{totals.views.toLocaleString('pt-BR')}</span>
+          <span className="text-sm font-bold">Views: {totals.views.toLocaleString()}</span>
         </div>
         <div className="flex items-center gap-2">
           <MousePointer className="w-5 h-5 text-slate-400" />
-          <span className="text-sm font-bold text-slate-600">Total Cliques:</span>
-          <span className="text-sm font-black text-green-600">{totals.clicks.toLocaleString('pt-BR')}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-slate-600">Grupos:</span>
-          <span className="text-sm font-black text-slate-800">{groups.length}</span>
+          <span className="text-sm font-bold">Cliques: {totals.clicks.toLocaleString()}</span>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-3 mb-4">
-        <Button 
-          onClick={openCreate}
-          className="bg-[#1f4ead] hover:bg-blue-700 rounded-xl font-bold py-3 px-4"
-        >
+        <Button onClick={() => { setEditingGroup(null); setIsSlideOverOpen(true); }} className="bg-[#1f4ead] rounded-xl font-bold">
           <Plus className="w-4 h-4 mr-2" /> Novo Grupo
         </Button>
-
         {selectedGroups.length > 0 && (
-          <Button 
-            onClick={() => handleDelete(selectedGroups)}
-            variant="ghost"
-            className="text-red-600 hover:bg-red-50 rounded-xl font-bold py-3 px-4"
-          >
-            <Trash2 className="w-4 h-4 mr-2" /> 
-            Excluir ({selectedGroups.length})
+          <Button onClick={() => handleDelete(selectedGroups)} variant="ghost" className="text-red-600">
+            <Trash2 className="w-4 h-4 mr-2" /> Excluir ({selectedGroups.length})
           </Button>
         )}
-
         <div className="flex-1" />
-
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Buscar grupo..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            className="pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-medium w-64"
-          />
+          <input className="pl-10 pr-4 py-3 bg-slate-50 border rounded-xl text-sm w-64" placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
-
-        <select
-          value={filterCategory}
-          onChange={e => setFilterCategory(e.target.value)}
-          className="px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none text-sm font-medium"
-        >
+        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-4 py-3 bg-slate-50 border rounded-xl text-sm">
           <option value="">Todas as categorias</option>
-          {categories.map(cat => (
-            <option key={cat.id} value={cat.id}>{cat.name}</option>
-          ))}
+          {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
         </select>
+        <Button onClick={toggleSelectAll} variant="outline" className="rounded-xl">
+           {selectedGroups.length === filteredGroups.length ? 'Desmarcar Todos' : 'Selecionar Todos'}
+        </Button>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-12">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-        </div>
-      ) : filteredGroups.length === 0 ? (
-        <div className="text-center py-12 text-slate-400 font-medium">
-          Nenhum grupo encontrado.
-        </div>
+        <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
       ) : (
         <div className="space-y-2">
           {filteredGroups.map((group) => (
-            <div 
-              key={group.id}
-              className={`flex items-center gap-4 p-4 bg-slate-50 rounded-xl border border-slate-100 hover:border-slate-200 transition-all ${
-                selectedGroups.includes(group.id) ? 'border-blue-400 bg-blue-50/50' : ''
-              }`}
-            >
-              <button
-                onClick={() => toggleSelect(group.id)}
-                className="text-slate-400 hover:text-blue-600"
-              >
-                {selectedGroups.includes(group.id) ? (
-                  <CheckSquare className="w-5 h-5 text-blue-600" />
-                ) : (
-                  <Square className="w-5 h-5" />
-                )}
+            <div key={group.id} className={`flex items-center gap-4 p-4 bg-slate-50 rounded-xl border ${selectedGroups.includes(group.id) ? 'border-blue-400 bg-blue-50/50' : 'border-slate-100'}`}>
+              <button onClick={() => toggleSelect(group.id)}>
+                {selectedGroups.includes(group.id) ? <CheckSquare className="w-5 h-5 text-blue-600" /> : <Square className="w-5 h-5 text-slate-400" />}
               </button>
-
-              <div className="w-12 h-12 rounded-xl overflow-hidden bg-slate-200 flex items-center justify-center shrink-0">
-                {group.image_url ? (
-                  <img src={group.image_url} alt="" className="w-full h-full object-cover" />
-                ) : (
-                  <MessageCircle className="w-5 h-5 text-slate-400" />
-                )}
-              </div>
-
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1 flex-wrap">
-                  <p className="font-bold text-slate-800 truncate">{group.region_name}</p>
-                  {group.is_premium === 1 && (
-                    <span className="px-1.5 py-0.5 bg-amber-100 text-amber-700 text-[9px] font-bold uppercase rounded">
-                      Premium
-                    </span>
-                  )}
-                  {group.is_verified === 1 && (
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold uppercase rounded">
-                      ✓
-                    </span>
-                  )}
-                  {group.status === 'inactive' && (
-                    <span className="px-1.5 py-0.5 bg-slate-200 text-slate-600 text-[9px] font-bold uppercase rounded">
-                      Inativo
-                    </span>
-                  )}
-                  {group.status === 'active' && (
-                    <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold uppercase rounded">
-                      Ativo
-                    </span>
-                  )}
-                </div>
-                {group.group_admin_name && (
-                  <p className="text-xs text-slate-400">por {group.group_admin_name}</p>
-                )}
-              </div>
-
-              <div 
-                className="px-2 py-1 rounded-lg text-[10px] font-bold uppercase shrink-0"
-                style={{ 
-                  backgroundColor: `${getCategoryColor(group.category_id)}15`,
-                  color: getCategoryColor(group.category_id)
-                }}
-              >
-                {group.category_name || group.category || 'Sem categoria'}
-              </div>
-
-              <div className="flex items-center gap-1">
-                {group.is_visible_home === 1 && (
-                  <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 text-[9px] font-bold uppercase rounded">Home</span>
-                )}
-                {group.is_public === 0 && (
-                  <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 text-[9px] font-bold uppercase rounded">Login</span>
-                )}
-                {group.is_public === 1 && (
-                  <span className="px-1.5 py-0.5 bg-emerald-100 text-emerald-700 text-[9px] font-bold uppercase rounded">Livre</span>
-                )}
-              </div>
-
-              <div className="flex items-center gap-3 text-[10px] font-medium text-slate-400 min-w-[100px]">
-                <div className="flex items-center gap-1" title="Visualizações">
-                  <EyeIcon className="w-3 h-3" />
-                  <span>{group.views_count || 0}</span>
-                </div>
-                <div className="flex items-center gap-1" title="Cliques">
-                  <MousePointer className="w-3 h-3" />
-                  <span>{group.clicks_count || 0}</span>
+              <div className="flex-1">
+                <p className="font-bold text-slate-800">{group.region_name}</p>
+                <div className="flex gap-2 mt-1">
+                  <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase" style={{ backgroundColor: `${getCategoryColor(group.category_id)}15`, color: getCategoryColor(group.category_id) }}>
+                    {group.category_name || 'Sem categoria'}
+                  </span>
+                  {group.status === 'active' && <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1 rounded font-bold">Ativo</span>}
                 </div>
               </div>
-
-              <button
-                onClick={() => openEdit(group)}
-                className="p-2 text-slate-400 hover:text-blue-600 bg-white hover:bg-blue-50 rounded-lg border border-slate-200 transition-colors"
-              >
-                <Edit className="w-4 h-4"/>
-              </button>
-
-              <button
-                onClick={() => handleDelete([group.id])}
-                className="p-2 text-slate-400 hover:text-red-600 bg-white hover:bg-red-50 rounded-lg border border-slate-200 transition-colors"
-              >
-                <Trash2 className="w-4 h-4"/>
-              </button>
+              <div className="flex gap-4 text-slate-400 text-xs font-bold">
+                <span className="flex items-center gap-1"><EyeIcon className="w-3 h-3"/> {group.views_count || 0}</span>
+                <span className="flex items-center gap-1"><MousePointer className="w-3 h-3"/> {group.clicks_count || 0}</span>
+              </div>
+              <button onClick={() => { setEditingGroup(group); setIsSlideOverOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 bg-white rounded-lg border"><Edit className="w-4 h-4"/></button>
+              <button onClick={() => handleDelete([group.id])} className="p-2 text-slate-400 hover:text-red-600 bg-white rounded-lg border"><Trash2 className="w-4 h-4"/></button>
             </div>
           ))}
         </div>

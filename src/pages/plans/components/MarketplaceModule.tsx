@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ShoppingBag, Loader2, Check, Star } from 'lucide-react';
+// useState removed 'react';
+import { ShoppingBag, Check, Star } from 'lucide-react';
 import Swal from 'sweetalert2';
 import ModuleDetailLayout from './ModuleDetailLayout';
 
@@ -29,12 +29,7 @@ interface MarketplaceModuleProps {
   toggling: boolean;
   walletBalance?: number;
   currentPlanId?: number | null;
-}
-
-const formatPrice = (value: any) => {
-  const num = Number(value) || 0;
-  return num > 0 ? `R$ ${num.toFixed(2).replace('.', ',')}` : 'Grátis';
-};
+  }
 
 const formatDuration = (days: number) => {
   if (days === 1) return '1 dia';

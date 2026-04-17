@@ -486,7 +486,7 @@ export default function ProfileView() {
 
           {/* SPOTLIGHT AD */}
           <div className="mt-12">
-            <AdCard position="spotlight" variant="horizontal" state={profile.state} city={profile.city} />
+            <AdCard position="spotlight" variant="banner-wide" state={profile.state} city={profile.city} />
           </div>
 
           {/* LISTAGEM DE POSTS */}

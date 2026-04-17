@@ -22,7 +22,7 @@ export default function GroupsManager() {
       } else {
         setGroups([]);
       }
-    } catch (err) {
+    } catch {
       console.error("Erro ao carregar grupos:", err);
       setGroups([]);
     } finally {
@@ -69,7 +69,7 @@ export default function GroupsManager() {
       } else {
         alert("Erro ao salvar mudanças.");
       }
-    } catch (err) {
+    } catch {
       alert("Erro na requisição.");
     }
   };
@@ -79,7 +79,7 @@ export default function GroupsManager() {
     try {
       await api.post('delete-group', { id });
       load();
-    } catch (err) {
+    } catch {
       alert("Erro ao excluir.");
     }
   };

@@ -26,7 +26,7 @@ const Index = () => {
         {/* AD POS 1: Logo após a lista de fretes (Alta conversão para Pneus/Seguros) */}
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-5xl mx-auto">
-             <AdCard position="freight_list" variant="horizontal" />
+              <AdCard position="freight_list" variant="banner-wide" />
           </div>
         </div>
         
@@ -39,7 +39,7 @@ const Index = () => {
         {/* AD POS 2: Banner Vertical ou Especial entre seções de autoridade */}
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto">
-             <AdCard position="infeed" variant="horizontal" />
+              <AdCard position="infeed_wide" variant="banner-wide" />
           </div>
         </div>
 

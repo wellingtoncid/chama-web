@@ -137,8 +137,9 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
     };
   };
 
-  const formatPrice = (value: number) => {
-    return value > 0 ? `R$ ${value.toFixed(2).replace('.', ',')}` : 'Grátis';
+  const formatPrice = (value: number | string) => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    return !isNaN(num) && num > 0 ? `R$ ${num.toFixed(2).replace('.', ',')}` : 'Grátis';
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
