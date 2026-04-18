@@ -288,7 +288,7 @@ export default function ListingDetails() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="spotlight" variant="banner-wide" city={listing.location_city} state={listing.location_state} />
+            <AdCard position="spotlight" variant="ecommerce" city={listing.location_city} state={listing.location_state} />
 
             {/* Anúncios Relacionados */}
             {listing.related && listing.related.length > 0 && (
@@ -437,7 +437,7 @@ export default function ListingDetails() {
               </div>
 
               {/* Anúncio Vertical */}
-              <AdCard position="sidebar" variant="vertical" state={listing.location_state} />
+              <AdCard position="sidebar" variant="sidebar" state={listing.location_state} />
             </div>
           </div>
         </div>

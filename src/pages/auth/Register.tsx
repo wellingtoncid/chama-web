@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
 import { Truck, Building2, User, Mail, Lock, Phone, Loader2, FileText, Building } from 'lucide-react';
 import { api } from '../../api/api';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 
 export default function Register() {
-  const [role, setRole] = useState<'driver' | 'company'>('driver');
+  const [searchParams] = useSearchParams();
+  const urlType = searchParams.get('type');
+  
+  const [role, setRole] = useState<'driver' | 'company'>(
+    urlType === 'company' || urlType === 'advertiser' ? 'company' : 'driver'
+  );
+  const [registerType, setRegisterType] = useState<string>(
+    urlType === 'advertiser' ? 'advertiser' : 'normal'
+  );
   const [name, setName] = useState(''); // Nome completo (driver) ou Razão Social (company)
   const [ownerName, setOwnerName] = useState(''); // Nome do responsável (company only)
   const [nameFantasy, setNameFantasy] = useState(''); // Nome fantasia (company only)
@@ -32,12 +40,13 @@ export default function Register() {
     const cleanDocument = document.replace(/\D/g, '');
 
     const payload = {
-      name: name.trim(), // Driver: nome completo | Company: Razão Social
+      name: name.trim(),
       email: email.trim().toLowerCase(),
       whatsapp: cleanWhatsapp,
       document: cleanDocument,
       password,
-      role
+      role,
+      register_type: registerType
     };
 
     // Add company-specific fields

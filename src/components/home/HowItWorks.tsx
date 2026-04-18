@@ -34,9 +34,10 @@ const steps = [
 const HowItWorks = () => {
   return (
     <section id="como-funciona" className="py-24 bg-white dark:bg-slate-950 transition-colors">
-      <div className="container mx-auto px-4">
-        
-        {/* Header da Seção com Badge Radar */}
+<div className="container mx-auto px-4">
+         <div className="max-w-7xl mx-auto">
+         
+         {/* Header da Seção com Badge Radar */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 gap-8">
           <div className="max-w-3xl">
             <div className="flex items-center gap-3 mb-6">
@@ -95,6 +96,7 @@ const HowItWorks = () => {
               </div>
             </div>
           ))}
+        </div>
         </div>
       </div>
     </section>

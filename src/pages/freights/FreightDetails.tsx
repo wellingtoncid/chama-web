@@ -280,7 +280,7 @@ export default function FreightDetails() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="spotlight" variant="banner-wide" city={freight.origin_city} state={freight.origin_state} />
+            <AdCard position="spotlight" variant="ecommerce" city={freight.origin_city} state={freight.origin_state} />
 
             {/* Fretes Similares (Correção Visual) */}
             {relatedFreights.length > 0 && (
@@ -389,7 +389,7 @@ export default function FreightDetails() {
               </div>
 
               {/* Anúncio Vertical */}
-              <AdCard position="sidebar" variant="vertical" state={freight.origin_state} />
+              <AdCard position="sidebar" variant="sidebar" state={freight.origin_state} />
 
               <div className="flex items-center justify-center gap-2 text-slate-400 text-[10px] font-black uppercase tracking-widest">
                   <Calendar size={12} /> {new Date(freight.created_at).toLocaleDateString('pt-BR')}

@@ -62,7 +62,7 @@ export const AdPopup = () => {
 
         {/* Container do Anúncio com bordas arredondadas suaves */}
         <div className="shadow-[0_0_50px_-12px_rgba(0,0,0,0.5)] rounded-[2.5rem] overflow-hidden bg-white dark:bg-slate-900">
-           <AdCard position="popup" variant="vertical" />
+           <AdCard position="popup" variant="ecommerce" />
         </div>
 
         {/* Legenda discreta de fechamento */}

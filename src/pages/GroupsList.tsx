@@ -225,7 +225,7 @@ export default function GroupsList() {
       case 'ad':
         return (
           <div key={item.key} className="h-[280px]">
-            <AdCard position="infeed_compact" variant="banner-compact" search={searchTerm} />
+            <AdCard position="infeed_compact" variant="ecommerce" search={searchTerm} />
           </div>
         );
 

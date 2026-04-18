@@ -8,6 +8,7 @@ const ForCompanies = () => {
   return (
     <section id="empresas" className="py-24 bg-white dark:bg-slate-950 transition-colors duration-500 overflow-hidden">
       <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto">
         
         {/* Header de Autoridade */}
         <div className="max-w-4xl mb-20">
@@ -108,6 +109,7 @@ const ForCompanies = () => {
             <span className="mt-6 text-white/60 text-[10px] font-black uppercase tracking-[0.2em]">Crie sua conta corporativa</span>
           </div>
 
+        </div>
         </div>
       </div>
     </section>

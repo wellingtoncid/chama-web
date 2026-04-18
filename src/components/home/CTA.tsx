@@ -55,21 +55,19 @@ const CTA = () => {
             </p>
 
             <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl justify-center">
-              {/* Botão Cadastrar Empresa - Corrigido para Legibilidade no Dark */}
               <a 
-                href="/register?type=company" 
+                href="/cadastro?type=advertiser" 
                 className="flex-1 bg-blue-600 hover:bg-blue-500 text-white h-20 px-8 rounded-[2rem] font-[1000] uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-3 transition-all hover:scale-105 shadow-xl shadow-blue-600/20"
               >
-                Cadastrar Empresa <ArrowRight size={18} />
+                Cadastrar <ArrowRight size={18} />
               </a>
 
-              {/* Botão Consultivo - Venda sem Vender */}
-              <button 
-                onClick={() => setIsModalOpen(true)}
+              <a 
+                href="/seja-visto"
                 className="flex-1 bg-white/5 border-2 border-white/10 hover:border-white/20 hover:bg-white/10 text-white h-20 px-8 rounded-[2rem] font-[1000] uppercase text-xs tracking-[0.2em] flex items-center justify-center gap-3 transition-all"
               >
-                Novos Negócios & Mídia <ChevronRight size={18} />
-              </button>
+                Ver Planos <ChevronRight size={18} />
+              </a>
             </div>
           </div>
         </div>

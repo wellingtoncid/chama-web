@@ -14,19 +14,10 @@ const Footer = () => {
             <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Parceiros Oficiais</span>
             <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <AdCard 
-              position="footer" 
-              variant="banner-compact"
-              />
-            <AdCard 
-              position="footer" 
-              variant="banner-compact" 
-              />
-            <AdCard 
-              position="footer" 
-              variant="banner-compact" 
-              />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <AdCard position="footer" variant="footer" />
+            <AdCard position="footer" variant="footer" />
+            <AdCard position="footer" variant="footer" />
           </div>
         </div>
 

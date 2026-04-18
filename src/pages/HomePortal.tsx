@@ -17,53 +17,53 @@ const Index = () => {
       <Header />
       
       <main className="pt-[96px] lg:pt-[104px]">
-        {/* ID: Fretes (Hero já contém a busca) */}
+        
         <section id="fretes">
           <Hero />
           <FreightList />
         </section>
-        
-        {/* AD POS 1: Logo após a lista de fretes (Alta conversão para Pneus/Seguros) */}
+
         <div className="container mx-auto px-4 py-8">
-          <div className="max-w-5xl mx-auto">
-              <AdCard position="freight_list" variant="banner-wide" />
+          <div className="max-w-4xl mx-auto">
+              <AdCard position="freight_list" variant="ecommerce" />
           </div>
         </div>
-        
-        {/* ID: Números (Podemos envolver ForDrivers/Companies que mostram as vantagens) */}
+
         <section id="autoridade">
           <ForDrivers />
           <ForCompanies />
         </section>
 
-        {/* AD POS 2: Banner Vertical ou Especial entre seções de autoridade */}
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto">
-              <AdCard position="infeed_wide" variant="banner-wide" />
+              <AdCard position="infeed_wide" variant="ecommerce" />
           </div>
         </div>
 
-        <HowItWorks />
+        <section>
+          <HowItWorks />
+        </section>
 
-        {/* ID: Comunidades */}
         <section id="comunidades">
+          <div className="max-w-4xl mx-auto">
+              <AdCard position="freight_list" variant="ecommerce" />
+          </div>
           <CommunityGroups />
           <Supporters />
+          <div className="max-w-4xl mx-auto">
+              <AdCard position="infeed_wide" variant="ecommerce" />
+          </div>
         </section>
         
-        {/* ID: Ecossistema (Onde as empresas parceiras aparecem) */}
         <section id="ecossistema" className="bg-slate-50 dark:bg-slate-900/50">
           <Partners />
-          {/* AD POS 3: Um "Spotlight" para um parceiro Master aqui seria ideal */}
         </section>
         
-        {/* ID: Negócios (O seu novo CTA Enterprise) */}
         <section id="negocios">
           <CTA />
         </section>
       </main>
       
-      {/* ID: Ajuda (No Footer) */}
       <section id="ajuda">
         <Footer />
       </section>

@@ -58,6 +58,7 @@ const CommunityGroups = () => {
   return (
     <section id="grupos" className="py-20 bg-slate-50 dark:bg-slate-950">
       <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto">
         
         {/* Header da Seção */}
         <div className="text-center max-w-2xl mx-auto mb-12">
@@ -103,6 +104,7 @@ const CommunityGroups = () => {
             Ver todas as comunidades
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
+        </div>
         </div>
       </div>
     </section>

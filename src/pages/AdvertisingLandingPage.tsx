@@ -34,7 +34,7 @@ const AdvertisingLandingPage = () => {
   };
 
   const handleRegister = () => {
-    window.location.href = '/cadastro?redirect=/anuncie';
+    window.location.href = '/cadastro?type=advertiser';
   };
 
   const handleViewPricing = () => {
@@ -89,7 +89,7 @@ const AdvertisingLandingPage = () => {
                 onClick={handleRegister}
                 className="px-10 py-5 bg-orange-500 text-white rounded-xl font-black uppercase text-sm tracking-wider hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/30 flex items-center gap-3"
               >
-                Cadastrar e Ver Investimento <ArrowRight size={18} />
+                Cadastrar <ArrowRight size={18} />
               </button>
               <button 
                 onClick={() => setIsModalOpen(true)}
@@ -229,13 +229,13 @@ const AdvertisingLandingPage = () => {
                 onClick={handleRegister}
                 className="px-12 py-6 bg-orange-500 text-white rounded-xl font-black uppercase text-sm tracking-wider hover:bg-orange-600 transition-all shadow-xl shadow-orange-500/20 flex items-center justify-center gap-3 flex-1 max-w-sm mx-auto sm:mx-0"
               >
-                Cadastrar e Ver Investimento <ArrowRight size={18} />
+                Cadastrar <ArrowRight size={18} />
               </button>
               <button 
                 onClick={handleViewPricing}
                 className="px-12 py-6 bg-white/10 border-2 border-white/20 text-white rounded-xl font-black uppercase text-sm tracking-wider hover:bg-white/20 transition-all flex items-center justify-center gap-3 flex-1 max-w-sm mx-auto sm:mx-0"
               >
-                Ver Preços <ChevronRight size={18} />
+                Ver Planos <ChevronRight size={18} />
               </button>
             </div>
           </div>

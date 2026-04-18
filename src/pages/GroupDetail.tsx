@@ -255,7 +255,7 @@ export default function GroupDetail() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="spotlight" variant="banner-wide" />
+            <AdCard position="spotlight" variant="ecommerce" />
 
             {/* Grupos Relacionados */}
             {relatedGroups.length > 0 && (
@@ -427,7 +427,7 @@ export default function GroupDetail() {
               </div>
 
               {/* Anúncio Vertical */}
-              <AdCard position="sidebar" variant="vertical" />
+              <AdCard position="sidebar" variant="sidebar" />
 
               {/* Grupos Relacionados na Sidebar */}
               {relatedGroups.length > 0 && (

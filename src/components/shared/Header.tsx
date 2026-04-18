@@ -85,7 +85,7 @@ const Header = () => {
           Esta barra é injetada no topo. Se o AdCard não encontrar anúncio, ele mostrará o DEFAULT_AD ou pode tratar para sumir.
       */}
       <div className="w-full overflow-hidden shadow-sm relative z-10">
-        <AdCard position="header" variant="bar" />
+        <AdCard position="header" variant="notice" />
       </div>
 
       {/* 2. MENU PRINCIPAL */}

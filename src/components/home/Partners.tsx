@@ -107,6 +107,7 @@ const Partners = () => {
   return (
     <section className="py-24 bg-white dark:bg-slate-950 border-t border-slate-100 dark:border-slate-800 transition-colors">
       <div className="container mx-auto px-4">
+        <div className="max-w-7xl mx-auto">
         <div className="space-y-20">
           
           {/* NÍVEL 1: PARCEIROS ESTRATÉGICOS - usa posição: home_hero, spotlight */}
@@ -203,6 +204,7 @@ const Partners = () => {
             </div>
           </div>
 
+        </div>
         </div>
       </div>
     </section>

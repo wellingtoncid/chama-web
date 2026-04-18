@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, ArrowRight, MessageCircle, BarChart3, ShieldCheck, Target, Users, CheckCircle, AlertTriangle } from 'lucide-react';
+import { Building2, ArrowRight, MessageCircle, BarChart3, ShieldCheck, Target, Users, CheckCircle, AlertTriangle, Clock } from 'lucide-react';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import { Link } from 'react-router-dom';

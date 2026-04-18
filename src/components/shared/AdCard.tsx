@@ -15,7 +15,7 @@ const DEFAULT_AD = {
 
 interface AdCardProps {
   position: string;
-  variant?: 'banner-wide' | 'banner-compact' | 'vertical' | 'bar';
+  variant?: 'banner-wide' | 'banner-compact' | 'vertical' | 'bar' | 'ecommerce' | 'footer' | 'sidebar' | 'notice';
   city?: string;
   state?: string;
   search?: string;
@@ -175,9 +175,9 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
       <div 
         ref={containerRef} 
         onClick={handleAction} 
-        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-2 flex items-center gap-3 shadow-sm hover:shadow-md transition-all group cursor-pointer h-28 w-full overflow-hidden relative"
+        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl p-3 flex items-center gap-4 shadow-sm hover:shadow-md transition-all group cursor-pointer h-28 w-full overflow-hidden relative"
       >
-        <div className="h-full w-48 rounded-lg overflow-hidden flex-shrink-0">
+        <div className="h-full w-40 rounded-lg overflow-hidden flex-shrink-0">
           <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
         </div>
         <div className="flex-1 min-w-0">
@@ -197,7 +197,7 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
           <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm truncate">{adToShow.title}</h4>
           <p className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">{adToShow.description}</p>
         </div>
-        <div className="pr-3 flex-shrink-0">
+        <div className="flex-shrink-0">
           <div className={`px-4 py-2 rounded-lg text-[10px] font-bold uppercase flex items-center gap-1.5 transition-all ${isWhatsappAction ? 'bg-[#25D366] text-white hover:bg-[#20BA5C]' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
             {ctaText} {ctaIcon}
           </div>
@@ -206,61 +206,139 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
     );
   }
 
-  // ===== VARIANT: banner-compact (300x250) =====
+  // ===== VARIANT: banner-compact (728x90 horizontal) =====
   if (variant === 'banner-compact') {
     return withModal(
       <div 
         ref={containerRef} 
         onClick={handleAction} 
-        className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all group cursor-pointer w-full"
+        className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-md flex items-stretch shadow-sm hover:shadow-md transition-all group cursor-pointer w-full h-14 overflow-hidden relative"
       >
-        <div className="h-24 w-full">
+        <span className="absolute top-1 left-1 text-[7px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 px-1 py-0.5 rounded z-10">AD</span>
+        <div className="w-24 h-full flex-shrink-0">
           <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
         </div>
-        <div className="p-3">
-          <div className="flex items-center gap-1.5 mb-1">
-            <span className="text-[5px] font-black bg-slate-100 dark:bg-slate-800 text-slate-400 px-1 py-0.5 rounded">AD</span>
-            {showVerified && (
-              <span className="text-[5px] font-bold text-green-600 flex items-center gap-0.5">
-                <ShieldCheck size={6} /> Verificado
-              </span>
-            )}
-            {locationText && (
-              <span className="text-[5px] text-slate-400 flex items-center gap-0.5">
-                <MapPin size={6} /> {locationText}
-              </span>
-            )}
+        <div className="flex-1 flex items-center px-2">
+          <div className="min-w-0 flex-1 pr-1">
+            <h4 className="font-bold text-slate-800 dark:text-slate-100 text-[10px] truncate">{adToShow.title}</h4>
+            <p className="text-[8px] text-slate-500 dark:text-slate-400 line-clamp-1 mt-0.5">{adToShow.description}</p>
           </div>
-          <h4 className="font-bold text-slate-800 dark:text-slate-100 text-xs truncate mb-1">{adToShow.title}</h4>
-          <div className={`inline-flex items-center gap-1 px-2 py-1 rounded text-[9px] font-bold uppercase ${isWhatsappAction ? 'bg-[#25D366] text-white' : 'bg-blue-600 text-white'}`}>
-            {ctaText} {ctaIcon}
+          <div className={`flex-shrink-0 px-2 py-1 rounded text-[8px] font-bold uppercase ${isWhatsappAction ? 'bg-[#25D366] text-white hover:bg-[#20BA5C]' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+            {ctaText}
           </div>
         </div>
       </div>
     );
   }
 
-  // ===== VARIANT: bar (footer/header) =====
-  if (variant === 'bar') {
+  // ===== VARIANT: ecommerce (infeed_wide, freight_list) - imagem + badge FORA =====
+  if (variant === 'ecommerce') {
+    const hasText = adToShow.title || adToShow.description;
     return withModal(
       <div 
-        key={adToShow.id}
+        ref={containerRef} 
+        onClick={handleAction} 
+        className="group cursor-pointer w-full"
+      >
+        <div className="relative rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all h-28">
+          <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
+          {hasText && (
+            <div className="absolute inset-0 bg-slate-900/60 flex flex-col justify-end p-3">
+              {adToShow.title && (
+                <h4 className="font-bold text-white text-sm truncate">{adToShow.title}</h4>
+              )}
+              {adToShow.description && (
+                <p className="text-white/80 text-[10px] line-clamp-1 mt-0.5">{adToShow.description}</p>
+              )}
+            </div>
+          )}
+        </div>
+        <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Publicidade</span>
+      </div>
+    );
+  }
+
+  // ===== VARIANT: footer (ecommerce menor) - imagem + badge FORA =====
+  if (variant === 'footer') {
+    const hasText = adToShow.title || adToShow.description;
+    return withModal(
+      <div 
+        ref={containerRef} 
+        onClick={handleAction} 
+        className="group cursor-pointer w-full"
+      >
+        <div className="relative rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all h-24">
+          <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
+          {hasText && (
+            <div className="absolute inset-0 bg-slate-900/60 flex flex-col justify-end p-2">
+              {adToShow.title && (
+                <h4 className="font-bold text-white text-xs truncate">{adToShow.title}</h4>
+              )}
+              {adToShow.description && (
+                <p className="text-white/80 text-[8px] line-clamp-1 mt-0.5">{adToShow.description}</p>
+              )}
+            </div>
+          )}
+        </div>
+        <span className="text-[7px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Publicidade</span>
+      </div>
+    );
+  }
+
+  // ===== VARIANT: sidebar (estilo Instagram feed) =====
+  if (variant === 'sidebar') {
+    const hasText = adToShow.title || adToShow.description;
+    return withModal(
+      <div 
+        ref={containerRef} 
+        onClick={handleAction} 
+        className="group relative overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer aspect-[4/5] w-full"
+      >
+        <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
+        {hasText && (
+          <div className="absolute inset-0 bg-slate-900/60 flex flex-col justify-end p-3">
+            {adToShow.title && (
+              <h4 className="font-bold text-white text-xs truncate">{adToShow.title}</h4>
+            )}
+            {adToShow.description && (
+              <p className="text-white/80 text-[8px] line-clamp-2 mt-0.5">{adToShow.description}</p>
+            )}
+          </div>
+        )}
+        <span className="absolute bottom-2 left-3 text-[6px] font-bold text-white/70 uppercase tracking-wider">Publicidade</span>
+      </div>
+    );
+  }
+  
+
+  // ===== VARIANT: notice (Header - título + descrição) =====
+  if (variant === 'notice') {
+    const hasDescription = adToShow.description;
+    return withModal(
+      <div 
         ref={containerRef} 
         onClick={handleAction} 
         className="w-full bg-[#1f4ead] text-white py-1 px-3 cursor-pointer hover:bg-[#163a82] transition-all duration-500 group select-none"
       >
         <div className="container mx-auto flex items-center justify-center gap-2">
-          <span className="text-[7px] font-black uppercase tracking-wider bg-white/20 px-1.5 py-0.5 rounded leading-none">
-            {adsList.length > 1 ? `${currentIndex + 1}` : 'AD'}
-          </span>
-          <p className="text-[9px] sm:text-[10px] font-medium truncate">
-            {adToShow.title}
+          <p className="text-[8px] sm:text-[12px] font-medium truncate">
+            {adToShow.title || 'Aviso da plataforma'}
           </p>
+          {hasDescription && (
+            <>
+              <span className="text-white/50">•</span>
+              <p className="text-[8px] sm:text-[12px] text-white/80 truncate">
+                {adToShow.description}
+              </p>
+            </>
+          )}
           <ArrowRight size={8} className="group-hover:translate-x-1 transition-transform opacity-70" />
         </div>
       </div>
     );
   }
+
+  // ===== VARIANT: bar (deprecated - usar notice) =====
 
   // ===== VARIANT: vertical (sidebar 300x600) =====
   return withModal(
