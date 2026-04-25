@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api/api';
+import { api } from '@/api/api';
+import { AdminLayout } from '@/components/admin';
 import { 
   Plus, Edit3, Trash2, Star, X, Loader2, BadgeDollarSign, 
   CheckCircle2, Zap, Layout, ShieldCheck, Layers, List, LayoutGrid
@@ -22,7 +23,7 @@ export default function PlansManager() {
       const res = await api.get('/admin-manage-plans'); 
       const data = res.data.success === false ? [] : (res.data.plans || res.data.data || []);
       setPlans(Array.isArray(data) ? data : []);
-    } catch {
+    } catch (e) {
       console.error("Erro ao carregar planos:", e);
     } finally { 
       setLoading(false); 
@@ -69,52 +70,31 @@ export default function PlansManager() {
   };
 
   if (loading && plans.length === 0) return (
-    <div className="p-20 text-center animate-pulse font-black uppercase italic text-slate-400">
-      Sincronizando Banco de Dados...
-    </div>
+    <AdminLayout title="Planos" description="Gerencie planos de assinatura" icon={BadgeDollarSign}>
+      <div className="p-20 text-center text-slate-400">
+        Carregando...
+      </div>
+    </AdminLayout>
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Header com Switcher */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm gap-4">
-        <div className="flex items-center gap-4">
-          <div className="bg-orange-100 p-3 rounded-2xl text-orange-600">
-            <BadgeDollarSign size={32} />
-          </div>
-          <div>
-            <h3 className="text-xl font-black uppercase italic leading-none">Gestão de Assinaturas</h3>
-            <p className="text-[10px] font-bold text-slate-400 uppercase italic mt-1">
-              {plans.length} Modelos configurados
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 bg-slate-50 p-1.5 rounded-2xl border border-slate-100">
-          <button 
-            onClick={() => setViewMode('table')}
-            className={`p-2 rounded-xl transition-all ${viewMode === 'table' ? 'bg-white shadow-sm text-orange-500' : 'text-slate-400'}`}
-          >
-            <List size={20}/>
-          </button>
-          <button 
-            onClick={() => setViewMode('grid')}
-            className={`p-2 rounded-xl transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-orange-500' : 'text-slate-400'}`}
-          >
-            <LayoutGrid size={20}/>
-          </button>
-          <div className="w-[1px] h-6 bg-slate-200 mx-1" />
-          <button 
-            onClick={() => { 
-              setPlanData({id: null, name: '', price: '', duration_days: '', type: 'featured', description: '', active: 1}); 
-              setShowModal(true); 
-            }}
-            className="bg-slate-900 text-white px-6 py-3 rounded-xl font-black uppercase text-[10px] hover:bg-orange-500 transition-all flex items-center gap-2"
-          >
-            <Plus size={16}/> Novo Modelo
-          </button>
-        </div>
-      </div>
+    <AdminLayout
+      title="Planos"
+      description={`${plans.length} planos configurados`}
+      icon={BadgeDollarSign}
+      actions={
+        <button 
+          onClick={() => { 
+            setPlanData({id: null, name: '', price: '', duration_days: '', type: 'featured', description: '', active: 1}); 
+            setShowModal(true); 
+          }}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Novo Plano
+        </button>
+      }
+    >
 
       {/* Visualização em TABELA */}
       {viewMode === 'table' && (
@@ -234,6 +214,6 @@ export default function PlansManager() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

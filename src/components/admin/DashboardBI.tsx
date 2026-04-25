@@ -1,62 +1,73 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
-import { 
-  BarChart3, TrendingUp, TrendingDown, RefreshCw, 
-  Truck, Users, FileText, DollarSign, Calendar,
-  ShoppingBag, Headphones, CreditCard, Megaphone
-} from 'lucide-react';
+import { useTheme } from '@/context/ThemeContext';
+import { RefreshCw, RotateCcw, Plus, LayoutGrid, Settings, Truck, BarChart3, Users, DollarSign, FileText, Headphones, ShoppingBag } from 'lucide-react';
+import { WidgetContainer } from './widgets/WidgetContainer';
+import { WidgetSelector } from './widgets/WidgetSelector';
+import { BIWidget } from './widgets/BIWidget';
+import { BarChartWidget } from './widgets/BarChartWidget';
 
 interface BIStats {
-  freights: { current: number; previous: number; growth: number };
-  users: { current: number; previous: number; growth: number };
-  companies: { current: number; previous: number; growth: number };
-  listings: { current: number; previous: number; growth: number };
-  quotes: { total: number; open: number; closed: number; previous: number; growth: number };
-  revenue: { current: number; previous: number; growth: number };
-  tickets: { total: number; open: number; closed: number; previous: number; growth: number };
-  plans: { current: number; previous: number; growth: number };
-  ads: { current: number; previous: number; growth: number };
+  freights?: { current: number; growth: number; all_time: number; by_status?: any[]; by_day?: any[] };
+  users?: { current: number; growth: number; all_time: number; by_role?: any[]; active?: number; inactive?: number };
+  companies?: { current: number; total: number; verified: number };
+  drivers?: { current: number; total: number; verified: number };
+  finance?: { current: number; growth: number; all_time: number; avg_ticket: number };
+  quotes?: { total: number; growth: number; all_time: number; by_status?: any[] };
+  tickets?: { open: number; closed: number; total: number; new_this_period: number };
+  groups?: { total: number; members: number };
+  marketplace?: { active: number; new_this_period: number };
+  ads?: { revenue: number; impressions: number; ctr: number };
+  plans?: { current: number; revenue: number };
 }
 
-interface ChartData {
-  date: string;
-  total: number;
+interface UserWidget {
+  widget_key: string;
+  widget_type: string;
+  position_order: number;
+  col_span: number;
 }
 
-interface TopCity {
-  origin_city: string;
-  total: number;
+interface AvailableWidget {
+  widget_key: string;
+  widget_type: string;
+  label: string;
+  description: string;
+  icon: string;
+  category: string;
 }
 
 const periodOptions = [
   { value: 'this_month', label: 'Este Mês' },
   { value: 'last_month', label: 'Mês Passado' },
   { value: 'last_3_months', label: 'Últimos 3 Meses' },
+  { value: 'this_year', label: 'Este Ano' },
+  { value: 'all_time', label: 'Todos os Tempos' },
+  { value: 'custom', label: 'Personalizado' },
 ];
 
 export default function DashboardBI({ user }: { user: any }) {
+  const { isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState('this_month');
+  const [customStart, setCustomStart] = useState('');
+  const [customEnd, setCustomEnd] = useState('');
   const [stats, setStats] = useState<BIStats | null>(null);
-  const [freightsChart, setFreightsChart] = useState<ChartData[]>([]);
-  const [usersChart, setUsersChart] = useState<ChartData[]>([]);
-  const [topCities, setTopCities] = useState<TopCity[]>([]);
-  const [periodDates, setPeriodDates] = useState({ start: '', end: '' });
+  
+  const [isEditing, setIsEditing] = useState(false);
+  const [showSelector, setShowSelector] = useState(false);
+  const [userWidgets, setUserWidgets] = useState<UserWidget[]>([]);
+  const [availableWidgets, setAvailableWidgets] = useState<AvailableWidget[]>([]);
 
   const loadData = async (selectedPeriod?: string) => {
     try {
       setLoading(true);
-      const res = await api.get('/admin/bi-stats', { 
+      const res = await api.get('/admin/bi', { 
         params: { period: selectedPeriod || period } 
       });
-      console.log('BI Response:', res.data);
       if (res.data?.success) {
         setStats(res.data.data);
-        setFreightsChart(res.data.charts?.freights_by_day || []);
-        setUsersChart(res.data.charts?.users_by_day || []);
-        setTopCities(res.data.top_cities || []);
-        setPeriodDates(res.data.period || { start: '', end: '' });
       }
     } catch (e) {
       console.error("Erro ao carregar dados:", e);
@@ -65,13 +76,45 @@ export default function DashboardBI({ user }: { user: any }) {
     }
   };
 
+  const loadWidgets = async () => {
+    try {
+      const res = await api.get('/admin/dashboard/widgets');
+      if (res.data?.success) {
+        const widgets = res.data.data?.user_widgets || [];
+        if (widgets.length > 0) {
+          setUserWidgets(widgets.map((w: any) => ({
+            widget_key: w.widget_key,
+            widget_type: w.widget_type,
+            position_order: w.position_order,
+            col_span: w.col_span
+          })));
+        }
+        setAvailableWidgets(res.data.data?.available_widgets || []);
+      }
+    } catch (e) {
+      console.error("Erro ao carregar widgets:", e);
+    }
+  };
+
   useEffect(() => {
     loadData();
+    loadWidgets();
   }, []);
 
   const handlePeriodChange = (newPeriod: string) => {
     setPeriod(newPeriod);
-    loadData(newPeriod);
+    if (newPeriod === 'custom' && customStart && customEnd) {
+      loadData(`custom:${customStart}:${customEnd}`);
+    } else if (newPeriod !== 'custom') {
+      loadData(newPeriod);
+    }
+  };
+
+  const handleCustomApply = () => {
+    if (customStart && customEnd) {
+      setPeriod('custom');
+      loadData(`custom:${customStart}:${customEnd}`);
+    }
   };
 
   const handleRefresh = async () => {
@@ -83,296 +126,288 @@ export default function DashboardBI({ user }: { user: any }) {
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
-  };
-
-  const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('pt-BR').format(value);
-  };
-
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
-  };
-
-  const getMaxValue = (data: ChartData[]) => {
-    return Math.max(...data.map(d => d.total), 1);
-  };
-
-  // Simple bar chart component
-  const BarChart = ({ data, color = 'bg-blue-500' }: { data: ChartData[], color?: string }) => {
-    const maxValue = getMaxValue(data);
-    
-    if (data.length === 0) {
-      return (
-        <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
-          Sem dados para o período
-        </div>
-      );
+  const handleSaveWidgets = async () => {
+    try {
+      await api.put('/admin/dashboard/widgets', {
+        widgets: userWidgets.map((w, idx) => ({
+          widget_key: w.widget_key,
+          widget_type: w.widget_type,
+          col_span: w.col_span
+        }))
+      });
+      setIsEditing(false);
+      setShowSelector(false);
+    } catch (e) {
+      console.error("Erro ao salvar widgets:", e);
     }
-
-    return (
-      <div className="h-48 flex items-end gap-1">
-        {data.map((item, idx) => {
-          const height = (item.total / maxValue) * 100;
-          return (
-            <div 
-              key={idx} 
-              className={`flex-1 ${color} rounded-t transition-all hover:opacity-80 relative group`}
-              style={{ height: `${Math.max(height, 2)}%` }}
-            >
-              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-slate-800 text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                {formatDate(item.date)}: {item.total}
-              </div>
-            </div>
-          );
-        })}
-      </div>
-    );
   };
 
-  // Growth indicator component
-  const GrowthIndicator = ({ value, suffix = '' }: { value: number; suffix?: string }) => {
-    const isPositive = value >= 0;
-    const colorClass = isPositive ? 'text-green-600' : 'text-red-600';
-    const Icon = isPositive ? TrendingUp : TrendingDown;
-    
-    return (
-      <span className={`flex items-center gap-1 text-xs font-bold ${colorClass}`}>
-        <Icon size={14} />
-        {isPositive ? '+' : ''}{value}%{suffix}
-      </span>
-    );
+  const handleResetWidgets = async () => {
+    try {
+      await api.post('/admin/dashboard/widgets/reset');
+      setIsEditing(false);
+    } catch (e) {
+      console.error("Erro ao resetar widgets:", e);
+    }
+  };
+
+  const handleToggleWidget = (widgetKey: string) => {
+    const existing = userWidgets.find(w => w.widget_key === widgetKey);
+    if (existing) {
+      setUserWidgets(userWidgets.filter(w => w.widget_key !== widgetKey));
+    } else {
+      const available = availableWidgets.find(w => w.widget_key === widgetKey);
+      if (available) {
+        setUserWidgets([...userWidgets, {
+          widget_key: widgetKey,
+          widget_type: available.widget_type,
+          position_order: userWidgets.length + 1,
+          col_span: available.widget_type === 'kpi' ? 1 : 2
+        }]);
+      }
+    }
+  };
+
+  const selectedWidgetKeys = useMemo(() => userWidgets.map(w => w.widget_key), [userWidgets]);
+
+  const getWidgetTitle = (widgetKey: string) => {
+    const titles: Record<string, string> = {
+      freights_total: 'Total de Fretes',
+      freights_growth: 'Crescimento Fretes',
+      freights_open: 'Fretes Abertos',
+      freights_in_progress: 'Em Andamento',
+      freights_completed: 'Concluídos',
+      freights_chart: 'Fretes por Dia',
+      users_total: 'Total de Usuários',
+      users_growth: 'Novos Usuários',
+      users_active: 'Usuários Ativos',
+      users_inactive: 'Inativos',
+      drivers_total: 'Motoristas',
+      drivers_verified: 'Verificados',
+      companies_total: 'Empresas',
+      companies_verified: 'Verificadas',
+      wallet_revenue: 'Receita do Período',
+      wallet_revenue_growth: 'Crescimento',
+      wallet_all_time: 'Receita Total',
+      avg_ticket: 'Ticket Médio',
+      plans_active: 'Planos Ativos',
+      plans_revenue: 'Receita Planos',
+      ads_revenue: 'Receita Ads',
+      ads_impressions: 'Impressões',
+      ads_ctr: 'Taxa de Clique',
+      quotes_total: 'Total Cotações',
+      quotes_growth: 'Crescimento',
+      quotes_open: 'Abertas',
+      quotes_accepted: 'Aceitas',
+      quotes_rejected: 'Rejeitadas',
+      tickets_open: 'Tickets Abertos',
+      tickets_closed: 'Fechados',
+      tickets_new: 'Novos Tickets',
+      groups_total: 'Total Grupos',
+      groups_members: 'Membros',
+      listings_active: 'Anúncios Ativos',
+      listings_new: 'Novos Anúncios',
+    };
+    return titles[widgetKey] || widgetKey.replace(/_/g, ' ');
+  };
+
+  const iconMap: Record<string, React.ReactNode> = {
+    freights_total: <Truck size={20} />,
+    freights_chart: <BarChart3 size={20} />,
+    users_total: <Users size={20} />,
+    wallet_revenue: <DollarSign size={20} />,
+    quotes_total: <FileText size={20} />,
+    tickets_open: <Headphones size={20} />,
+    listings_active: <ShoppingBag size={20} />,
   };
 
   if (loading) {
     return (
-      <div className="p-20 flex flex-col items-center justify-center">
-        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
+      <div className={`p-6 flex flex-col items-center justify-center ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+        <div className={`w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4`}></div>
+        <span className={`text-[11px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Carregando...</span>
       </div>
     );
-  }
+}
 
-  return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-[3rem] p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="relative z-10 flex justify-between items-start">
-          <div>
-            <h2 className="text-3xl font-black uppercase italic">BI & Performance</h2>
-            <p className="text-indigo-100 text-sm font-medium mt-1">
-              Análises e métricas detalhadas
-            </p>
-          </div>
-          <button 
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
-          >
-            <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
-            Atualizar
-          </button>
+  const renderWidget = (widget: UserWidget) => {
+    if (widget.widget_type === 'chart_bar' || widget.widget_type === 'chart_line') {
+      const chartData = stats?.freights?.by_day?.map((d: any) => ({
+        label: d.date?.slice(5),
+        value: parseInt(d.total)
+      })) || [];
+      
+      return (
+        <BarChartWidget
+          data={chartData}
+          color="bg-indigo-500"
+          emptyMessage="Sem dados para exibir"
+        />
+      );
+    }
+    
+    if (widget.widget_type === 'ranking') {
+      return (
+        <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+          Widget não disponível no momento
         </div>
-      </div>
+      );
+    }
+    
+    return (
+      <BIWidget
+        widgetKey={widget.widget_key}
+        data={stats}
+      />
+    );
+  };
 
-      {/* Period Selector */}
-      <div className="bg-white rounded-[2rem] p-4 border border-slate-100 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <Calendar size={18} className="text-slate-400" />
-          <span className="text-sm font-bold text-slate-600">Período:</span>
-          <div className="flex gap-2">
-            {periodOptions.map(opt => (
+return (
+    <div className={`p-5 lg:p-8 space-y-6 animate-in fade-in duration-500 pb-24 max-w-[1440px] mx-auto ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
+      {/* Header */}
+      <div className={`flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-2xl p-5 lg:p-6 border`}>
+        <div>
+          <h2 className={`text-2xl lg:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>Dashboard BI</h2>
+          <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'} mt-1`}>
+            Visão geral das métricas e indicadores
+          </p>
+        </div>
+        
+        <div className="flex items-center gap-3">
+          {/* Period Selector Pills */}
+          <div className={`flex p-1 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
+            {periodOptions.filter(o => o.value !== 'custom').map(opt => (
               <button
                 key={opt.value}
                 onClick={() => handlePeriodChange(opt.value)}
-                className={`px-4 py-2 rounded-xl font-bold text-sm transition-all ${
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   period === opt.value 
-                    ? 'bg-indigo-600 text-white' 
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? (isDark ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm')
+                    : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')
                 }`}
               >
                 {opt.label}
               </button>
             ))}
           </div>
+          
+          {/* Custom Date Picker */}
+          <div className={`flex items-center gap-2 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-xl px-3 py-2`}>
+            <input 
+              type="date" 
+              value={customStart}
+              onChange={(e) => setCustomStart(e.target.value)}
+              className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'} bg-transparent border-none outline-none w-24`}
+            />
+            <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>-</span>
+            <input 
+              type="date" 
+              value={customEnd}
+              onChange={(e) => setCustomEnd(e.target.value)}
+              className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'} bg-transparent border-none outline-none w-24`}
+            />
+            <button 
+              onClick={handleCustomApply}
+              disabled={!customStart || !customEnd}
+              className={`${isDark ? 'bg-slate-600 disabled:bg-slate-700' : 'bg-slate-900 disabled:bg-slate-400'} text-white px-3 py-1 rounded-lg text-sm font-medium`}
+            >
+              OK
+            </button>
+          </div>
+          
+          {/* Actions */}
+          <button 
+            onClick={() => setIsEditing(!isEditing)}
+            className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
+            title={isEditing ? 'Fechar' : 'Personalizar'}
+          >
+            <LayoutGrid size={18} />
+          </button>
+          <button 
+            onClick={handleRefresh}
+            disabled={refreshing}
+            className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
+            title="Atualizar"
+          >
+            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+          </button>
         </div>
-        <div className="text-xs text-slate-400">
-          {periodDates.start && periodDates.end && (
-            <span>{formatDate(periodDates.start)} - {formatDate(periodDates.end)}</span>
+      </div>
+
+      {/* Editing Toolbar */}
+      {isEditing && (
+        <div className={`${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'} border rounded-2xl p-4`}>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowSelector(!showSelector)}
+                className={`${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all`}
+              >
+                <Plus size={16} />
+                Adicionar
+              </button>
+              <button
+                onClick={handleResetWidgets}
+                className={`${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all border`}
+              >
+                <RotateCcw size={16} />
+                Resetar
+              </button>
+            </div>
+            <button
+              onClick={handleSaveWidgets}
+              className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all"
+            >
+              <Settings size={16} />
+              Salvar Layout
+            </button>
+          </div>
+
+          {showSelector && (
+            <div className="mt-4 pt-4 border-t border-indigo-200">
+              <WidgetSelector
+                availableWidgets={availableWidgets.map(w => ({
+                  widget_key: w.widget_key,
+                  widget_type: w.widget_type,
+                  label: w.label,
+                  description: w.description,
+                  icon: w.icon,
+                  category: w.category
+                }))}
+                selectedWidgets={selectedWidgetKeys}
+                onToggle={handleToggleWidget}
+              />
+            </div>
           )}
         </div>
+      )}
+
+      {/* Widgets Grid */}
+      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-6 ${isEditing ? 'opacity-75' : ''}`}>
+        {userWidgets.map((widget) => (
+          <WidgetContainer
+            key={widget.widget_key}
+            colSpan={widget.col_span}
+            isEditing={isEditing}
+            onRemove={isEditing ? () => handleToggleWidget(widget.widget_key) : undefined}
+          >
+            {renderWidget(widget)}
+          </WidgetContainer>
+        ))}
       </div>
 
-      {/* Stats Cards with Growth */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        {/* Fretes */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-orange-50 p-2 rounded-xl">
-              <Truck size={16} className="text-orange-500" />
-            </div>
-            <GrowthIndicator value={stats?.freights?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Fretes</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.freights?.current || 0)}</p>
+      {userWidgets.length === 0 && !isEditing && (
+        <div className={`text-center py-16 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-2xl border p-12`}>
+          <LayoutGrid size={48} className={`mx-auto mb-4 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+          <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium mb-4`}>Nenhum widget configurado</p>
+          <button
+            onClick={() => setIsEditing(true)}
+            className="text-indigo-600 font-bold text-sm hover:underline"
+          >
+            Adicionar widgets
+          </button>
         </div>
-
-        {/* Usuários */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-blue-50 p-2 rounded-xl">
-              <Users size={16} className="text-blue-500" />
-            </div>
-            <GrowthIndicator value={stats?.users?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Usuários</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.users?.current || 0)}</p>
-        </div>
-
-        {/* Empresas */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-purple-50 p-2 rounded-xl">
-              <ShoppingBag size={16} className="text-purple-500" />
-            </div>
-            <GrowthIndicator value={stats?.companies?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Empresas</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.companies?.current || 0)}</p>
-        </div>
-
-        {/* Anúncios Marketplace */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-emerald-50 p-2 rounded-xl">
-              <ShoppingBag size={16} className="text-emerald-500" />
-            </div>
-            <GrowthIndicator value={stats?.listings?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Anúncios</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.listings?.current || 0)}</p>
-        </div>
-
-        {/* Cotações */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-amber-50 p-2 rounded-xl">
-              <FileText size={16} className="text-amber-500" />
-            </div>
-            <GrowthIndicator value={stats?.quotes?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Cotações</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.quotes?.total || 0)}</p>
-        </div>
-
-        {/* Tickets */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-red-50 p-2 rounded-xl">
-              <Headphones size={16} className="text-red-500" />
-            </div>
-            <GrowthIndicator value={stats?.tickets?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Tickets</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.tickets?.total || 0)}</p>
-        </div>
-
-        {/* Planos */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-indigo-50 p-2 rounded-xl">
-              <CreditCard size={16} className="text-indigo-500" />
-            </div>
-            <GrowthIndicator value={stats?.plans?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Planos</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.plans?.current || 0)}</p>
-        </div>
-
-        {/* Anúncios Publicitários */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-pink-50 p-2 rounded-xl">
-              <Megaphone size={16} className="text-pink-500" />
-            </div>
-            <GrowthIndicator value={stats?.ads?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Propagandas</p>
-          <p className="text-2xl font-black text-slate-800">{formatNumber(stats?.ads?.current || 0)}</p>
-        </div>
-
-        {/* Receita */}
-        <div className="bg-white rounded-[2rem] p-4 border border-slate-100 col-span-2">
-          <div className="flex items-center justify-between mb-2">
-            <div className="bg-green-50 p-2 rounded-xl">
-              <DollarSign size={16} className="text-green-500" />
-            </div>
-            <GrowthIndicator value={stats?.revenue?.growth || 0} />
-          </div>
-          <p className="text-[10px] font-black uppercase text-slate-400">Receita</p>
-          <p className="text-2xl font-black text-green-600">{formatCurrency(stats?.revenue?.current || 0)}</p>
-        </div>
-      </div>
-
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Fretes Chart */}
-        <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black uppercase text-slate-800">Fretes por Dia</h3>
-            <Truck size={20} className="text-orange-400" />
-          </div>
-          <BarChart data={freightsChart} color="bg-orange-500" />
-        </div>
-
-        {/* Users Chart */}
-        <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-black uppercase text-slate-800">Novos Usuários por Dia</h3>
-            <Users size={20} className="text-blue-400" />
-          </div>
-          <BarChart data={usersChart} color="bg-blue-500" />
-        </div>
-      </div>
-
-      {/* Top Cities */}
-      <div className="bg-white rounded-[2.5rem] p-6 border border-slate-100">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="font-black uppercase text-slate-800">Top Cidades (Fretes)</h3>
-          <BarChart3 size={20} className="text-indigo-400" />
-        </div>
-        
-        {topCities.length === 0 ? (
-          <p className="text-center text-slate-400 py-8">Sem dados para o período</p>
-        ) : (
-          <div className="space-y-3">
-            {topCities.map((city, idx) => {
-              const maxValue = topCities[0]?.total || 1;
-              const width = (city.total / maxValue) * 100;
-              
-              return (
-                <div key={city.origin_city || idx} className="flex items-center gap-3">
-                  <span className="w-6 text-xs font-bold text-slate-400">#{idx + 1}</span>
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="font-bold text-sm text-slate-700">{city.origin_city}</span>
-                      <span className="text-xs font-bold text-slate-500">{city.total}</span>
-                    </div>
-                    <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
-                      <div 
-                        className="h-full bg-indigo-500 rounded-full transition-all"
-                        style={{ width: `${width}%` }}
-                      />
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

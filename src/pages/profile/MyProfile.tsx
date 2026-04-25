@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ShieldCheck, Save, Loader2, Camera, AlertCircle, 
-  Globe, MapPin, MessageCircle, Copy, ExternalLink, Image as ImageIcon,
-  LayoutDashboard, User, Building2, Briefcase
+  Globe, MapPin, MessageCircle, Copy, ExternalLink, ImageIcon,
+  LayoutDashboard, User, Building2, Briefcase, Lock, Eye, EyeOff
 } from 'lucide-react';
 import { api } from '../../api/api';
-import Swal from 'sweetalert2'; 
+import Swal from 'sweetalert2';
 
 import DriverFields from '../../components/driver/DriverFields';
 import CompanyFields from '../../components/company/CompanyFields';
@@ -18,6 +18,16 @@ interface MyProfileProps {
 const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<any>({});
+
+  // Estados para mudança de senha
+  const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPasswords, setShowPasswords] = useState({ current: false, new: false, confirm: false });
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
   
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -76,6 +86,53 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
       }
     } catch (e) {
       console.error("Erro ao carregar dados do CNPJ:", e);
+    }
+  };
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError(null);
+    setPasswordSuccess(null);
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('A nova senha e a confirmação não coincidem');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      setPasswordError('A nova senha deve ter no mínimo 6 caracteres');
+      return;
+    }
+
+    try {
+      setChangingPassword(true);
+      const res = await api.put('/change-password', {
+        current_password: currentPassword,
+        new_password: newPassword,
+        confirm_password: confirmPassword
+      });
+
+      if (res.data?.success) {
+        setPasswordSuccess('Senha alterada com sucesso!');
+        setCurrentPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setTimeout(() => {
+          setShowPasswordSection(false);
+          setPasswordSuccess(null);
+        }, 2000);
+      } else {
+        setPasswordError(res.data?.message || 'Erro ao alterar senha');
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setPasswordError(axiosErr.response?.data?.message || 'Erro ao alterar senha');
+      } else {
+        setPasswordError('Erro ao alterar senha');
+      }
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -351,6 +408,105 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
 
         {/* COLUNA LATERAL */}
         <div className="space-y-8">
+          {/* Alterar Senha */}
+          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-black uppercase italic mb-6 text-slate-400 tracking-widest flex items-center gap-2">
+              <Lock size={18} /> Segurança
+            </h3>
+            
+            {!showPasswordSection ? (
+              <button
+                onClick={() => setShowPasswordSection(true)}
+                className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-2"
+              >
+                <Lock size={16} />
+                Alterar Senha
+              </button>
+            ) : (
+              <form onSubmit={handleChangePassword} className="space-y-4">
+                <div>
+                  <Input 
+                    label="Senha Atual" 
+                    type={showPasswords.current ? "text" : "password"}
+                    value={currentPassword} 
+                    onChange={(v: string) => setCurrentPassword(v)}
+                    placeholder="Digite sua senha atual"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))}
+                    className="text-xs text-slate-500 mt-1"
+                  >
+                    {showPasswords.current ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <div>
+                  <Input 
+                    label="Nova Senha" 
+                    type={showPasswords.new ? "text" : "password"}
+                    value={newPassword} 
+                    onChange={(v: string) => setNewPassword(v)}
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))}
+                    className="text-xs text-slate-500 mt-1"
+                  >
+                    {showPasswords.new ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+                <div>
+                  <Input 
+                    label="Confirmar Nova Senha" 
+                    type={showPasswords.confirm ? "text" : "password"}
+                    value={confirmPassword} 
+                    onChange={(v: string) => setConfirmPassword(v)}
+                    placeholder="Repita a nova senha"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))}
+                    className="text-xs text-slate-500 mt-1"
+                  >
+                    {showPasswords.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
+                  </button>
+                </div>
+
+                {passwordError && (
+                  <p className="text-red-500 text-sm font-bold">{passwordError}</p>
+                )}
+                {passwordSuccess && (
+                  <p className="text-green-600 text-sm font-bold">{passwordSuccess}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordSection(false);
+                      setPasswordError(null);
+                      setCurrentPassword('');
+                      setNewPassword('');
+                      setConfirmPassword('');
+                    }}
+                    className="flex-1 py-2 px-4 border border-slate-300 dark:border-slate-600 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={changingPassword}
+                    className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  >
+                    {changingPassword ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
+                    Salvar
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+
           <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
             <h3 className="text-sm font-black uppercase italic mb-8 text-slate-400 tracking-widest">Localização e Contato</h3>
             <div className="space-y-6">
@@ -420,10 +576,11 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   );
 };
 
-const Input = ({ label, value, onChange, placeholder, disabled, dark }: any) => (
+const Input = ({ label, value, onChange, placeholder, disabled, dark, type = "text" }: any) => (
   <div className="w-full">
     <label className={`text-[9px] font-black uppercase tracking-[0.2em] mb-3 block ml-2 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{label}</label>
     <input 
+      type={type}
       value={value || ''} 
       onChange={(e) => onChange(e.target.value)} 
       placeholder={placeholder} 

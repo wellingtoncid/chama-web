@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api/api';
+import { api } from '@/api/api';
+import { AdminLayout } from '@/components/admin';
 import { 
   Shield, Plus, Trash2, Edit3, X, Check, Loader2,
   Truck, ShoppingCart, Building2, Users, Megaphone, MessageSquare,
@@ -97,19 +98,20 @@ export default function PermissionsManager() {
   const labelClass = "text-[10px] font-black uppercase text-slate-400 tracking-wider";
 
   return (
-    <div className="max-w-5xl space-y-8 animate-in fade-in duration-500 pb-32">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-black uppercase italic">Permissões</h2>
-          <p className="text-slate-500 text-sm font-bold uppercase">Gerencie as permissões do sistema</p>
-        </div>
+    <AdminLayout
+      title="Permissões"
+      description="Gerencie as permissões do sistema"
+      icon={Shield}
+      actions={
         <button
           onClick={() => { setEditingPerm(null); setFormData({ slug: '', label: '' }); setShowModal(true); }}
-          className="bg-orange-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs hover:bg-orange-600 transition-all flex items-center gap-2 shadow-lg"
+          className="flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition-colors"
         >
-          <Plus size={16} /> Nova Permissão
+          <Plus size={20} />
+          Nova Permissão
         </button>
-      </div>
+      }
+    >
 
       {Object.entries(grouped).map(([module, perms]) => (
         <div key={module} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
@@ -195,6 +197,6 @@ export default function PermissionsManager() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

@@ -208,42 +208,70 @@ export default function SupportTicketsManager() {
   const progressCount = tickets.filter(t => t.status === 'IN_PROGRESS').length;
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-[3rem] p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="relative z-10">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="bg-white/20 p-3 rounded-2xl">
-              <Headphones size={28} />
+    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6 animate-in fade-in duration-500 pb-20">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
+            Gestão de Suporte
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Gerencie chamados de clientes
+          </p>
+        </div>
+      </div>
+
+      {/* STATS GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl">
+              <MessageCircle size={20} className="text-blue-500" />
             </div>
             <div>
-              <h2 className="text-3xl font-black uppercase italic">Central de Suporte</h2>
-              <p className="text-indigo-100 text-sm font-medium">Gerencie chamados de clientes</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Total</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{tickets.length}</p>
             </div>
           </div>
-
-          {/* Stats */}
-          <div className="flex gap-4 mt-6">
-            <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-xl">
-              <span className="text-[10px] font-black uppercase text-indigo-200">Abertos</span>
-              <p className="text-xl font-black">{openCount}</p>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-xl">
+              <Clock size={20} className="text-indigo-500" />
             </div>
-            <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-xl">
-              <span className="text-[10px] font-black uppercase text-indigo-200">Em Andamento</span>
-              <p className="text-xl font-black">{progressCount}</p>
+            <div>
+              <p className="text-xs text-indigo-700 dark:text-indigo-400 font-bold uppercase">Abertos</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{openCount}</p>
             </div>
-            <div className="bg-white/10 backdrop-blur px-4 py-2 rounded-xl">
-              <span className="text-[10px] font-black uppercase text-indigo-200">Total</span>
-              <p className="text-xl font-black">{tickets.length}</p>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl">
+              <AlertCircle size={20} className="text-purple-500" />
+            </div>
+            <div>
+              <p className="text-xs text-purple-700 dark:text-purple-400 font-bold uppercase">Em Andamento</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{progressCount}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl">
+              <CheckCircle size={20} className="text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase">Fechados</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{tickets.filter(t => t.status === 'CLOSED').length}</p>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-100">
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
           {[
             { value: '%', label: 'Todos' },
             { value: 'OPEN', label: 'Abertos' },
@@ -253,10 +281,10 @@ export default function SupportTicketsManager() {
             <button
               key={f.value}
               onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all ${
+              className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
                 filter === f.value 
                   ? 'bg-indigo-600 text-white' 
-                  : 'text-slate-500 hover:bg-slate-50'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
               {f.label}
@@ -264,7 +292,7 @@ export default function SupportTicketsManager() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-100">
+        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
           {[
             { value: '%', label: 'Todas Prioridades' },
             { value: 'vip', label: 'VIP Only' },
@@ -273,10 +301,10 @@ export default function SupportTicketsManager() {
             <button
               key={f.value}
               onClick={() => setPriorityFilter(f.value)}
-              className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all ${
+              className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
                 priorityFilter === f.value 
                   ? 'bg-amber-500 text-white' 
-                  : 'text-slate-500 hover:bg-slate-50'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
               {f.label}

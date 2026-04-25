@@ -31,13 +31,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('@ChamaFrete:token');
-      localStorage.removeItem('@ChamaFrete:user');
-      
-      const publicPages = ['/login', '/register', '/forgot-password'];
-      if (!publicPages.includes(window.location.pathname)) {
-        window.location.href = '/login';
-      }
+      console.error('401 Error - URL:', error.config?.url);
+      // NÃO faz logout automático - apenas loga o erro
+      // localStorage.removeItem('@ChamaFrete:token');
+      // localStorage.removeItem('@ChamaFrete:user');
+      // window.location.href = '/login';
     }
     return Promise.reject(error);
   }

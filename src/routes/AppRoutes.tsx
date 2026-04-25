@@ -32,6 +32,12 @@ import MatchingDriversPage from '../pages/freights/MatchingDriversPage';
 import AdvertiserPortal from '../pages/advertiser/AdvertiserPortal';
 import ListingFormPage from '../pages/marketplace/ListingFormPage';
 
+// ARTIGOS
+import ArticlesPage from '../pages/ArticlesPage';
+import ArticleDetailPage from '../pages/ArticleDetailPage';
+import ArticleSubmitPage from '../pages/ArticleSubmitPage';
+import AuthorRequestPage from '../pages/AuthorRequestPage';
+
 // CHATS
 import ChatList from '../pages/chat/ChatList'; 
 import ChatRoom from '../pages/chat/ChatRoom';
@@ -43,6 +49,9 @@ import PaymentFailure from '../pages/checkout/PaymentFailure';
 // ADMIN - USUÁRIOS
 import UsersManager from '../components/admin/UsersManagerView';
 import UserCreate from '../components/admin/UserCreate';
+
+// ADMIN - ARTIGOS
+import ArticlesAdminPage from '../pages/admin/ArticlesAdminPage';
 
 
 export default function AppRoutes() {
@@ -78,6 +87,12 @@ export default function AppRoutes() {
       <Route path="/como-funciona" element={<HowItWorks />} />
       <Route path="/como-funciona/empresas" element={<HowItWorksCompanies />} />
       <Route path="/como-funciona/motoristas" element={<HowItWorksDrivers />} />
+
+      {/* --- ARTIGOS (PÚBLICOS) --- */}
+      <Route path="/artigos" element={<ArticlesPage />} />
+      <Route path="/artigos/:slug" element={<ArticleDetailPage />} />
+      <Route path="/artigos/submeter" element={<ArticleSubmitPage />} />
+      <Route path="/artigos/ser-autor" element={<AuthorRequestPage />} />
 
       {/* --- ÁREA LOGADA (Com Sidebar/DashboardLayout) --- */}
       <Route element={<PrivateRoute allowedRoles={['driver', 'company', 'admin', 'manager', 'support', 'finance', 'marketing', 'director', 'coordinator', 'supervisor']} />}>

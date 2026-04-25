@@ -272,3 +272,223 @@ Create `.env` files as needed:
 - `/dashboard/admin/cargos` - Roles management
 - `/dashboard/admin/modulos` - Modules management
 - `/dashboard/admin/usuarios` - Users management
+
+---
+
+## Admin Components (Dashboard)
+
+O projeto possui componentes padronizados para páginas de administração em `src/components/admin/`.
+
+### Importar Componentes
+
+```typescript
+// Importar todos de uma vez
+import { 
+  AdminLayout, 
+  AdminHeader, 
+  StatsGrid, 
+  StatCard, 
+  FilterBar, 
+  DataTable, 
+  StatusBadge, 
+  AdminCard 
+} from '@/components/admin';
+
+// Ou importar individualmente
+import AdminHeader from '@/components/admin/AdminHeader';
+import DataTable, { type TableColumn, type TableAction } from '@/components/admin/DataTable';
+```
+
+### AdminLayout
+
+Wrapper padrão para páginas de admin.
+
+```tsx
+<AdminLayout 
+  title="Artigos" 
+  description="Gerencie artigos submetidos"
+  icon={FileText}
+  actions={<Button>Novo Artigo</Button>}
+>
+  {/* conteúdo da página */}
+</AdminLayout>
+```
+
+### AdminHeader
+
+Header com ícone, título e ações.
+
+```tsx
+<AdminHeader 
+  title="Gestão de Usuários" 
+  description="Gerencie usuários do sistema"
+  icon={Users}
+  actions={
+    <Button>
+      <Plus size={20} />
+      Novo Usuário
+    </Button>
+  }
+/>
+```
+
+### StatsGrid + StatCard
+
+Grid de cards de estatísticas.
+
+```tsx
+<StatsGrid>
+  <StatCard label="Total" value={123} />
+  <StatCard label="Ativos" value={100} variant="green" />
+  <StatCard label="Pendentes" value={20} variant="yellow" />
+  <StatCard label="Rejeitados" value={3} variant="red" />
+</StatsGrid>
+```
+
+### FilterBar
+
+Barra de filtros com busca e abas.
+
+```tsx
+<FilterBar
+  search={{
+    placeholder: 'Buscar por nome...',
+    value: searchTerm,
+    onChange: setSearchTerm
+  }}
+  tabs={[
+    { key: 'all', label: 'Todos' },
+    { key: 'pending', label: 'Pendente' },
+    { key: 'published', label: 'Publicado' }
+  ]}
+  activeTab={filter}
+  onTabChange={setFilter}
+/>
+```
+
+### DataTable
+
+Tabela padronizada com colunas e ações.
+
+```tsx
+const columns: TableColumn<Article>[] = [
+  { key: 'title', label: 'Título' },
+  { 
+    key: 'status', 
+    label: 'Status',
+    render: (value) => <StatusBadge status={value} />
+  },
+  { 
+    key: 'actions', 
+    label: 'Ações',
+    render: (_, row) => (
+      <div className="flex gap-2">
+        <button onClick={() => handleEdit(row)}>
+          <Edit size={16} />
+        </button>
+        <button onClick={() => handleDelete(row)}>
+          <Trash2 size={16} />
+        </button>
+      </div>
+    )
+  }
+];
+
+<DataTable 
+  columns={columns} 
+  data={articles} 
+  loading={loading}
+  emptyMessage="Nenhum artigo encontrado"
+/>
+```
+
+### StatusBadge
+
+Badge de status colorido.
+
+```tsx
+<StatusBadge status="pending" />
+<StatusBadge status="published" />
+<StatusBadge status="rejected" />
+
+// Com labels customizados
+<StatusBadge 
+  status="pending" 
+  labels={{ pending: 'Aguardando', published: 'Publicado' }}
+/>
+```
+
+### AdminCard
+
+Card wrapper padrão.
+
+```tsx
+<AdminCard>
+  <AdminCardHeader title="Informações" action={<Button>Editar</Button>} />
+  <p>Conteúdo do card...</p>
+</AdminCard>
+
+// Sem padding
+<AdminCard noPadding>
+  <table>...</table>
+</AdminCard>
+```
+
+### Exemplo Completo
+
+```tsx
+import { AdminLayout, StatsGrid, StatCard, FilterBar, DataTable, StatusBadge, type TableColumn } from '@/components/admin';
+import { FileText, Plus } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+
+export default function ArticlesAdminPage() {
+  const [filter, setFilter] = useState('all');
+  const [search, setSearch] = useState('');
+
+  const columns: TableColumn[] = [
+    { key: 'title', label: 'Título' },
+    { key: 'author_name', label: 'Autor' },
+    { 
+      key: 'status', 
+      label: 'Status',
+      render: (v) => <StatusBadge status={v as any} />
+    },
+    { key: 'created_at', label: 'Data' },
+  ];
+
+  return (
+    <AdminLayout
+      title="Artigos"
+      description="Gerencie artigos submetidos"
+      icon={FileText}
+      actions={<Button><Plus size={20} /> Novo Artigo</Button>}
+    >
+      <StatsGrid>
+        <StatCard label="Total" value={stats.total} />
+        <StatCard label="Pendentes" value={stats.pending} variant="yellow" />
+        <StatCard label="Publicados" value={stats.published} variant="green" />
+        <StatCard label="Rejeitados" value={stats.rejected} variant="red" />
+      </StatsGrid>
+
+      <FilterBar
+        search={{ placeholder: 'Buscar artigos...', value: search, onChange: setSearch }}
+        tabs={[
+          { key: 'all', label: 'Todos' },
+          { key: 'pending', label: 'Pendente' },
+          { key: 'published', label: 'Publicado' },
+          { key: 'rejected', label: 'Rejeitado' },
+        ]}
+        activeTab={filter}
+        onTabChange={setFilter}
+      />
+
+      <DataTable
+        columns={columns}
+        data={filteredArticles}
+        loading={loading}
+        emptyMessage="Nenhum artigo encontrado"
+      />
+    </AdminLayout>
+  );
+}
+```

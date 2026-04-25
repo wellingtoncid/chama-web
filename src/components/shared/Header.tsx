@@ -1,13 +1,15 @@
-import { Menu, X, Sun, Moon, ChevronDown, Building2, User } from "lucide-react";
+import { Menu, X, Sun, Moon, ChevronDown, Building2, User, Megaphone } from "lucide-react";
 import { Button } from "../ui/button";
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import AdCard from "../shared/AdCard";
+import MenuDrawer from "./MenuDrawer";
 import logoImg from '../../assets/chama-thumb-blue-rbg.png';
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isDark, setIsDark] = useState(() => {
     if (typeof window !== 'undefined') {
       return document.documentElement.classList.contains('dark');
@@ -30,19 +32,16 @@ const Header = () => {
   const navLinks = [
     { name: "Fretes", href: "/fretes" },
     { name: "Marketplace", href: "/marketplace" },
+    { name: "Artigos", href: "/artigos" },
     { name: "Comunidades", href: "/comunidade" },
-    { name: "Seja Visto", href: "/seja-visto" },
-    { name: "Como Funciona", href: "/como-funciona" }
+    { name: "Como Funciona", href: "/como-funciona" },
+    { name: "SEJA VISTO", href: "/seja-visto" }
   ];
 
   // Auth state
   const { user, logout, loading } = useAuth();
   const displayName = user?.name ?? user?.displayName ?? user?.email ?? 'Usuário';
   const navigate = useNavigate();
-  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [isUserMobileOpen, setIsUserMobileOpen] = useState(false);
-  const desktopWrapperRef = useRef<HTMLDivElement | null>(null);
-  const mobileWrapperRef = useRef<HTMLDivElement | null>(null);
 
   const handleLogout = () => {
     logout();
@@ -52,31 +51,12 @@ const Header = () => {
 
   const goToProfile = () => {
     const slug = user?.slug ?? user?.id ?? 'me';
-    // If there's a slug, navigate to perfil/slug, otherwise fallback
     navigate(`/perfil/${slug}`);
   };
 
   const goToSettings = () => {
-    // Ajuste conforme as rotas internas; usar dashboard como configuracoes
     navigate('/dashboard');
   };
-
-  // Close dropdowns on outside click
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (desktopWrapperRef.current && !desktopWrapperRef.current.contains(target)) {
-        setIsUserMenuOpen(false);
-      }
-      if (mobileWrapperRef.current && !mobileWrapperRef.current.contains(target)) {
-        setIsUserMobileOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, []);
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 transition-all duration-300">
@@ -137,7 +117,10 @@ const Header = () => {
               </button>
 
               {loading ? null : user ? (
-                <div className="relative group inline-flex items-center gap-2" ref={desktopWrapperRef}>
+                <button
+                  onClick={() => setIsDrawerOpen(true)}
+                  className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
+                >
                   {user.avatar_url ? (
                     <img src={user.avatar_url} alt={displayName} className="w-8 h-8 rounded-full object-cover"/>
                   ) : (
@@ -145,22 +128,9 @@ const Header = () => {
                       {displayName.charAt(0).toUpperCase()}
                     </span>
                   )}
-                  <button
-                    onClick={() => setIsUserMenuOpen((s) => !s)}
-                    aria-expanded={isUserMenuOpen}
-                    className="flex items-center gap-1 pl-1 pr-2 py-1 rounded-md hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
-                  >
-                    <span className="font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{displayName}</span>
-                    <ChevronDown size={14} className="group-hover:rotate-180 transition-transform" />
-                  </button>
-                  {isUserMenuOpen && (
-                    <div className="absolute right-0 mt-10 w-48 bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-md shadow-lg z-50" role="menu" aria-label="Opções do usuário">
-                      <button onClick={() => { goToProfile(); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Perfil</button>
-                      <button onClick={() => { goToSettings(); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700">Configurações</button>
-                      <button onClick={() => { handleLogout(); setIsUserMenuOpen(false); }} className="w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 text-red-600">Sair</button>
-                    </div>
-                  )}
-                </div>
+                  <span className="font-bold text-sm text-slate-700 dark:text-slate-200 whitespace-nowrap">{displayName}</span>
+                  <ChevronDown size={14} />
+                </button>
               ) : (
                 <>
                   <a href="/login">
@@ -194,6 +164,14 @@ const Header = () => {
                           <Building2 size={14} className="text-[#1f4ead]" />
                         </div>
                         <span className="text-[10px] font-black uppercase text-[#1f4ead] dark:text-blue-400">Sou Empresa</span>
+                      </a>
+                      
+                      {/* Item Contratar Publicidade - Para anunciantes */}
+                      <a href="/seja-visto" className="flex items-center gap-3 p-3 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-xl transition-all group/item">
+                        <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+                          <Megaphone size={14} className="text-purple-600" />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase dark:text-purple-300">Contratar Publicidade</span>
                       </a>
                     </div>
                   </div>
@@ -242,23 +220,19 @@ const Header = () => {
                   </div>
                 )}
                 {user && (
-                  <div ref={mobileWrapperRef} className="px-4 py-2 border-t border-slate-50 dark:border-slate-800">
-                    <div className="flex items-center gap-2" role="button" onClick={() => setIsUserMobileOpen(!isUserMobileOpen)} aria-expanded={isUserMobileOpen}>
+                  <div className="px-4 py-2 border-t border-slate-50 dark:border-slate-800">
+                    <button 
+                      onClick={() => setIsDrawerOpen(true)}
+                      className="flex items-center gap-2 w-full"
+                    >
                       {user.avatar_url ? (
                         <img src={user.avatar_url} alt={displayName} className="w-8 h-8 rounded-full object-cover"/>
                       ) : (
                         <span className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center">{displayName.charAt(0)}</span>
                       )}
                       <span className="font-bold text-sm">{displayName}</span>
-                      <ChevronDown size={14} className="ml-auto" />
-                    </div>
-                    {isUserMobileOpen && (
-                      <div className="mt-2 flex flex-col pl-6 space-y-1">
-                        <button onClick={goToProfile} className="text-left w-full text-sm">Perfil</button>
-                        <button onClick={goToSettings} className="text-left w-full text-sm">Configurações</button>
-                        <button onClick={handleLogout} className="text-left w-full text-sm text-red-600">Sair</button>
-                      </div>
-                    )}
+                      <span className="ml-auto text-xs text-slate-400">Menu</span>
+                    </button>
                   </div>
                 )}
             </nav>
@@ -266,6 +240,15 @@ const Header = () => {
           )}
         </div>
       </div>
+
+      {/* Menu Drawer - Right side (only when user is logged in) */}
+      {user && (
+        <MenuDrawer 
+          isOpen={isDrawerOpen} 
+          onClose={() => setIsDrawerOpen(false)} 
+          user={user} 
+        />
+      )}
     </header>
   );
 };

@@ -178,49 +178,46 @@ export default function CreateFreight() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-5 lg:p-8">
       {/* SE PRECISAR DE ONBOARDING, BLOQUEIA A TELA COM O MODAL */}
       {needsOnboarding && (
         <WelcomeOnboarding 
           user={user} 
-          // Aqui não passamos o onClose ou passamos uma função que volta 
-          // para o dashboard se ele tentar fechar sem preencher
           onClose={() => navigate('/dashboard')} 
           onComplete={(updatedData: any) => {
             const newUser = { ...user, ...updatedData };
             setUser(newUser);
             localStorage.setItem('@ChamaFrete:user', JSON.stringify(newUser));
-            // O componente re-renderiza e o needsOnboarding vira false
           }} 
         />
       )}
 
       <div className="max-w-4xl mx-auto">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 mb-6 font-black uppercase text-[10px] tracking-widest">
+        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-6 font-black uppercase text-xs tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
           <ArrowLeft size={16} /> Voltar
         </button>
 
-        <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] shadow-2xl overflow-hidden border border-slate-100">
-          <div className={`p-10 text-white flex justify-between items-center relative ${isAdminOrManager ? 'bg-blue-900' : 'bg-slate-900'}`}>
+        <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+          <div className={`p-8 lg:p-10 text-white flex justify-between items-center relative ${isAdminOrManager ? 'bg-blue-600' : 'bg-slate-900 dark:bg-slate-900'}`}>
             <div className="relative z-10">
-              <h1 className="text-3xl font-black italic uppercase flex items-center gap-3">
-                <Package className="text-orange-500" size={32} /> 
+              <h1 className="text-2xl lg:text-3xl font-black flex items-center gap-3">
+                <Package className="text-orange-500" size={28} /> 
                 {formData.id ? 'Editar Carga' : 'Nova Carga'}
               </h1>
+              <p className="text-xl text-white/70 mt-1">Preencha os dados do frete para publicar</p>
             </div>
-            <ShieldCheck size={120} className="absolute -right-4 -bottom-4 text-white/5 rotate-12" />
+            <ShieldCheck size={80} className="absolute -right-2 -bottom-2 text-white/10 rotate-12" />
           </div>
 
-          <div className="p-8 md:p-12 space-y-8">
+          <div className="p-8 lg:p-12 space-y-8">
             {isAdminOrManager && (
-              <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100">
-                <label className="block text-[10px] font-black text-blue-600 mb-3 uppercase tracking-widest flex items-center gap-2">
+              <div className="p-6 bg-blue-50 dark:bg-blue-900/20 rounded-2xl border border-blue-100 dark:border-blue-800">
+                <label className="block text-xs font-black text-blue-600 dark:text-blue-400 mb-3 uppercase tracking-wider flex items-center gap-2">
                   <UserCircle size={16} /> Vincular à Empresa:
                 </label>
                 <select 
                   required
-                  className="w-full p-4 rounded-2xl bg-white border-none shadow-sm font-bold text-slate-800"
+                  className="w-full p-4 rounded-2xl bg-white dark:bg-slate-900 border-none shadow-sm font-bold text-slate-800 dark:text-slate-200"
                   value={formData.user_id}
                   onChange={e => setFormData({...formData, user_id: e.target.value})}
                 >
@@ -232,16 +229,16 @@ export default function CreateFreight() {
               </div>
             )}
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
               {/* ORIGEM */}
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Origem</label>
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Origem</label>
                 <div className="flex gap-2">
-                  <select required className="w-24 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.origin_state} onChange={e => handleStateChange(e.target.value, 'origin')}>
+                  <select required className="w-24 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.origin_state} onChange={e => handleStateChange(e.target.value, 'origin')}>
                     <option value="">UF</option>
                     {states.map(s => <option key={s.sigla} value={s.sigla}>{s.sigla}</option>)}
                   </select>
-                  <select required className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.origin_city} onChange={e => setFormData({...formData, origin_city: e.target.value})}>
+                  <select required className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.origin_city} onChange={e => setFormData({...formData, origin_city: e.target.value})}>
                     <option value="">Cidade</option>
                     {originCities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -250,13 +247,13 @@ export default function CreateFreight() {
 
               {/* DESTINO */}
               <div className="space-y-4">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Destino</label>
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Destino</label>
                 <div className="flex gap-2">
-                  <select required className="w-24 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.dest_state} onChange={e => handleStateChange(e.target.value, 'dest')}>
+                  <select required className="w-24 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.dest_state} onChange={e => handleStateChange(e.target.value, 'dest')}>
                     <option value="">UF</option>
                     {states.map(s => <option key={s.sigla} value={s.sigla}>{s.sigla}</option>)}
                   </select>
-                  <select required className="flex-1 p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" value={formData.dest_city} onChange={e => setFormData({...formData, dest_city: e.target.value})}>
+                  <select required className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.dest_city} onChange={e => setFormData({...formData, dest_city: e.target.value})}>
                     <option value="">Cidade</option>
                     {destCities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -266,43 +263,43 @@ export default function CreateFreight() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2 space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Produto</label>
-                <input type="text" required value={formData.product} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, product: e.target.value})} />
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Produto</label>
+                <input type="text" required value={formData.product} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, product: e.target.value})} />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Peso (Ton)</label>
-                <input type="number" step="0.1" required value={formData.weight} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, weight: e.target.value})} />
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Peso (Ton)</label>
+                <input type="number" step="0.1" required value={formData.weight} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, weight: e.target.value})} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Veículo</label>
-                <select required value={formData.vehicle_type} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, vehicle_type: e.target.value})}>
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Veículo</label>
+                <select required value={formData.vehicle_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, vehicle_type: e.target.value})}>
                   <option value="">Selecione...</option>
                   {vehicleTypes.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2">Carroceria</label>
-                <select required value={formData.body_type} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border border-slate-100" onChange={e => setFormData({...formData, body_type: e.target.value})}>
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Carroceria</label>
+                <select required value={formData.body_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, body_type: e.target.value})}>
                   <option value="">Selecione...</option>
                   {bodyTypes.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-emerald-600 uppercase ml-2 flex items-center gap-1"><DollarSign size={10}/> Preço (R$)</label>
-                <input type="number" required value={formData.price} className="w-full p-4 bg-emerald-50 text-emerald-700 rounded-2xl font-black border border-emerald-100" onChange={e => setFormData({...formData, price: e.target.value})} />
+                <label className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase ml-2 flex items-center gap-1"><DollarSign size={10}/> Preço (R$)</label>
+                <input type="number" required value={formData.price} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-200 dark:border-emerald-800" onChange={e => setFormData({...formData, price: e.target.value})} />
               </div>
             </div>
 
             {/* Equipamentos e Certificações */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-1">
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2 flex items-center gap-1">
                   <Wrench size={10}/> Equipamentos Necessários
                 </label>
-                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100 min-h-[60px]">
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 min-h-[60px]">
                   {equipmentTypes.map(eq => (
                     <button
                       key={eq}
@@ -317,7 +314,7 @@ export default function CreateFreight() {
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         formData.equipment_needed.includes(eq)
                           ? 'bg-blue-500 text-white'
-                          : 'bg-white text-slate-600 border border-slate-200 hover:border-blue-300'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-blue-300'
                       }`}
                     >
                       {eq}
@@ -326,10 +323,10 @@ export default function CreateFreight() {
                 </div>
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-1">
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2 flex items-center gap-1">
                   <Award size={10}/> Certificações Necessárias
                 </label>
-                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-100 min-h-[60px]">
+                <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 min-h-[60px]">
                   {certificationTypes.map(cert => (
                     <button
                       key={cert}
@@ -344,7 +341,7 @@ export default function CreateFreight() {
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         formData.certifications_needed.includes(cert)
                           ? 'bg-purple-500 text-white'
-                          : 'bg-white text-slate-600 border border-slate-200 hover:border-purple-300'
+                          : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-purple-300'
                       }`}
                     >
                       {cert}
@@ -356,14 +353,14 @@ export default function CreateFreight() {
 
             {/* DESCRIÇÃO AMPLIADA */}
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-2 flex items-center gap-2">
+              <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2 flex items-center gap-2">
                 <FileText size={12}/> Observações e Detalhes da Carga
               </label>
               <textarea 
                 rows={5} 
                 value={formData.description} 
                 placeholder="Ex: Carga paletizada, exige ajudante para descarga, pagamento 50% na saída..."
-                className="w-full p-4 bg-slate-50 rounded-3xl font-medium border border-slate-100 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
+                className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-medium border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
                 onChange={e => setFormData({...formData, description: e.target.value})}
               />
             </div>
@@ -371,7 +368,7 @@ export default function CreateFreight() {
             <button 
               type="submit" 
               disabled={loading} 
-              className={`w-full py-6 text-white rounded-[2.5rem] font-black text-xl flex items-center justify-center gap-3 transition-colors ${isAdminOrManager ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-900 hover:bg-orange-600'}`}
+              className={`w-full py-5 text-white rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all ${isAdminOrManager ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-900 hover:bg-orange-600'}`}
             >
               {loading ? "Processando..." : (formData.id ? 'SALVAR ALTERAÇÕES' : 'PUBLICAR FRETE')}
             </button>

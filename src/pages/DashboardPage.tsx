@@ -39,10 +39,14 @@ import AccessManager from '../components/admin/AccessManager';
 import UserCreate from '../components/admin/UserCreate';
 import RolesPage from './admin/RolesPage';
 import ModulesPage from './admin/ModulesPage';
+import ArticlesAdminPage from './admin/ArticlesAdminPage';
+import AuthorRequestsAdminPage from './admin/AuthorRequestsAdminPage';
+import MyArticlesPage from './MyArticlesPage';
 import VerificationsManager from '../components/admin/VerificationsManager';
 import ReviewsManager from '../components/admin/ReviewsManager';
 import ReportsManager from '../components/admin/ReportsManager';
 import AffiliateManager from '../components/admin/AffiliateManager';
+import AuditLogsView from '../components/admin/AuditLogView';
 
 import CommunityPlatform from './community/CommunityPlatform';
 import TeamPage from './team/TeamPage';
@@ -162,6 +166,7 @@ export default function DashboardPage() {
             <>
               <Route path="admin/bi" element={<DashboardBI user={user} />} />
               <Route path="admin/inicio" element={<DashboardHome user={user} />} />
+              <Route path="admin/auditoria" element={<AuditLogsView />} />
               <Route path="admin/cargas" element={<FreightsManagerView />} />
               <Route path="admin/usuarios" element={<UsersManager />} />
               {isSuperAdmin && <Route path="admin/usuarios/novo" element={<UserCreate />} />}
@@ -169,11 +174,13 @@ export default function DashboardPage() {
               <Route path="admin/financeiro" element={<AdminFinancial />} />
               <Route path="admin/publicidade" element={<AdsManager />} />
               <Route path="admin/leads" element={<AdminPortalRequests />} />
+              <Route path="admin/artigos" element={<ArticlesAdminPage />} />
+              <Route path="admin/autores" element={<AuthorRequestsAdminPage />} />
               <Route path="admin/cotacoes" element={<QuotesManager />} />
               <Route path="admin/marketplace" element={<MarketplaceManagerAdmin />} />
               <Route path="admin/marketplace-categorias" element={<ListingCategoriesManager />} />
               <Route path="admin/configuracoes" element={<SettingsView />} />
-              <Route path="admin/atividade" element={<AdminDashboardActivity />} />
+              
               <Route path="admin/suporte" element={<SupportTicketsManager />} />
               {isSuperAdmin && <Route path="admin/planos" element={<PlansManager />} />}
               {isSuperAdmin && <Route path="admin/precificacao" element={<PricingManager />} />}
@@ -208,7 +215,9 @@ export default function DashboardPage() {
           <Route path="financeiro" element={<FinancialPage />} />
           <Route path="suporte" element={<SupportPage />} />
           <Route path="cotacoes" element={<QuotesPage />} />
-          <Route path="comunidades" element={<CommunityPlatform user={user} />} />
+
+          {/* Artigos do autor */}
+          <Route path="meus-artigos" element={<MyArticlesPage />} />
 
           <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
           <Route path="chat" element={<ChatList />} />

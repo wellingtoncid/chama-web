@@ -435,19 +435,19 @@ export default function ListingFormPage() {
   const totalImages = images.length + existingImages.length;
 
   return (
-    <div className="max-w-3xl mx-auto pb-20 animate-in fade-in duration-500">
-      <div className="flex items-center gap-4 mb-8">
+    <div className="p-5 lg:p-8 max-w-4xl mx-auto animate-in fade-in duration-500 pb-20">
+      <div className="flex items-center gap-4 mb-6">
         <button
           onClick={() => navigate(-1)}
-          className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+          className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
         >
-          <ArrowLeft size={20} className="text-slate-600 dark:text-slate-400" />
+          <ArrowLeft size={18} className="text-slate-600 dark:text-slate-400" />
         </button>
         <div>
-          <h1 className="text-3xl font-black uppercase italic text-slate-800 dark:text-slate-100">
+          <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">
             {isEditing ? 'Editar Anúncio' : 'Novo Anúncio'}
           </h1>
-          <p className="text-xs font-bold uppercase text-slate-400 dark:text-slate-500 tracking-widest">
+          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
             Marketplace Ecossistema
           </p>
         </div>
@@ -456,7 +456,7 @@ export default function ListingFormPage() {
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Admin User Selector */}
         {isAdmin && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-[2rem] p-6">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl">
                 <Star size={20} className="text-amber-600 fill-amber-400" />
@@ -488,7 +488,7 @@ export default function ListingFormPage() {
 
         {/* Affiliate Section */}
         {checkingAffiliate ? (
-          <div className="rounded-[2rem] p-6 border-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700">
+          <div className="rounded-2xl p-6 border-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700">
             <div className="animate-pulse flex items-center gap-3">
               <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
               <div className="space-y-2">
@@ -498,7 +498,7 @@ export default function ListingFormPage() {
             </div>
           </div>
         ) : !hasAffiliateAccess ? (
-          <div className="rounded-[2rem] p-6 border-2 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
+          <div className="rounded-2xl p-6 border-2 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
@@ -522,7 +522,7 @@ export default function ListingFormPage() {
             </div>
           </div>
         ) : (
-          <div className={`rounded-[2rem] p-6 border-2 ${isAffiliate ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
+          <div className={`rounded-2xl p-6 border-2 ${isAffiliate ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className={`p-2 rounded-xl ${isAffiliate ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-slate-100 dark:bg-slate-700'}`}>
@@ -631,7 +631,7 @@ export default function ListingFormPage() {
         )}
 
         {/* Images Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-700">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
           <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-3 block">
             Fotos ({totalImages}/{MARKETPLACE_CONFIG.maxImages})
           </label>
@@ -704,7 +704,7 @@ export default function ListingFormPage() {
         </div>
 
         {/* Details Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-[2rem] p-6 border border-slate-100 dark:border-slate-700 space-y-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 space-y-4">
           <div>
             <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Título do Anúncio</label>
             <input

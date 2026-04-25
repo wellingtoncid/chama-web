@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api/api';
+import { api } from '@/api/api';
+import { AdminLayout } from '@/components/admin';
 import {
   LayoutGrid, ChevronDown, ChevronUp,
   Truck, ShoppingBag, FileText, Megaphone,
-  MessageCircle, CreditCard, Tag, HelpCircle, Users, Shield, Eye, Check
+  MessageCircle, CreditCard, Tag, HelpCircle, Users, Shield, Eye, Check, AlertCircle, Loader2
 } from 'lucide-react';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
@@ -65,8 +66,9 @@ export default function ModulesPage() {
       } else {
         setError(res.data?.message || 'Erro ao carregar dados');
       }
-    } catch (e: any) {
-      setError(e.response?.data?.message || 'Erro ao carregar dados');
+    } catch (e: unknown) {
+      const err = e as { response?: { data?: { message?: string } } };
+      setError(err.response?.data?.message || 'Erro ao carregar dados');
     } finally {
       setLoading(false);
     }
@@ -74,35 +76,33 @@ export default function ModulesPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
-      </div>
+      <AdminLayout title="Módulos do Sistema" description="Visualize os módulos disponíveis e seus cargos com acesso" icon={LayoutGrid}>
+        <div className="flex items-center justify-center h-64">
+          <Loader2 className="animate-spin text-blue-600" size={32} />
+        </div>
+      </AdminLayout>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
+      <AdminLayout title="Módulos do Sistema" icon={LayoutGrid}>
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <p className="text-red-600 dark:text-red-400">{error}</p>
           <button onClick={fetchData} className="mt-2 text-sm text-red-600 hover:underline">
             Tentar novamente
           </button>
         </div>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-          Módulos do Sistema
-        </h1>
-        <p className="text-slate-500 dark:text-slate-400 mt-1">
-          Visualize os módulos disponíveis e seus cargos com acesso
-        </p>
-      </div>
+    <AdminLayout
+      title="Módulos do Sistema"
+      description="Visualize os módulos disponíveis e seus cargos com acesso"
+      icon={LayoutGrid}
+    >
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {modules.map((module) => {
@@ -255,6 +255,6 @@ export default function ModulesPage() {
           );
         })}
       </div>
-    </div>
+    </AdminLayout>
   );
 }

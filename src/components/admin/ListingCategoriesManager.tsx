@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 import Swal from 'sweetalert2';
+import { AdminLayout } from '@/components/admin';
 import { 
   Plus, Edit3, Trash2, ToggleLeft, ToggleRight, 
   GripVertical, Loader2, X, Check
@@ -181,31 +182,29 @@ export default function ListingCategoriesManager() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-20">
-        <Loader2 className="animate-spin text-emerald-600" size={40} />
-      </div>
+      <AdminLayout title="Categorias do Marketplace" icon={Tags}>
+        <div className="flex items-center justify-center p-20">
+          <Loader2 className="animate-spin text-emerald-600" size={40} />
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-black uppercase italic text-slate-800 dark:text-slate-100">
-            Categorias do Marketplace
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-            Gerencie as categorias dos anúncios
-          </p>
-        </div>
+    <AdminLayout
+      title="Categorias do Marketplace"
+      description="Gerencie as categorias dos anúncios"
+      icon={Tags}
+      actions={
         <button
           onClick={() => openModal()}
-          className="bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-sm uppercase flex items-center gap-2 hover:bg-emerald-700 transition-all"
+          className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors"
         >
-          <Plus size={18} /> Nova Categoria
+          <Plus size={20} />
+          Nova Categoria
         </button>
-      </div>
+      }
+    >
 
       {/* Lista de Categorias */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
@@ -383,6 +382,6 @@ export default function ListingCategoriesManager() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

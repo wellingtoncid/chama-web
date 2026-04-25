@@ -1,9 +1,13 @@
-import React, { useState } from 'react';
-import { X, User, Shield, Building2, Truck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, User, Shield, Building2, Truck, Check, ChevronDown, ChevronRight } from 'lucide-react';
 import { api } from '../../api/api';
 
 export default function ProfilePermissionsModal({ user, onClose, onSave }: any) {
   const isNew = !user.id;
+
+  // Verificar se é usuário do sistema (pode ter permissões extras)
+  const systemRoles = ['admin', 'manager', 'support', 'coordinator', 'supervisor', 'finance', 'marketing', 'director', 'analyst', 'assistant', 'operator'];
+  const isSystemUser = isNew ? userType === 'system' : systemRoles.includes(user?.role);
 
   // Determinar userType inicial baseado no user_type do banco
   const getInitialUserType = () => {
@@ -13,7 +17,7 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
     if (ut === 'COMPANY') return 'company';
     // Fallback baseado no role
     if (user?.role === 'driver') return 'driver';
-    if (user?.role === 'admin' || user?.role === 'manager' || user?.role === 'coordinator') return 'system';
+    if (systemRoles.includes(user?.role)) return 'system';
     return 'company';
   };
 
@@ -32,7 +36,59 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
   const [companyDocument, setCompanyDocument] = useState(user?.company_document || user?.cnpj || '');
   const [cpf, setCpf] = useState(user?.cpf || '');
 
+  // Permissões
+  const [allPermissions, setAllPermissions] = useState<any[]>([]);
+  const [rolePermissions, setRolePermissions] = useState<string[]>([]);
+  const [extraPermissions, setExtraPermissions] = useState<string[]>([]);
+  const [loadingPermissions, setLoadingPermissions] = useState(false);
+  const [permissionsExpanded, setPermissionsExpanded] = useState(false);
+
   const [loading, setLoading] = useState(false);
+
+  // Carregar permissões quando o modal abre (apenas para usuários do sistema)
+  useEffect(() => {
+    if (!isNew && isSystemUser && user?.id) {
+      loadPermissions();
+    }
+  }, [user?.id, isSystemUser, isNew]);
+
+  const loadPermissions = async () => {
+    setLoadingPermissions(true);
+    try {
+      // Buscar todas as permissões disponíveis
+      const permsRes = await api.get('/admin-permissions');
+      const permissions = permsRes.data?.data || permsRes.data || [];
+      setAllPermissions(permissions);
+
+      // Buscar permissões do cargo do usuário
+      if (user?.role_id || user?.role) {
+        let roleId = user.role_id;
+        if (!roleId) {
+          // Buscar role_id pelo slug
+          const roleRes = await api.get('/admin-roles');
+          const roles = roleRes.data?.data || roleRes.data || [];
+          const foundRole = roles.find((r: any) => r.slug === user.role);
+          roleId = foundRole?.id;
+        }
+        
+        if (roleId) {
+          const rolePermsRes = await api.get(`/admin-role-permissions?role_id=${roleId}`);
+          const rolePerms = rolePermsRes.data?.data || rolePermsRes.data || [];
+          setRolePermissions(rolePerms.map((p: any) => p.slug || p));
+        }
+      }
+
+      // Buscar permissões extras do usuário (do campo users.permissions JSON)
+      const userPermsRes = await api.get(`/admin-user-permissions?user_id=${user.id}`);
+      const userPerms = userPermsRes.data?.data || [];
+      setExtraPermissions(userPerms);
+
+    } catch (e) {
+      console.error('Erro ao carregar permissões:', e);
+    } finally {
+      setLoadingPermissions(false);
+    }
+  };
 
   const handleCompanyDocumentChange = (v: string) => {
     const x = v.replace(/\D/g, '').match(/(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2})/);
@@ -44,6 +100,18 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
     const x = v.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2})/);
     if (!x) return;
     setCpf(!x[2] ? x[1] : x[1] + '.' + x[2] + '.' + x[3] + '-' + x[4]);
+  };
+
+  const togglePermission = (slug: string) => {
+    if (extraPermissions.includes(slug)) {
+      setExtraPermissions(extraPermissions.filter(p => p !== slug));
+    } else {
+      setExtraPermissions([...extraPermissions, slug]);
+    }
+  };
+
+  const isPermissionFromRole = (slug: string) => {
+    return rolePermissions.includes(slug);
   };
 
   const handleSave = async () => {
@@ -88,6 +156,18 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
       const res = await api.post('/admin-manage-user', payload);
       
       if (res.data.success) { 
+        // Salvar permissões extras (apenas para usuários do sistema)
+        if (isSystemUser && user?.id && !isNew) {
+          try {
+            await api.post('/admin-user-permissions', {
+              user_id: user.id,
+              permissions: extraPermissions
+            });
+          } catch (e) {
+            console.error('Erro ao salvar permissões extras:', e);
+          }
+        }
+        
         alert("Dados salvos com sucesso!");
         onSave(); 
         onClose(); 
@@ -99,6 +179,30 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
     } finally { 
       setLoading(false); 
     }
+  };
+
+  // Agrupar permissões por categoria
+  const groupedPermissions = allPermissions.reduce((acc: any, perm: any) => {
+    const category = perm.slug.split('.')[0];
+    if (!acc[category]) acc[category] = [];
+    acc[category].push(perm);
+    return acc;
+  }, {});
+
+  const categoryLabels: Record<string, string> = {
+    freight: 'Fretes',
+    marketplace: 'Marketplace',
+    cotacoes: 'Cotações',
+    ads: 'Anúncios',
+    financeiro: 'Financeiro',
+    wallet: 'Carteira',
+    grupos: 'Grupos',
+    support: 'Suporte',
+    chat: 'Chat',
+    planos: 'Planos',
+    driver: 'Driver Pro',
+    users: 'Usuários',
+    roles: 'Cargos'
   };
 
   return (
@@ -235,6 +339,92 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
               <input type="password" value={userPassword} onChange={e => setUserPassword(e.target.value)} className="w-full px-4 py-3 bg-orange-50 border border-orange-100 rounded-xl font-bold text-xs outline-none" placeholder="******"/>
             </div>
           </div>
+
+          {/* PERMISSÕES EXTRAS - Apenas para usuários do sistema */}
+          {isSystemUser && !isNew && (
+            <div className="mt-6">
+              <button
+                type="button"
+                onClick={() => setPermissionsExpanded(!permissionsExpanded)}
+                className="w-full flex items-center justify-between p-4 bg-purple-50 border border-purple-200 rounded-xl hover:bg-purple-100 transition-colors"
+              >
+                <div className="flex items-center gap-3">
+                  <Shield size={20} className="text-purple-600" />
+                  <div className="text-left">
+                    <span className="text-xs font-black uppercase text-purple-700">Permissões Extras</span>
+                    <p className="text-[10px] text-purple-500">
+                      {extraPermissions.length > 0 
+                        ? `${extraPermissions.length} permissão(ões) extra(s)`
+                        : 'Nenhuma permissão extra'
+                      }
+                    </p>
+                  </div>
+                </div>
+                {permissionsExpanded ? <ChevronDown size={20} className="text-purple-600" /> : <ChevronRight size={20} className="text-purple-600" />}
+              </button>
+
+              {permissionsExpanded && (
+                <div className="mt-3 p-4 bg-slate-50 rounded-xl border border-slate-200 max-h-64 overflow-y-auto">
+                  {loadingPermissions ? (
+                    <div className="text-center py-4 text-slate-400 text-xs">Carregando permissões...</div>
+                  ) : (
+                    <div className="space-y-4">
+                      {Object.entries(groupedPermissions).map(([category, perms]: [string, any]) => (
+                        <div key={category}>
+                          <div className="text-[10px] font-black uppercase text-slate-400 mb-2 pb-1 border-b border-slate-200">
+                            {categoryLabels[category] || category}
+                          </div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                            {perms.map((perm: any) => {
+                              const isInRole = isPermissionFromRole(perm.slug);
+                              const isExtra = extraPermissions.includes(perm.slug);
+                              
+                              return (
+                                <label
+                                  key={perm.id || perm.slug}
+                                  className={`flex items-center gap-2 p-2 rounded-lg cursor-pointer transition-colors ${
+                                    isInRole 
+                                      ? 'bg-slate-200/50 text-slate-600' 
+                                      : isExtra 
+                                        ? 'bg-purple-50 text-purple-700' 
+                                        : 'bg-white text-slate-500 hover:bg-slate-100'
+                                  }`}
+                                >
+                                  <input
+                                    type="checkbox"
+                                    checked={isInRole || isExtra}
+                                    onChange={() => !isInRole && togglePermission(perm.slug)}
+                                    disabled={isInRole}
+                                    className="w-4 h-4 rounded border-slate-300 text-purple-600 focus:ring-purple-500"
+                                  />
+                                  <div className="flex-1">
+                                    <span className="text-[10px] font-bold">{perm.label}</span>
+                                    {isInRole && (
+                                      <span className="text-[9px] block text-slate-400">(do cargo)</span>
+                                    )}
+                                  </div>
+                                  {isInRole && (
+                                    <Check size={14} className="text-slate-400" />
+                                  )}
+                                  {isExtra && !isInRole && (
+                                    <span className="text-[9px] bg-purple-200 text-purple-700 px-1.5 py-0.5 rounded">EXTRA</span>
+                                  )}
+                                </label>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+              
+              <p className="text-[9px] text-slate-400 mt-2 text-center">
+                * Permissões do cargo são automáticas. Marque permissões extras para este usuário específico.
+              </p>
+            </div>
+          )}
 
           <hr className="border-slate-100" />
 

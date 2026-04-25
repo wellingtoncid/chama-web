@@ -1,13 +1,13 @@
 import { useState, useEffect } from 'react';
-import { api } from '../../api/api';
+import { api } from '@/api/api';
 import { 
   Shield, Plus, Pencil, Trash2, 
   Loader2, ChevronDown, ChevronUp,
   Truck, ShoppingBag, FileText, Megaphone,
   MessageCircle, CreditCard, Tag, HelpCircle, Eye, Check
 } from 'lucide-react';
-import { MODULE_LIST } from '../../constants/modules';
-import { PERMISSION_LIST } from '../../constants/permissions';
+import { MODULE_LIST } from '@/constants/modules';
+import { PERMISSION_LIST } from '@/constants/permissions';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
   fretes: <Truck size={16} />,
@@ -136,6 +136,12 @@ export default function RolesPage() {
     if (['admin', 'driver', 'company'].includes(slug)) {
       return alert('Este cargo não pode ser excluído.');
     }
+    
+    // Verificar se há usuários com este cargo
+    const roleUsers = roles.find(r => r.id === id)?.user_count || 0;
+    if (roleUsers > 0) {
+      return alert(`Este cargo possui ${roleUsers} usuário(s). Exclua ou mova os usuários primeiro.`);
+    }
 
     try {
       const res = await api.delete('/admin-roles', { data: { id } });
@@ -252,24 +258,24 @@ export default function RolesPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-            Cargos e Permissões
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Gerencie cargos e suas permissões no sistema
-          </p>
+      <div className="p-6 max-w-7xl mx-auto">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
+              Cargos e Permissões
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 mt-1">
+              Gerencie cargos e suas permissões no sistema
+            </p>
+          </div>
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <Plus size={20} />
+            Novo Cargo
+          </button>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <Plus size={20} />
-          Novo Cargo
-        </button>
-      </div>
 
       <div className="grid gap-4">
         {roles.map((role) => {
@@ -314,7 +320,19 @@ export default function RolesPage() {
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  {(role.slug === 'admin' || !role.is_protected) && (
+                  {(role.slug === 'admin' || role.is_protected) ? (
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setEditingRole({ ...role, permission_ids: currentPerms });
+                        }}
+                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                      >
+                        <Pencil size={18} />
+                      </button>
+                    </div>
+                  ) : (
                     <div className="flex items-center gap-1">
                       <button
                         onClick={(e) => {

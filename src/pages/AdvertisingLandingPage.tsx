@@ -34,7 +34,7 @@ const AdvertisingLandingPage = () => {
   };
 
   const handleRegister = () => {
-    window.location.href = '/cadastro?type=advertiser';
+    window.location.href = '/register?type=advertiser';
   };
 
   const handleViewPricing = () => {

@@ -126,7 +126,6 @@ export default function SiteSettingsPage() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-3xl font-black uppercase italic text-slate-900">
@@ -146,25 +145,24 @@ export default function SiteSettingsPage() {
       </div>
 
       {error && (
-        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+        <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
           <AlertCircle size={20} className="text-red-500" />
           <span className="text-red-600 text-sm">{error}</span>
         </div>
       )}
 
-      {/* Lista de Listas Padrão */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden shadow-sm">
+      <div className="bg-white rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-4">
           <div className="flex items-center gap-3">
             <Package size={24} className="text-white" />
             <div>
-              <h3 className="font-black text-white uppercase italic">Listas Padrão</h3>
-              <p className="text-orange-100 text-[10px]">Tipos de veículos, carrocerias, equipamentos e certificações</p>
+              <h3 className="font-bold text-white">Listas Padrão</h3>
+              <p className="text-orange-100 text-xs">Tipos de veículos, carrocerias, equipamentos e certificações</p>
             </div>
           </div>
         </div>
 
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-slate-100 dark:divide-slate-700">
           {LIST_SETTINGS.map((setting) => {
             const isExpanded = expandedCategories.includes(setting.key);
             const isEditing = editingKey === setting.key;
@@ -256,10 +254,9 @@ export default function SiteSettingsPage() {
         </div>
       </div>
 
-      {/* Template de JSON */}
-      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4">
-        <h4 className="font-black text-blue-900 text-sm mb-2">📋 Formato JSON esperado</h4>
-        <pre className="text-xs text-blue-800 font-mono bg-blue-100/50 rounded-xl p-3 overflow-auto">
+      <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
+        <h4 className="font-semibold text-blue-900 text-sm mb-2">Formato JSON esperado</h4>
+        <pre className="text-xs text-blue-800 font-mono bg-blue-100/50 rounded-lg p-3 overflow-auto">
 {`// Para listas de equipamentos/certificações:
 [
   {"id": "plataforma", "label": "Plataforma Elevatória"},
@@ -275,6 +272,7 @@ export default function SiteSettingsPage() {
 ["Baú", "Sider", "Grade Baixa"]`}
         </pre>
       </div>
+    </div>
     </div>
   );
 }

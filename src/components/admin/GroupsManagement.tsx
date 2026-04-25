@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { 
   Plus, Edit, Trash2, Eye, EyeOff, GripVertical, Save, X, 
   Loader2, Palette, MessageCircle, Search, CheckSquare, Square,
-  ShieldAlert, Tag, MousePointer, Eye as EyeIcon
+  ShieldAlert, Tag, MousePointer, Eye as EyeIcon, Users, Globe, Star
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import { api } from "@/api/api";
@@ -57,9 +57,30 @@ const PRESET_COLORS = [
 
 const GroupsManagement = () => {
   const [activeTab, setActiveTab] = useState<'groups' | 'categories'>('groups');
+  const [groupsData, setGroupsData] = useState<WhatsAppGroup[]>([]);
   
   const user = JSON.parse(localStorage.getItem('@ChamaFrete:user') || 'null');
   const hasAccess = user?.role === 'admin';
+
+  const totalStats = {
+    total: groupsData.length,
+    ativos: groupsData.filter(g => g.status === 'active').length,
+    premium: groupsData.filter(g => g.is_premium === 1).length,
+    views: groupsData.reduce((acc, g) => acc + (g.views_count || 0), 0)
+  };
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await api.get('/admin-groups');
+        const data = res.data?.data || res.data || [];
+        setGroupsData(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error("Erro ao carregar grupos:", err);
+      }
+    };
+    fetchData();
+  }, []);
 
   if (!hasAccess) {
     return (
@@ -72,26 +93,76 @@ const GroupsManagement = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-8">
+    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-900 uppercase italic tracking-tighter">
-            Gestão de Comunidade
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
+            Gestão de Comunidades
           </h1>
-          <p className="text-slate-500 font-medium text-sm">
-            Gerencie grupos e categorias da comunidade
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Gerencie grupos WhatsApp e categorias da plataforma
           </p>
         </div>
       </div>
 
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-100 overflow-hidden">
-        <div className="flex border-b border-slate-100">
+      {/* STATS GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl">
+              <Users size={20} className="text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Total</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{totalStats.total}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl">
+              <Globe size={20} className="text-blue-500" />
+            </div>
+            <div>
+              <p className="text-xs text-blue-700 dark:text-blue-400 font-bold uppercase">Ativos</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{totalStats.ativos}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl">
+              <Star size={20} className="text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-bold uppercase">Premium</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{totalStats.premium}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl">
+              <EyeIcon size={20} className="text-purple-500" />
+            </div>
+            <div>
+              <p className="text-xs text-purple-700 dark:text-purple-400 font-bold uppercase">Views</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{totalStats.views}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* TABS CONTAINER */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="flex border-b border-slate-100 dark:border-slate-700">
           <button
             onClick={() => setActiveTab('groups')}
             className={`flex-1 px-6 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${
               activeTab === 'groups'
-                ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-500 hover:bg-slate-50'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
             <MessageCircle className="w-4 h-4 inline mr-2" />
@@ -101,8 +172,8 @@ const GroupsManagement = () => {
             onClick={() => setActiveTab('categories')}
             className={`flex-1 px-6 py-4 text-sm font-bold uppercase tracking-wider transition-colors ${
               activeTab === 'categories'
-                ? 'bg-blue-50 text-blue-600 border-b-2 border-blue-600'
-                : 'text-slate-500 hover:bg-slate-50'
+                ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600'
+                : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
             }`}
           >
             <Tag className="w-4 h-4 inline mr-2" />
@@ -110,7 +181,7 @@ const GroupsManagement = () => {
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-5 lg:p-6">
           {activeTab === 'groups' ? <GroupsTab /> : <CategoriesTab />}
         </div>
       </div>

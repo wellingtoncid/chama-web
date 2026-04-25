@@ -44,10 +44,10 @@ const quoteTypes = [
   { value: 'cross_docking', label: 'Cross Docking', icon: Box },
 ];
 
-const statusColors: Record<string, string> = {
-  open: 'bg-green-100 text-green-700',
-  closed: 'bg-slate-100 text-slate-600',
-  expired: 'bg-red-100 text-red-700'
+const statusColors: Record<string, [string, string]> = {
+  open: ['bg-emerald-100 dark:bg-emerald-900/30', 'text-emerald-700 dark:text-emerald-400'],
+  closed: ['bg-slate-100 dark:bg-slate-700', 'text-slate-600 dark:text-slate-400'],
+  expired: ['bg-red-100 dark:bg-red-900/30', 'text-red-700 dark:text-red-400']
 };
 
 const statusLabels: Record<string, string> = {
@@ -238,32 +238,77 @@ export default function QuotesManager() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-600 to-indigo-500 rounded-[3rem] p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="relative z-10 flex justify-between items-start">
-          <div className="flex items-center gap-4">
-            <div className="bg-white/20 p-3 rounded-2xl">
-              <FileText size={28} />
+    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6 animate-in fade-in duration-500 pb-20">
+      {/* HEADER */}
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
+            Gestão de Cotações
+          </h1>
+          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+            Gerencie cotações da plataforma
+          </p>
+        </div>
+        <button 
+          onClick={() => { loadCompanies(); setShowCreateModal(true); }}
+          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-95"
+        >
+          <Plus size={18} />
+          Nova Cotação
+        </button>
+      </div>
+
+      {/* STATS GRID */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-xl">
+              <FileText size={20} className="text-indigo-500" />
             </div>
             <div>
-              <h2 className="text-3xl font-black uppercase italic">Cotações</h2>
-              <p className="text-indigo-100 text-sm font-medium">Gerenciamento de cotações da plataforma</p>
+              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Total</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.length}</p>
             </div>
           </div>
-          <button 
-            onClick={() => { loadCompanies(); setShowCreateModal(true); }}
-            className="bg-white text-indigo-600 px-6 py-3 rounded-2xl font-black uppercase text-sm flex items-center gap-2 hover:bg-indigo-50 transition-all"
-          >
-            <Plus size={18} /> Nova Cotação
-          </button>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl">
+              <Package size={20} className="text-emerald-500" />
+            </div>
+            <div>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase">Abertas</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'open').length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl">
+              <Truck size={20} className="text-amber-500" />
+            </div>
+            <div>
+              <p className="text-xs text-amber-700 dark:text-amber-400 font-bold uppercase">Fechadas</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'closed').length}</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+          <div className="flex items-center gap-3">
+            <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-xl">
+              <Warehouse size={20} className="text-red-500" />
+            </div>
+            <div>
+              <p className="text-xs text-red-700 dark:text-red-400 font-bold uppercase">Expiradas</p>
+              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'expired').length}</p>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-100">
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
           {[
             { value: 'all', label: 'Todos' },
             { value: 'open', label: 'Abertas' },
@@ -273,8 +318,8 @@ export default function QuotesManager() {
             <button
               key={f.value}
               onClick={() => setFilter({...filter, status: f.value})}
-              className={`px-4 py-2 rounded-xl font-bold text-xs uppercase transition-all ${
-                filter.status === f.value ? 'bg-indigo-600 text-white' : 'text-slate-500 hover:bg-slate-50'
+              className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
+                filter.status === f.value ? 'bg-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
               }`}
             >
               {f.label}
@@ -282,11 +327,11 @@ export default function QuotesManager() {
           ))}
         </div>
 
-        <div className="flex items-center gap-2 bg-white p-1.5 rounded-2xl border border-slate-100">
+        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
           <select
             value={filter.type}
             onChange={(e) => setFilter({...filter, type: e.target.value})}
-            className="px-4 py-2 rounded-xl font-bold text-xs uppercase bg-transparent outline-none"
+            className="px-4 py-2 rounded-lg font-bold text-xs uppercase bg-transparent outline-none text-slate-700 dark:text-slate-300"
           >
             <option value="all">Todos Tipos</option>
             {quoteTypes.map(t => (
@@ -295,58 +340,58 @@ export default function QuotesManager() {
           </select>
         </div>
 
-        <div className="relative flex-1 max-w-md">
+        <div className="relative flex-1 max-w-xs">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
-            placeholder="Buscar por título, empresa..."
+            placeholder="Buscar..."
             value={filter.search}
             onChange={(e) => setFilter({...filter, search: e.target.value})}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-200"
           />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
         {/* List */}
-        <div className="lg:col-span-1 bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden">
-          <div className="max-h-[700px] overflow-y-auto">
+        <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="max-h-[600px] overflow-y-auto">
             {loading ? (
               <div className="p-8 flex justify-center">
                 <Loader2 className="animate-spin text-indigo-500" size={32} />
               </div>
             ) : quotes.length === 0 ? (
               <div className="p-8 text-center">
-                <FileText size={40} className="mx-auto mb-3 text-slate-300" />
-                <p className="text-slate-500 font-medium">Nenhuma cotação</p>
+                <FileText size={40} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhuma cotação</p>
               </div>
             ) : (
               quotes.map(quote => (
                 <button
                   key={quote.id}
                   onClick={() => setSelectedQuote(quote)}
-                  className={`w-full p-4 text-left border-b border-slate-50 hover:bg-slate-50 transition-colors ${
-                    selectedQuote?.id === quote.id ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : ''
+                  className={`w-full p-4 text-left border-b border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                    selectedQuote?.id === quote.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-500' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${statusColors[quote.status]}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase ${statusColors[quote.status]?.[0]} ${statusColors[quote.status]?.[1]}`}>
                         {statusLabels[quote.status]}
                       </span>
-                      <span className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                      <span className="flex items-center gap-1 text-xs font-black uppercase text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
                         {getTypeIcon(quote.type)}
                         {quoteTypes.find(t => t.value === quote.type)?.label}
                       </span>
                     </div>
-                    <span className="text-[10px] text-slate-400">#{quote.id}</span>
+                    <span className="text-xs text-slate-400">#{quote.id}</span>
                   </div>
-                  <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-1">{quote.title}</h4>
+                  <h4 className="font-bold text-slate-800 dark:text-white text-sm mb-1 line-clamp-1">{quote.title}</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 truncate max-w-[120px]">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 truncate max-w-[120px]">
                       {quote.shipper_name || quote.shipper_email}
                     </span>
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <span className="text-xs text-slate-400 dark:text-slate-500 flex items-center gap-1">
                       {quote.responses_count || 0} <Eye size={10} />
                     </span>
                   </div>
@@ -357,19 +402,19 @@ export default function QuotesManager() {
         </div>
 
         {/* Detail */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden min-h-[700px]">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden min-h-[600px]">
           {selectedQuote ? (
             <>
-              <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-black uppercase italic text-slate-800">{selectedQuote.title}</h3>
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${statusColors[selectedQuote.status]}`}>
+                      <h3 className="font-black text-slate-800 dark:text-white text-lg">{selectedQuote.title}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-black uppercase ${statusColors[selectedQuote.status]?.[0]} ${statusColors[selectedQuote.status]?.[1]}`}>
                         {statusLabels[selectedQuote.status]}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
+                    <div className="flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500 flex-wrap">
                       <span>{selectedQuote.shipper_name}</span>
                       <span>&lt;{selectedQuote.shipper_email}&gt;</span>
                       <span>{formatDate(selectedQuote.created_at)}</span>
@@ -378,7 +423,7 @@ export default function QuotesManager() {
                   <div className="flex gap-2">
                     <button 
                       onClick={() => handleEdit(selectedQuote)}
-                      className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-xs uppercase hover:bg-indigo-100 transition-colors flex items-center gap-1"
+                      className="px-3 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg font-bold text-xs uppercase hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors flex items-center gap-1"
                     >
                       <Edit size={14} /> Editar
                     </button>
