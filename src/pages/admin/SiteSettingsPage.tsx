@@ -42,6 +42,20 @@ export default function SiteSettingsPage() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editValue, setEditValue] = useState<string>('');
 
+  const jsonFormatExample = `// Para listas de equipamentos/certificacoes:
+[
+  {"id": "plataforma", "label": "Plataforma Elevatoria"},
+  {"id": "rastreador", "label": "Rastreador GPS"}
+]
+
+// Para tipos de veiculo:
+[
+  {"value": "truck", "label": "Caminhao Truck - 3 eixos"}
+]
+
+// Para tipos de carroceria (simples):
+["Bau", "Sider", "Grade Baixa"]`;
+
   useEffect(() => {
     loadSettings();
   }, []);
@@ -257,22 +271,11 @@ export default function SiteSettingsPage() {
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4">
         <h4 className="font-semibold text-blue-900 text-sm mb-2">Formato JSON esperado</h4>
         <pre className="text-xs text-blue-800 font-mono bg-blue-100/50 rounded-lg p-3 overflow-auto">
-{`// Para listas de equipamentos/certificações:
-[
-  {"id": "plataforma", "label": "Plataforma Elevatória"},
-  {"id": "rastreador", "label": "Rastreador GPS"}
-]
-
-// Para tipos de veículo:
-[
-  {"value": "Truck", "label": "Caminhão Truck - 3 eixos"}
-]
-
-// Para tipos de carroceria (simples):
-["Baú", "Sider", "Grade Baixa"]`}
+{jsonFormatExample}
         </pre>
       </div>
     </div>
     </div>
   );
 }
+

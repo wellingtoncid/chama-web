@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 import { AdImage } from '../../components/AdImage';
 import AffiliateInterestModal from './components/AffiliateInterestModal';
 import CheckoutModalMarketplace from '../../components/company/CheckoutModalMarketplace';
+import { UsageMeter } from '../../components/shared/UsageMeter';
 
 interface ListingItem {
   id: number;
@@ -38,6 +39,8 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
   const [showAffiliateInterest, setShowAffiliateInterest] = useState(false);
   const [hasAffiliateAccess, setHasAffiliateAccess] = useState(false);
   const [affiliateLoading, setAffiliateLoading] = useState(true);
+  
+  // Verificação inline abaixo
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
 
@@ -306,12 +309,8 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
           </p>
         </div>
 
-        <button 
-          onClick={() => navigate('/novo-anuncio')}
-          className="bg-emerald-600 dark:bg-emerald-700 text-white px-8 py-4 rounded-2xl font-black uppercase italic text-xs flex items-center gap-2 hover:bg-emerald-700 dark:hover:bg-emerald-600 transition-all shadow-xl shadow-emerald-200 dark:shadow-emerald-900/30 active:scale-95"
-        >
-          <Plus size={18} /> Vender Novo Item
-        </button>
+        {/* MEDIDOR DE USO - busca do servidor */}
+        <UsageMeter moduleKey="marketplace" />
       </div>
 
       {/* Affiliate Section */}

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
-import { Loader2, Shield, ShieldCheck, X, Check, Clock, FileText, Image, ExternalLink, Eye, User, Building2 } from 'lucide-react';
+import { Loader2, Shield, ShieldCheck, X, Check, Clock, FileText, ExternalLink, Eye, User, Building2 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 interface DriverDocument {
   document_type: string;
@@ -56,8 +57,7 @@ const DOCUMENT_LABELS: Record<string, string> = {
   'address_proof': 'Comprovante de Endereço'
 };
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api';
-const STATIC_BASE = import.meta.env.VITE_STATIC_URL || 'http://127.0.0.1:8000';
+  const STATIC_BASE = import.meta.env.VITE_STATIC_URL || 'http://127.0.0.1:8000';
 
 type TabType = 'pending' | 'approved' | 'rejected';
 
@@ -83,15 +83,10 @@ export default function VerificationsManager() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'driver' | 'company'>('all');
   const [counts, setCounts] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    loadCounts();
-    loadVerifications();
-  }, [activeTab, typeFilter]);
-
-  const loadCounts = async () => {
+  async function loadCounts() {
     try {
       const countsData: Record<string, number> = { pending: 0, approved: 0, rejected: 0 };
-      
+        
       for (const tab of TABS) {
         const res = await api.get('/admin/verifications', {
           params: { status: tab.key, type: 'all', limit: 1 }
@@ -100,14 +95,14 @@ export default function VerificationsManager() {
           countsData[tab.key] = res.data.data?.total || res.data.data?.verifications?.length || 0;
         }
       }
-      
+        
       setCounts(countsData);
     } catch (e) {
       console.error("Erro ao carregar contadores:", e);
     }
-  };
+  }
 
-  const loadVerifications = async () => {
+  async function loadVerifications() {
     try {
       setLoading(true);
       const res = await api.get('/admin/verifications', {
@@ -121,7 +116,12 @@ export default function VerificationsManager() {
     } finally {
       setLoading(false);
     }
-  };
+  }
+ 
+  useEffect(() => {
+    loadCounts();
+    loadVerifications();
+  }, [activeTab, typeFilter]);
 
   const toggleCard = (id: number) => {
     setExpandedCards(prev => {
@@ -171,11 +171,12 @@ export default function VerificationsManager() {
         loadCounts();
         loadVerifications();
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { message?: string } } };
       Swal.fire({
         icon: 'error',
         title: 'Erro',
-        text: e.response?.data?.message || 'Erro ao aprovar verificação'
+        text: error.response?.data?.message || 'Erro ao aprovar verificação'
       });
     } finally {
       setProcessingId(null);
@@ -196,7 +197,7 @@ export default function VerificationsManager() {
           
           <textarea id="swal-reason" class="swal2-textarea w-full p-2 border border-slate-300 rounded-lg" placeholder="Detalhes adicionais (opcional)..." rows="3"></textarea>
           
-          ${verification.transaction_amount > 0 ? `
+          ${Number(verification.transaction_amount) > 0 ? `
           <div class="mt-4 p-3 bg-amber-50 rounded-lg text-xs text-amber-700">
             <strong>Nota:</strong> O valor de R$ ${Number(verification.transaction_amount).toFixed(2).replace('.', ',')} será devolvido para a carteira do usuário.
           </div>
@@ -241,11 +242,12 @@ export default function VerificationsManager() {
         loadCounts();
         loadVerifications();
       }
-    } catch (e: any) {
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { message?: string } } };
       Swal.fire({
         icon: 'error',
         title: 'Erro',
-        text: e.response?.data?.message || 'Erro ao rejeitar verificação'
+        text: error.response?.data?.message || 'Erro ao rejeitar verificação'
       });
     } finally {
       setProcessingId(null);
@@ -254,15 +256,21 @@ export default function VerificationsManager() {
 
   if (loading) {
     return (
-      <div className="p-8 flex flex-col items-center justify-center">
-        <Loader2 className="animate-spin text-orange-500 mb-4" size={40} />
-        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
-      </div>
+      <AdminLayout title="Verificações" description="Gerencie verificações de motoristas e empresas" icon={ShieldCheck}>
+        <div className="flex flex-col items-center justify-center py-20">
+          <Loader2 className="animate-spin text-orange-500 mb-4" size={40} />
+          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
+        </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <AdminLayout 
+      title="Verificações" 
+      description="Gerencie verificações de motoristas e empresas"
+      icon={ShieldCheck}
+    >
       {/* Modal de Visualização de Documento */}
       {selectedDoc && (
         <div 
@@ -300,27 +308,57 @@ export default function VerificationsManager() {
         </div>
       )}
 
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[2rem] p-6 text-white">
-        <div className="flex items-center gap-4">
-          <div className="bg-orange-500 p-3 rounded-xl">
-            <ShieldCheck size={28} />
-          </div>
-          <div>
-            <h1 className="text-2xl font-black uppercase italic">Verificações de Identidade</h1>
-            <p className="text-slate-300 text-sm">Aprovar ou rejeitar verificações de motoristas e empresas</p>
-          </div>
-        </div>
-      </div>
+      {/* Stats Grid */}
+      <StatsGrid>
+        <StatCard 
+          label="Total" 
+          value={(counts.pending || 0) + (counts.approved || 0) + (counts.rejected || 0)} 
+          icon={Shield} 
+        />
+        <StatCard 
+          label="Pendentes" 
+          value={counts.pending || 0} 
+          icon={Clock}
+          variant="yellow"
+        />
+        <StatCard 
+          label="Aprovados" 
+          value={counts.approved || 0} 
+          icon={Check}
+          variant="green"
+        />
+        <StatCard 
+          label="Rejeitados" 
+          value={counts.rejected || 0} 
+          icon={X}
+          variant="red"
+        />
+      </StatsGrid>
 
-      {/* Filtro de Tipo */}
-      <div className="flex gap-2 bg-white p-2 rounded-2xl border border-slate-100">
+      {/* Filter Bar */}
+      <FilterBar
+        tabs={[
+          { key: 'pending', label: 'Aguardando', icon: Clock },
+          { key: 'approved', label: 'Aprovados', icon: Check },
+          { key: 'rejected', label: 'Rejeitados', icon: X }
+        ]}
+        activeTab={activeTab}
+        onTabChange={(tab) => setActiveTab(tab as TabType)}
+        search={{
+          placeholder: 'Buscar por nome ou email...',
+          value: '',
+          onChange: () => {} // TODO: adicionar busca se necessário
+        }}
+      />
+
+      {/* Filtro de Tipo (sub-tabs) */}
+      <div className="flex gap-2 bg-white p-2 rounded-2xl border border-slate-100 w-fit">
         {TYPE_TABS.map((tab) => (
           <button
             key={tab.key}
             onClick={() => setTypeFilter(tab.key as 'all' | 'driver' | 'company')}
             className={`
-              flex-1 py-2 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2
+              py-2 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2
               ${typeFilter === tab.key 
                 ? 'bg-orange-500 text-white' 
                 : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
@@ -330,33 +368,6 @@ export default function VerificationsManager() {
             {tab.key === 'driver' && <User size={16} />}
             {tab.key === 'company' && <Building2 size={16} />}
             {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Tabs de Status */}
-      <div className="flex gap-2 bg-white p-2 rounded-2xl border border-slate-100">
-        {TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key)}
-            className={`
-              flex-1 py-3 px-4 rounded-xl font-bold text-sm uppercase transition-all flex items-center justify-center gap-2
-              ${activeTab === tab.key 
-                ? `${tab.bgColor} ${tab.color} border-2 ${tab.borderColor}` 
-                : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
-            `}
-          >
-            {tab.key === 'pending' && <Clock size={16} />}
-            {tab.key === 'approved' && <Check size={16} />}
-            {tab.key === 'rejected' && <X size={16} />}
-            {tab.label}
-            <span className={`
-              px-2 py-0.5 rounded-full text-xs font-black
-              ${activeTab === tab.key ? 'bg-white/50' : 'bg-slate-200'}
-            `}>
-              {counts[tab.key] || 0}
-            </span>
           </button>
         ))}
       </div>
@@ -572,6 +583,6 @@ export default function VerificationsManager() {
           ))}
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

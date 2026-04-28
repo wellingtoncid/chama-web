@@ -182,7 +182,7 @@ export default function ListingCategoriesManager() {
 
   if (loading) {
     return (
-      <AdminLayout title="Categorias do Marketplace" icon={Tags}>
+      <AdminLayout title="Categorias do Marketplace">
         <div className="flex items-center justify-center p-20">
           <Loader2 className="animate-spin text-emerald-600" size={40} />
         </div>
@@ -194,7 +194,6 @@ export default function ListingCategoriesManager() {
     <AdminLayout
       title="Categorias do Marketplace"
       description="Gerencie as categorias dos anúncios"
-      icon={Tags}
       actions={
         <button
           onClick={() => openModal()}

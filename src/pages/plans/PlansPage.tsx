@@ -82,6 +82,10 @@ export default function PlansPage() {
   const [transactions, setTransactions] = useState<any[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [usageStats, setUsageStats] = useState<{freights: any, marketplace: any}>({
+    freights: { used: 0, limit: 0, remaining: 0 },
+    marketplace: { used: 0, limit: 0, remaining: 0 }
+  });
   // Removed: payment modal flow canônico; base MVP uses existing flow
 
   const userRole = (() => {
@@ -181,6 +185,19 @@ export default function PlansPage() {
         // Carrega saldo da carteira
         if (walletRes.data?.success) {
           setWalletBalance(walletRes.data.data?.balance || 0);
+        }
+
+        // Carrega stats de uso
+        try {
+          const usageRes = await api.get('/user/usage').catch(() => ({ data: { success: false } }));
+          if (usageRes.data?.success) {
+            setUsageStats(usageRes.data.data || {
+              freights: { used: 0, limit: 0, remaining: 0 },
+              marketplace: { used: 0, limit: 0, remaining: 0 }
+            });
+          }
+        } catch (e) {
+          console.error("Erro ao carregar usage:", e);
         }
       } catch (e) {
         console.error("Erro ao carregar transações/saldo:", e);
@@ -657,6 +674,57 @@ export default function PlansPage() {
             </button>
           </div>
         </div>
+
+        {/* Medidor de Uso */}
+        {(usageStats.freights?.limit > 0 || isCompany) && (
+          <div className="grid grid-cols-2 gap-4">
+            {isCompany && (
+              <>
+                <div className={`bg-white dark:bg-slate-800 rounded-2xl p-4 ${usageStats.freights?.remaining === 0 ? 'border-2 border-red-300 dark:border-red-600' : 'border border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Truck size={18} className="text-orange-500" />
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Fretes</span>
+                    </div>
+                    <span className={`text-xs font-bold ${usageStats.freights?.remaining === 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                      {usageStats.freights?.remaining === 0 ? 'Limite atingido' : `${usageStats.freights?.remaining} restantes`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${usageStats.freights?.remaining === 0 ? 'bg-red-500' : 'bg-orange-500'}`}
+                      style={{ width: `${usageStats.freights?.limit > 0 ? (usageStats.freights?.used / usageStats.freights?.limit) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 text-center">
+                    {usageStats.freights?.used || 0} / {usageStats.freights?.limit || 0} publicados neste mês
+                  </p>
+                </div>
+
+                <div className={`bg-white dark:bg-slate-800 rounded-2xl p-4 ${usageStats.marketplace?.remaining === 0 ? 'border-2 border-red-300 dark:border-red-600' : 'border border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag size={18} className="text-purple-500" />
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Marketplace</span>
+                    </div>
+                    <span className={`text-xs font-bold ${usageStats.marketplace?.remaining === 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                      {usageStats.marketplace?.remaining === 0 ? 'Limite atingido' : `${usageStats.marketplace?.remaining} restantes`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                    <div 
+                      className={`h-2 rounded-full ${usageStats.marketplace?.remaining === 0 ? 'bg-red-500' : 'bg-purple-500'}`}
+                      style={{ width: `${usageStats.marketplace?.limit > 0 ? (usageStats.marketplace?.used / usageStats.marketplace?.limit) * 100 : 0}%` }}
+                    ></div>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 text-center">
+                    {usageStats.marketplace?.used || 0} / {usageStats.marketplace?.limit || 0} publicados neste mês
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
+        )}
 
         {/* Histórico de Transações */}
         <TransactionHistory />

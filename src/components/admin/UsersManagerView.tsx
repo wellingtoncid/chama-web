@@ -6,6 +6,7 @@ import {
   UserPlus, Star, Calendar, ShieldCheck, Smartphone, X
 } from 'lucide-react';
 import ProfilePermissionsModal from './ProfilePermissionsModal';
+import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 
 export default function UsersManager() {
@@ -140,6 +141,13 @@ export default function UsersManager() {
     );
   });
 
+  const stats = {
+    total: users.length,
+    active: users.filter(u => u.status === 'active' || u.status === 'approved').length,
+    pending: users.filter(u => u.status === 'pending').length,
+    companies: users.filter(u => u.role === 'company' || u.user_type === 'COMPANY').length,
+  };
+
   const handleApprove = async (id: number, name: string) => {
     if (!window.confirm(`Liberar acesso total para ${name.toUpperCase()}?`)) return;
     try {
@@ -170,63 +178,54 @@ export default function UsersManager() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* HEADER E BUSCA */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white p-6 rounded-[2.5rem] border border-slate-200 shadow-sm">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-slate-200">
-            <ShieldPlus size={24} />
-          </div>
-          <div>
-            <h2 className="text-xl font-black uppercase italic text-slate-800 leading-tight">Gestão de Usuários</h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
-              <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse"></span>
-              {users.length} Contas Registradas
-            </p>
-          </div>
-        </div>
+    <AdminLayout
+      title="Gestão de Usuários"
+      description={`${users.length} contas registradas`}
+      actions={
+        <button 
+          onClick={openCreateModal}
+          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase italic hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-100"
+        >
+          <UserPlus size={16} /> Novo Usuário
+        </button>
+      }
+    >
+      <StatsGrid>
+        <StatCard label="Total" value={stats.total} icon={ShieldPlus} />
+        <StatCard label="Ativos" value={stats.active} variant="green" icon={CheckCircle} />
+        <StatCard label="Pendentes" value={stats.pending} variant="yellow" icon={Clock} />
+        <StatCard label="Empresas" value={stats.companies} variant="blue" icon={Building2} />
+      </StatsGrid>
 
-        <div className="flex flex-1 gap-3 w-full md:w-auto md:justify-end">
-          {/* FILTROS */}
-          <select 
-            value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-4 py-3 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 ring-blue-500/20 outline-none"
-          >
-            <option value="all">Todos Status</option>
-            <option value="active">Ativos</option>
-            <option value="pending">Pendentes</option>
-            <option value="inactive">Inativos</option>
-          </select>
+      <FilterBar
+        search={{
+          placeholder: 'Buscar por nome, email, documento...',
+          value: search,
+          onChange: setSearch
+        }}
+        tabs={[
+          { key: 'all', label: 'Todos' },
+          { key: 'active', label: 'Ativos' },
+          { key: 'pending', label: 'Pendentes' },
+          { key: 'inactive', label: 'Inativos' },
+        ]}
+        activeTab={filterStatus}
+        onTabChange={setFilterStatus}
+      />
 
-          <select 
-            value={filterRole}
-            onChange={(e) => setFilterRole(e.target.value)}
-            className="px-4 py-3 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 ring-blue-500/20 outline-none"
-          >
-            <option value="all">Todos Tipos</option>
-            <option value="admin">Administrador</option>
-            <option value="company">Empresa</option>
-            <option value="driver">Motorista</option>
-          </select>
-
-          <div className="relative flex-1 md:max-w-xs">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Buscar..." 
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 rounded-2xl border-none font-bold text-xs focus:ring-2 ring-blue-500/20 outline-none transition-all"
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-
-          <button 
-            onClick={openCreateModal}
-            className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase italic hover:bg-blue-700 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-blue-100"
-          >
-            <UserPlus size={16} /> Novo Usuário
-          </button>
-        </div>
+      {/* Filtro adicional por tipo de usuário */}
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold text-slate-500 uppercase">Tipo:</span>
+        <select 
+          value={filterRole}
+          onChange={(e) => setFilterRole(e.target.value)}
+          className="px-4 py-2 bg-white rounded-xl border border-slate-200 font-bold text-xs focus:ring-2 ring-blue-500/20 outline-none"
+        >
+          <option value="all">Todos</option>
+          <option value="admin">Administrador</option>
+          <option value="company">Empresa</option>
+          <option value="driver">Motorista</option>
+        </select>
       </div>
 
       {/* LISTAGEM */}
@@ -713,6 +712,6 @@ export default function UsersManager() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

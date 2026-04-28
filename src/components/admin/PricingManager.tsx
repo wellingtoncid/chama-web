@@ -3,9 +3,11 @@ import { api } from '../../api/api';
 import { 
   Plus, Edit3, Trash2, X, Loader2, 
   Tag, Truck,
-  ShoppingBag, Megaphone, FileText, Shield
+  ShoppingBag, Megaphone, FileText, Shield,
+  Eye, Copy, ArrowUpDown, ChevronUp, ChevronDown
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 interface PricingRule {
   id: number;
@@ -29,7 +31,10 @@ export default function PricingManager() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [filterModule, setFilterModule] = useState('all');
+  const [sortBy, setSortBy] = useState('module_key');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
   
   const [ruleData, setRuleData] = useState<any>({
     id: null,
@@ -138,9 +143,51 @@ export default function PricingManager() {
     return labels[type] || type;
   };
 
-  const filteredRules = filterModule === 'all' 
-    ? rules 
-    : rules.filter(r => r.module_key === filterModule);
+  const filteredRules = (() => {
+    let filtered = filterModule === 'all' 
+      ? rules 
+      : rules.filter(r => r.module_key === filterModule);
+    
+    if (sortBy) {
+      filtered = [...filtered].sort((a, b) => {
+        const aVal = a[sortBy as keyof PricingRule] ?? '';
+        const bVal = b[sortBy as keyof PricingRule] ?? '';
+        const cmp = String(aVal).localeCompare(String(bVal));
+        return sortDir === 'asc' ? cmp : -cmp;
+      });
+    }
+    
+    return filtered;
+  })();
+
+  const stats = {
+    total: rules.length,
+    active: rules.filter(r => r.is_active).length,
+    inactive: rules.filter(r => !r.is_active).length
+  };
+
+  const handleSort = (column: string) => {
+    if (sortBy === column) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(column);
+      setSortDir('asc');
+    }
+  };
+
+  const SortHeader = ({ column, label }: { column: string, label: string }) => (
+    <th 
+      className="text-left p-4 text-[10px] font-black uppercase text-slate-400 cursor-pointer hover:text-slate-600 transition-colors"
+      onClick={() => handleSort(column)}
+    >
+      <div className="flex items-center gap-1">
+        {label}
+        {sortBy === column && (
+          sortDir === 'asc' ? <ChevronUp size={12} /> : <ChevronDown size={12} />
+        )}
+      </div>
+    </th>
+  );
 
   const toggleActive = async (rule: PricingRule) => {
     try {
@@ -158,6 +205,21 @@ export default function PricingManager() {
   const handleEdit = (rule: PricingRule) => {
     setRuleData(rule);
     setShowModal(true);
+  };
+
+  const handleDuplicate = (rule: PricingRule) => {
+    setRuleData({
+      ...rule,
+      id: null,
+      feature_key: rule.feature_key + '_copy',
+      feature_name: rule.feature_name + ' (Cópia)'
+    });
+    setShowModal(true);
+  };
+
+  const handlePreview = (rule: PricingRule) => {
+    setRuleData(rule);
+    setShowPreview(true);
   };
 
   const handleDelete = async (id: number) => {
@@ -201,81 +263,44 @@ export default function PricingManager() {
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
-      {/* Configurações de Publicidade */}
-      <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
-        <h3 className="text-lg font-black uppercase italic text-slate-900 mb-4">Configurações de Publicidade</h3>
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <label className="block text-xs font-black uppercase text-slate-400 mb-2">Tempo de Rotação (segundos)</label>
-            <input 
-              type="number" 
-              min="3" 
-              max="60"
-              value={rotationSeconds}
-              onChange={(e) => setRotationSeconds(parseInt(e.target.value) || 8)}
-              className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
-            />
-          </div>
-          <button 
-            onClick={() => saveRotation(rotationSeconds)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-black uppercase text-sm mt-6"
-          >
-            Salvar
-          </button>
-        </div>
-        <p className="text-xs text-slate-400 mt-2">Tempo que cada anúncio fica visível antes de trocar para o próximo</p>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col md:flex-row justify-between items-center bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm gap-4">
-        <div>
-          <h2 className="text-3xl font-black uppercase italic text-slate-900">
-            Precificação <span className="text-orange-500">&</span> Planos
-          </h2>
-          <p className="text-slate-400 text-sm font-medium mt-1">
-            Configure preços por módulo, limites grátis e valores
-          </p>
-        </div>
-        
+    <AdminLayout
+      title="Precificação"
+      description="Configure preços por módulo, limites grátis e valores"
+      actions={
         <button 
           onClick={() => { setRuleData({ id: null, module_key: 'freights', feature_key: '', feature_name: '', pricing_type: 'free_limit', free_limit: 0, price_per_use: 0, price_monthly: 0, price_daily: 0, duration_days: 30, is_active: 1 }); setShowModal(true); }}
-          className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-2xl font-black uppercase text-sm flex items-center gap-2 transition-all"
+          className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
         >
           <Plus size={18} /> Nova Regra
         </button>
-      </div>
+      }
+    >
+      <StatsGrid>
+        <StatCard label="Total Regras" value={stats.total} icon={Tag} />
+        <StatCard label="Ativas" value={stats.active} variant="green" icon={Shield} />
+        <StatCard label="Inativas" value={stats.inactive} variant="red" icon={Shield} />
+      </StatsGrid>
 
-      {/* Filtros por Módulo */}
-      <div className="flex gap-2 flex-wrap">
-        <button
-          onClick={() => setFilterModule('all')}
-          className={`px-4 py-2 rounded-xl font-bold text-xs uppercase ${filterModule === 'all' ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
-        >
-          Todos
-        </button>
-        {modules.map(mod => (
-          <button
-            key={mod.key}
-            onClick={() => setFilterModule(mod.key)}
-            className={`px-4 py-2 rounded-xl font-bold text-xs uppercase flex items-center gap-2 ${filterModule === mod.key ? 'bg-slate-900 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
-          >
-            {mod.icon} {mod.name}
-          </button>
-        ))}
-      </div>
+      <FilterBar
+        tabs={[
+          { key: 'all', label: 'Todos' },
+          ...modules.map(mod => ({ key: mod.key, label: mod.name }))
+        ]}
+        activeTab={filterModule}
+        onTabChange={(tab) => setFilterModule(tab)}
+      />
 
-      {/* Tabela de Regras */}
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-sm overflow-hidden">
+      {/* TABLE */}
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-100">
-                <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400">Módulo</th>
-                <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400">Recurso</th>
+                <SortHeader column="module_key" label="Módulo" />
+                <SortHeader column="feature_name" label="Recurso" />
                 <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400 hidden lg:table-cell">Descrição</th>
-                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400 hidden md:table-cell">Tamanho</th>
-                <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400">Tipo</th>
+                <SortHeader column="ad_size" label="Tamanho" />
+                <SortHeader column="pricing_type" label="Tipo" />
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Grátis</th>
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Por Uso</th>
                 <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Mensal</th>
@@ -336,7 +361,13 @@ export default function PricingManager() {
                       </button>
                     </td>
                     <td className="p-4">
-                      <div className="flex gap-2 justify-end">
+                      <div className="flex gap-1 justify-end">
+                        <button onClick={() => handlePreview(rule)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600" title="Preview">
+                          <Eye size={16} />
+                        </button>
+                        <button onClick={() => handleDuplicate(rule)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-green-600" title="Duplicar">
+                          <Copy size={16} />
+                        </button>
                         <button onClick={() => handleEdit(rule)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600">
                           <Edit3 size={16} />
                         </button>
@@ -365,7 +396,7 @@ export default function PricingManager() {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase italic text-slate-900">
+              <h3 className="text-xl font-bold text-slate-900">
                 {ruleData.id ? 'Editar' : 'Nova'} Regra
               </h3>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
@@ -375,11 +406,11 @@ export default function PricingManager() {
 
           <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Módulo</label>
+                <label className="block text-xs font-bold uppercase text-slate-500 mb-2">Módulo</label>
                 <select 
                   value={ruleData.module_key}
                   onChange={(e) => setRuleData({...ruleData, module_key: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                 >
                   {modules.map(m => (
                     <option key={m.key} value={m.key}>{m.name}</option>
@@ -395,7 +426,7 @@ export default function PricingManager() {
                     value={ruleData.feature_key}
                     onChange={(e) => setRuleData({...ruleData, feature_key: e.target.value})}
                     placeholder="sidebar, footer..."
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
                 <div>
@@ -405,7 +436,7 @@ export default function PricingManager() {
                     value={ruleData.feature_name}
                     onChange={(e) => setRuleData({...ruleData, feature_name: e.target.value})}
                     placeholder="Banner Lateral"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
               </div>
@@ -417,7 +448,7 @@ export default function PricingManager() {
                   value={ruleData.description || ''}
                   onChange={(e) => setRuleData({...ruleData, description: e.target.value})}
                   placeholder="Banner exibido na barra lateral..."
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                 />
               </div>
 
@@ -429,7 +460,7 @@ export default function PricingManager() {
                     value={ruleData.ad_size || ''}
                     onChange={(e) => setRuleData({...ruleData, ad_size: e.target.value})}
                     placeholder="300x600"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
                 <div>
@@ -439,7 +470,7 @@ export default function PricingManager() {
                     value={ruleData.icon_key || ''}
                     onChange={(e) => setRuleData({...ruleData, icon_key: e.target.value})}
                     placeholder="layout, star..."
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
               </div>
@@ -449,7 +480,7 @@ export default function PricingManager() {
                 <select 
                   value={ruleData.pricing_type}
                   onChange={(e) => setRuleData({...ruleData, pricing_type: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                 >
                   <option value="free_limit">Limite Grátis</option>
                   <option value="per_use">Por Uso</option>
@@ -466,7 +497,7 @@ export default function PricingManager() {
                   type="number" 
                   value={ruleData.free_limit}
                   onChange={(e) => setRuleData({...ruleData, free_limit: parseInt(e.target.value) || 0})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                 />
               </div>
 
@@ -478,7 +509,7 @@ export default function PricingManager() {
                     step="0.01"
                     value={ruleData.price_per_use}
                     onChange={(e) => setRuleData({...ruleData, price_per_use: parseFloat(e.target.value) || 0})}
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
                 <div>
@@ -488,7 +519,7 @@ export default function PricingManager() {
                     step="0.01"
                     value={ruleData.price_monthly}
                     onChange={(e) => setRuleData({...ruleData, price_monthly: parseFloat(e.target.value) || 0})}
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
               </div>
@@ -500,7 +531,7 @@ export default function PricingManager() {
                     type="number" 
                     value={ruleData.duration_days || 30}
                     onChange={(e) => setRuleData({...ruleData, duration_days: parseInt(e.target.value) || 30})}
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
                   />
                 </div>
                 <div className="flex items-center gap-3 pt-6">
@@ -534,6 +565,94 @@ export default function PricingManager() {
           </div>
         </div>
       )}
-    </div>
+
+      {/* Modal de Preview */}
+      {showPreview && ruleData && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 max-w-lg w-full">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-black uppercase text-slate-900">Preview do Anúncio</h3>
+              <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+                <X size={20} className="text-slate-400" />
+              </button>
+            </div>
+            
+            {/* Preview Render */}
+            <div className="bg-slate-100 rounded-xl p-4 mb-4">
+              <div 
+                className="bg-white rounded-lg overflow-hidden mx-auto flex items-center justify-center"
+                style={{
+                  width: ruleData.ad_size ? parseInt(ruleData.ad_size.split('x')[0]) || 300 : 300,
+                  height: ruleData.ad_size ? parseInt(ruleData.ad_size.split('x')[1]) || 250 : 250,
+                  maxWidth: '100%'
+                }}
+              >
+                <div className="text-center p-4">
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-bold uppercase mb-2 ${getModuleColor(ruleData.module_key)}`}>
+                    {getModuleInfo(ruleData.module_key).name}
+                  </div>
+                  <p className="font-bold text-slate-900 text-sm">{ruleData.feature_name}</p>
+                  <p className="text-xs text-slate-500 mt-1">{ruleData.description || 'Sem descrição'}</p>
+                  {ruleData.ad_size && (
+                    <p className="text-[10px] text-slate-400 mt-2">{ruleData.ad_size}</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-xs text-slate-400">Tipo</p>
+                <p className="font-bold text-slate-900">{getPricingTypeLabel(ruleData.pricing_type)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Limite Grátis</p>
+                <p className="font-bold text-slate-900">{ruleData.free_limit > 0 ? `${ruleData.free_limit}x` : '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Por Uso</p>
+                <p className="font-bold text-emerald-600">{formatPrice(ruleData.price_per_use)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-slate-400">Mensal</p>
+                <p className="font-bold text-blue-600">{formatPrice(ruleData.price_monthly)}</p>
+              </div>
+            </div>
+
+<button 
+              onClick={() => setShowPreview(false)}
+              className="w-full py-3 mt-4 rounded-xl bg-slate-100 text-slate-600 font-bold uppercase text-xs"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* CONFIGURAÇÕES DE PUBLICIDADE */}
+      <div className="bg-white p-6 rounded-2xl border border-slate-200">
+        <h3 className="text-lg font-bold text-slate-900 mb-4">Configurações de Publicidade</h3>
+        <div className="flex items-center gap-4">
+          <div className="flex-1 max-w-xs">
+            <label className="block text-xs font-bold uppercase text-slate-500 mb-2">Tempo de Rotação (segundos)</label>
+            <input 
+              type="number" 
+              min="3" 
+              max="60"
+              value={rotationSeconds}
+              onChange={(e) => setRotationSeconds(parseInt(e.target.value) || 8)}
+              className="w-full p-3 rounded-xl border border-slate-200 text-sm"
+            />
+          </div>
+          <button 
+            onClick={() => saveRotation(rotationSeconds)}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold text-sm mt-6"
+          >
+            Salvar
+          </button>
+        </div>
+        <p className="text-xs text-slate-400 mt-2">Tempo que cada anúncio fica visível antes de trocar para o próximo</p>
+      </div>
+    </AdminLayout>
   );
 }

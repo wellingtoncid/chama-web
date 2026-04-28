@@ -5,6 +5,7 @@ import {
   Warehouse, Box, X, Send, Trash2, Edit, Eye, Plus
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 interface Quote {
   id: number;
@@ -86,7 +87,7 @@ export default function QuotesManager() {
       if (res.data?.success) {
         setQuotes(res.data.data || []);
       }
-    } catch {
+    } catch (e) {
       console.error("Erro ao carregar:", e);
     } finally {
       setLoading(false);
@@ -101,7 +102,7 @@ export default function QuotesManager() {
       if (res.data?.success) {
         setResponses(res.data.data?.responses || []);
       }
-    } catch {
+    } catch (e) {
       console.error("Erro ao carregar respostas:", e);
     } finally {
       setLoadingDetail(false);
@@ -110,11 +111,11 @@ export default function QuotesManager() {
 
   const loadCompanies = async () => {
     try {
-      const res = await api.get('/api/companies');
+      const res = await api.get('/companies');
       if (res.data?.companies) {
         setCompanies(res.data.companies);
       }
-    } catch {
+    } catch (e) {
       console.error("Erro ao carregar empresas:", e);
     }
   };
@@ -238,17 +239,10 @@ export default function QuotesManager() {
   };
 
   return (
-    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
-            Gestão de Cotações
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gerencie cotações da plataforma
-          </p>
-        </div>
+    <AdminLayout
+      title="Gestão de Cotações"
+      description="Gerencie cotações da plataforma"
+      actions={
         <button 
           onClick={() => { loadCompanies(); setShowCreateModal(true); }}
           className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-95"
@@ -256,100 +250,43 @@ export default function QuotesManager() {
           <Plus size={18} />
           Nova Cotação
         </button>
-      </div>
+      }
+    >
+      <StatsGrid>
+        <StatCard label="Total" value={quotes.length} icon={FileText} />
+        <StatCard label="Abertas" value={quotes.filter(q => q.status === 'open').length} variant="green" icon={Package} />
+        <StatCard label="Fechadas" value={quotes.filter(q => q.status === 'closed').length} variant="yellow" icon={Truck} />
+        <StatCard label="Expiradas" value={quotes.filter(q => q.status === 'expired').length} variant="red" icon={Warehouse} />
+      </StatsGrid>
 
-      {/* STATS GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-xl">
-              <FileText size={20} className="text-indigo-500" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Total</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl">
-              <Package size={20} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase">Abertas</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'open').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl">
-              <Truck size={20} className="text-amber-500" />
-            </div>
-            <div>
-              <p className="text-xs text-amber-700 dark:text-amber-400 font-bold uppercase">Fechadas</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'closed').length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-red-100 dark:bg-red-900/30 p-2 rounded-xl">
-              <Warehouse size={20} className="text-red-500" />
-            </div>
-            <div>
-              <p className="text-xs text-red-700 dark:text-red-400 font-bold uppercase">Expiradas</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{quotes.filter(q => q.status === 'expired').length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <FilterBar
+        search={{
+          placeholder: 'Buscar...',
+          value: filter.search,
+          onChange: (value) => setFilter({...filter, search: value})
+        }}
+        tabs={[
+          { key: 'all', label: 'Todos' },
+          { key: 'open', label: 'Abertas' },
+          { key: 'closed', label: 'Fechadas' },
+          { key: 'expired', label: 'Expiradas' }
+        ]}
+        activeTab={filter.status}
+        onTabChange={(tab) => setFilter({...filter, status: tab})}
+      />
 
-      {/* FILTERS */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          {[
-            { value: 'all', label: 'Todos' },
-            { value: 'open', label: 'Abertas' },
-            { value: 'closed', label: 'Fechadas' },
-            { value: 'expired', label: 'Expiradas' }
-          ].map(f => (
-            <button
-              key={f.value}
-              onClick={() => setFilter({...filter, status: f.value})}
-              className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
-                filter.status === f.value ? 'bg-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              {f.label}
-            </button>
+      {/* Filtro adicional: Tipo de Cotação */}
+      <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+        <select
+          value={filter.type}
+          onChange={(e) => setFilter({...filter, type: e.target.value})}
+          className="px-4 py-2 rounded-lg font-bold text-xs uppercase bg-transparent outline-none text-slate-700 dark:text-slate-300"
+        >
+          <option value="all">Todos Tipos</option>
+          {quoteTypes.map(t => (
+            <option key={t.value} value={t.value}>{t.label}</option>
           ))}
-        </div>
-
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          <select
-            value={filter.type}
-            onChange={(e) => setFilter({...filter, type: e.target.value})}
-            className="px-4 py-2 rounded-lg font-bold text-xs uppercase bg-transparent outline-none text-slate-700 dark:text-slate-300"
-          >
-            <option value="all">Todos Tipos</option>
-            {quoteTypes.map(t => (
-              <option key={t.value} value={t.value}>{t.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="relative flex-1 max-w-xs">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            type="text"
-            placeholder="Buscar..."
-            value={filter.search}
-            onChange={(e) => setFilter({...filter, search: e.target.value})}
-            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 text-slate-800 dark:text-slate-200"
-          />
-        </div>
+        </select>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
@@ -779,6 +716,6 @@ export default function QuotesManager() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }

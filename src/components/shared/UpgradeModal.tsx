@@ -47,6 +47,14 @@ export function UpgradeModal({
   pricePerUse,
   priceMonthly 
 }: UpgradeModalProps) {
+  // Função segura para formatar preço
+  const safePrice = (price: any) => {
+    const num = typeof price === 'number' ? price : parseFloat(price || '0');
+    return isNaN(num) ? 0 : num;
+  };
+  const displayPricePerUse = safePrice(pricePerUse);
+  const displayPriceMonthly = safePrice(priceMonthly);
+  
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -121,7 +129,7 @@ export function UpgradeModal({
           <div className="p-4 bg-slate-50 rounded-2xl">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-bold text-slate-600">Por uso avulso</span>
-              <span className="text-lg font-black text-slate-900">R$ {pricePerUse.toFixed(2)}</span>
+              <span className="text-lg font-black text-slate-900">R$ {displayPricePerUse.toFixed(2)}</span>
             </div>
             <p className="text-[10px] text-slate-400">Cobrado uma vez por uso adicional</p>
             <button 
@@ -129,7 +137,7 @@ export function UpgradeModal({
               disabled={loading}
               className="w-full mt-3 py-3 bg-slate-900 text-white rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 hover:bg-slate-800"
             >
-              {loading ? <Loader2 className="animate-spin" size={16} /> : <>Pagar R$ {pricePerUse.toFixed(2)} <ArrowRight size={14} /></>}
+              {loading ? <Loader2 className="animate-spin" size={16} /> : <>Pagar R$ {displayPricePerUse.toFixed(2)} <ArrowRight size={14} /></>}
             </button>
           </div>
 
@@ -139,7 +147,7 @@ export function UpgradeModal({
                 <Star size={12} className="text-orange-500" fill="currentColor" />
                 Plano Mensal
               </span>
-              <span className="text-lg font-black text-orange-600">R$ {priceMonthly.toFixed(2)}<span className="text-[10px]">/mês</span></span>
+              <span className="text-lg font-black text-orange-600">R$ {displayPriceMonthly.toFixed(2)}<span className="text-[10px]">/mês</span></span>
             </div>
             <p className="text-[10px] text-orange-700">Uso ilimitado durante 30 dias</p>
             <button 
@@ -166,6 +174,7 @@ export function useUsageCheck(moduleKey: string, featureKey: string) {
   const [pricing, setPricing] = useState<PricingRule | null>(null);
   const [usage, setUsage] = useState<number>(0);
   const [loading, setLoading] = useState(true);
+  const [planLimit, setPlanLimit] = useState<number>(0);
 
   const checkUsage = useCallback(async () => {
     try {
@@ -183,17 +192,29 @@ export function useUsageCheck(moduleKey: string, featureKey: string) {
       
       setPricing(rule);
       
-      // Busca uso atual
+      // Busca uso atual - usa novo formato com limits do plano
       const usageRes = await api.get('/user/usage');
-      const usageData: UsageData = usageRes.data?.data?.usage || {};
+      const usageData: any = usageRes.data?.data || {};
       
+      // Usa limite do plano (se disponível) ou do pricing_rules como fallback
       let currentUsage = 0;
+      let effectiveLimit = rule?.free_limit ?? 0;
+      
       switch (moduleKey) {
         case 'freights':
-          currentUsage = usageData.freights_published || 0;
+          currentUsage = usageData.freights_published || usageData.freights?.used || 0;
+          // Usa limite do plano se disponível
+          if (usageData.freights?.limit > 0) {
+            effectiveLimit = usageData.freights.limit;
+            setPlanLimit(usageData.freights.limit);
+          }
           break;
         case 'marketplace':
-          currentUsage = usageData.marketplace_listings || 0;
+          currentUsage = usageData.marketplace_listings || usageData.marketplace?.used || 0;
+          if (usageData.marketplace?.limit > 0) {
+            effectiveLimit = usageData.marketplace.limit;
+            setPlanLimit(usageData.marketplace.limit);
+          }
           break;
         case 'quotes':
           currentUsage = usageData.quotes_received || 0;
@@ -202,8 +223,8 @@ export function useUsageCheck(moduleKey: string, featureKey: string) {
       
       setUsage(currentUsage);
       
-      // Verifica se atingiu limite
-      if (rule.free_limit > 0 && currentUsage >= rule.free_limit) {
+      // Verifica se atingiu limite (do plano ou pricing_rules)
+      if (effectiveLimit > 0 && currentUsage >= effectiveLimit) {
         setShowUpgrade(true);
       }
       
@@ -218,12 +239,14 @@ export function useUsageCheck(moduleKey: string, featureKey: string) {
     checkUsage();
   }, [checkUsage]);
 
-  const canUse = !pricing || usage < (pricing.free_limit || 999999);
+  // Retorna limites do plano (não do pricing_rules)
+  const effectiveLimit = planLimit > 0 ? planLimit : (pricing?.free_limit ?? 0);
+  const canUse = !pricing || effectiveLimit === 0 || usage < effectiveLimit;
 
   return {
     canUse,
     usage,
-    limit: pricing?.free_limit || 0,
+    limit: effectiveLimit,
     pricing,
     loading,
     showUpgrade,

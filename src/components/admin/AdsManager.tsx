@@ -7,6 +7,7 @@ import {
   Play, Pause, RotateCcw, AlertTriangle
 } from 'lucide-react';
 import { useAdPositions } from '../../hooks/useAdPositions';
+import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 export default function AdsManager() {
   const [ads, setAds] = useState<any[]>([]);

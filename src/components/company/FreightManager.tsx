@@ -9,6 +9,7 @@ import { api } from '../../api/api';
 import CheckoutModal from './CheckoutModal';
 import Swal from 'sweetalert2';
 import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
+import { UsageMeter } from '../shared/UsageMeter';
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
@@ -252,6 +253,9 @@ export default function FreightManager({ user }: any) {
           Nova Publicação
         </button>
       </div>
+
+      {/* MEDIDOR DE USO - versão importada */}
+      <UsageMeter moduleKey="freights" />
 
       {/* INDICADORES ESPECÍFICOS DO MÓDULO */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

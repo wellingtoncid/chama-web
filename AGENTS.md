@@ -272,6 +272,8 @@ Create `.env` files as needed:
 - `/dashboard/admin/cargos` - Roles management
 - `/dashboard/admin/modulos` - Modules management
 - `/dashboard/admin/usuarios` - Users management
+- `/dashboard/admin/planos` - Planos de Assinatura (PlansManager)
+- `/dashboard/admin/precificacao` - Precificação (PricingManager)
 
 ---
 
@@ -307,22 +309,22 @@ Wrapper padrão para páginas de admin.
 <AdminLayout 
   title="Artigos" 
   description="Gerencie artigos submetidos"
-  icon={FileText}
   actions={<Button>Novo Artigo</Button>}
 >
   {/* conteúdo da página */}
 </AdminLayout>
 ```
 
+**Nota:** O header padrão NÃO tem ícone. Ícones são usados nos StatsCards, não no título.
+
 ### AdminHeader
 
-Header com ícone, título e ações.
+Header com título e ações (sem ícone para consistência com páginas manuais).
 
 ```tsx
 <AdminHeader 
   title="Gestão de Usuários" 
   description="Gerencie usuários do sistema"
-  icon={Users}
   actions={
     <Button>
       <Plus size={20} />
@@ -331,6 +333,8 @@ Header com ícone, título e ações.
   }
 />
 ```
+
+**Nota:** AdminHeader não usa ícone - para manter consistência com padrão manual.
 
 ### StatsGrid + StatCard
 

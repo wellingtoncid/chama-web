@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { AdImage } from '../AdImage';
 import Swal from 'sweetalert2';
+import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 interface Listing {
   id: number;

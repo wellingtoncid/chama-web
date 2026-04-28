@@ -17,7 +17,7 @@ interface AdminLayoutProps {
 
 export function AdminLayout({ title, description, icon, actions, children }: AdminLayoutProps) {
   return (
-    <div className="p-6">
+    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6 animate-in fade-in duration-500 pb-20">
       <AdminHeader 
         title={title} 
         description={description} 

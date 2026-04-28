@@ -101,7 +101,6 @@ export default function PermissionsManager() {
     <AdminLayout
       title="Permissões"
       description="Gerencie as permissões do sistema"
-      icon={Shield}
       actions={
         <button
           onClick={() => { setEditingPerm(null); setFormData({ slug: '', label: '' }); setShowModal(true); }}

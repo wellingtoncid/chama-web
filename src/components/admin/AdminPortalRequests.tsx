@@ -68,7 +68,7 @@ export default function AdminPortalRequests() {
 
   const fetchSellers = async () => {
     try {
-      const res = await api.get('admin-team');
+      const res = await api.get('internal-users');
       const data = res.data?.data || [];
       setSellers(Array.isArray(data) ? data : []);
     } catch { setSellers([]); }
@@ -413,14 +413,14 @@ export default function AdminPortalRequests() {
                 <button onClick={saveNote} disabled={savingNote || !newNote.trim()} className="w-full mt-2 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-bold hover:bg-indigo-700 disabled:opacity-50">{savingNote ? 'Salvando...' : 'Salvar Anotação'}</button>
               </div>
               {/* TIMELINE */}
-              <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl">
+              <div className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl flex flex-col" style={{maxHeight: '300px'}}>
                 <p className="text-xs font-bold uppercase text-slate-500 mb-3">Histórico ({leadNotes.length})</p>
                 {loadingNotes ? <div className="text-center py-4"><div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin mx-auto" /></div> : leadNotes.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                     {leadNotes.map((n, i) => (
                       <div key={n.id || i} className="flex gap-3">
                         <div className="w-2 h-2 rounded-full bg-indigo-500 mt-1.5 flex-shrink-0" />
-                        <div><p className="text-[10px] text-slate-400">{formatDateTime(n.created_at)}</p><p className="text-sm text-slate-700 dark:text-slate-200">{n.note}</p></div>
+                        <div><p className="text-[10px] text-slate-400">{formatDateTime(n.created_at)}</p><p className="text-sm text-slate-700 dark:text-slate-200">{n.content || n.note}</p></div>
                       </div>
                     ))}
                   </div>

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { MODULE_LIST } from '@/constants/modules';
 import { PERMISSION_LIST } from '@/constants/permissions';
+import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
   fretes: <Truck size={16} />,
@@ -46,6 +47,7 @@ export default function RolesPage() {
     type: 'internal' as 'internal' | 'external',
     permission_ids: [] as number[],
   });
+  const [filterType, setFilterType] = useState<'all' | 'internal' | 'external'>('all');
 
   useEffect(() => {
     fetchData();
@@ -71,6 +73,18 @@ export default function RolesPage() {
       setLoading(false);
     }
   };
+
+  const stats = {
+    total: roles.length,
+    internal: roles.filter(r => r.type === 'internal' || !r.type).length,
+    external: roles.filter(r => r.type === 'external').length,
+    protected: roles.filter(r => r.is_protected || ['admin', 'driver', 'company'].includes(r.slug)).length,
+  };
+
+  const filteredRoles = roles.filter(role => {
+    if (filterType === 'all') return true;
+    return role.type === filterType || (filterType === 'internal' && !role.type);
+  });
 
   const handleCreateRole = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -247,38 +261,53 @@ export default function RolesPage() {
     );
   }
 
-  if (roles.length === 0) {
+  if (filteredRoles.length === 0 && !loading && !error) {
     return (
       <div className="p-6 max-w-7xl mx-auto text-center">
         <Shield className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-600 dark:text-slate-400">Nenhum cargo encontrado</h2>
-        <p className="text-slate-500 mt-2">Clique em "Novo Cargo" para criar o primeiro cargo.</p>
+        <h2 className="text-xl font-semibold text-slate-600 dark:text-slate-400">
+          {roles.length === 0 ? 'Nenhum cargo encontrado' : 'Nenhum cargo corresponde ao filtro'}
+        </h2>
+        <p className="text-slate-500 mt-2">
+          {roles.length === 0 ? 'Clique em "Novo Cargo" para criar o primeiro cargo.' : 'Ajuste o filtro para ver mais cargos.'}
+        </p>
       </div>
     );
   }
 
   return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">
-              Cargos e Permissões
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 mt-1">
-              Gerencie cargos e suas permissões no sistema
-            </p>
-          </div>
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-          >
-            <Plus size={20} />
-            Novo Cargo
-          </button>
-        </div>
+    <AdminLayout
+      title="Cargos e Permissões"
+      description="Gerencie cargos e suas permissões no sistema"
+      actions={
+        <button
+          onClick={() => setShowCreateModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        >
+          <Plus size={20} />
+          Novo Cargo
+        </button>
+      }
+    >
+      <StatsGrid>
+        <StatCard label="Total" value={stats.total} icon={Shield} />
+        <StatCard label="Internos" value={stats.internal} variant="purple" icon={Shield} />
+        <StatCard label="Externos" value={stats.external} variant="blue" icon={Shield} />
+        <StatCard label="Protegidos" value={stats.protected} variant="green" icon={Check} />
+      </StatsGrid>
+
+      <FilterBar
+        tabs={[
+          { key: 'all', label: 'Todos' },
+          { key: 'internal', label: 'Internos' },
+          { key: 'external', label: 'Externos' },
+        ]}
+        activeTab={filterType}
+        onTabChange={(tab) => setFilterType(tab as 'all' | 'internal' | 'external')}
+      />
 
       <div className="grid gap-4">
-        {roles.map((role) => {
+        {filteredRoles.map((role) => {
           const isExpanded = expandedRole === role.id;
           const isEditing = editingRole?.id === role.id;
           const rolePerms = rolePermissions[role.id] || [];
@@ -618,6 +647,6 @@ export default function RolesPage() {
           </div>
         </div>
       )}
-    </div>
+    </AdminLayout>
   );
 }
