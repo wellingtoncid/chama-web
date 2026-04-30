@@ -5,7 +5,7 @@ import {
   Loader2, CheckCircle, XCircle, Trash2, Star
 } from 'lucide-react';
 import { 
-  AdminLayout, StatsGrid, StatCard, FilterBar, DataTable, StatusBadge, 
+  PageShell, StatsGrid, StatCard, FilterBar, TimeFilter, DataTable, StatusBadge, 
   type TableColumn 
 } from '@/components/admin';
 
@@ -42,22 +42,23 @@ export default function ArticlesAdminPage() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
   const [stats, setStats] = useState({ total: 0, pending: 0, published: 0, rejected: 0 });
+  const [timeFilter, setTimeFilter] = useState<'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all'>('all');
 
   useEffect(() => {
     fetchArticles();
   }, [filter]);
+
+  const handleTimeFilterChange = (value: 'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all', _customRange?: { start: string; end: string }) => {
+    setTimeFilter(value);
+    // TODO: integrar com fetchArticles passando o período
+  };
 
   const fetchArticles = async () => {
     try {
       setLoading(true);
       setError(null);
       
-      let url = '/articles/admin/all';
-      if (filter !== 'all') {
-        url = `/articles/admin/${filter}`;
-      }
-      
-      const res = await api.get(url);
+      const res = await api.get('/articles/admin/all');
       
       if (res.data?.success) {
         setArticles(res.data.data.articles || []);
@@ -242,7 +243,7 @@ export default function ArticlesAdminPage() {
       label: 'Ações',
       render: (_, row) => (
         <div className="flex items-center gap-1">
-          <a
+          <a 
             href={`/artigos/${row.slug}`}
             target="_blank"
             rel="noopener noreferrer"
@@ -300,13 +301,16 @@ export default function ArticlesAdminPage() {
         </div>
       )
     }
-];
+  ];
+
+  const handleFilterChange = (key: string) => {
+    setFilter(key as 'all' | 'pending' | 'published' | 'rejected' | 'draft');
+  };
 
   return (
-    <AdminLayout
+    <PageShell
       title="Artigos"
       description="Gerencie artigos submetidos por autores"
-      icon={FileText}
     >
       {error && (
         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3">
@@ -316,10 +320,10 @@ export default function ArticlesAdminPage() {
       )}
 
       <StatsGrid>
-        <StatCard label="Total" value={stats.total} />
-        <StatCard label="Pendentes" value={stats.pending} variant="yellow" />
-        <StatCard label="Publicados" value={stats.published} variant="green" />
-        <StatCard label="Rejeitados" value={stats.rejected} variant="red" />
+        <StatCard label="Total" value={stats.total} icon={FileText} />
+        <StatCard label="Pendentes" value={stats.pending} variant="yellow" icon={AlertCircle} />
+        <StatCard label="Publicados" value={stats.published} variant="green" icon={CheckCircle} />
+        <StatCard label="Rejeitados" value={stats.rejected} variant="red" icon={XCircle} />
       </StatsGrid>
 
       <FilterBar
@@ -336,8 +340,10 @@ export default function ArticlesAdminPage() {
           { key: 'draft', label: 'Rascunho' },
         ]}
         activeTab={filter}
-        onTabChange={setFilter}
-      />
+        onTabChange={handleFilterChange}
+      >
+        <TimeFilter value={timeFilter} onChange={handleTimeFilterChange} />
+      </FilterBar>
 
       <DataTable
         columns={columns}
@@ -388,7 +394,7 @@ export default function ArticlesAdminPage() {
             </div>
           </div>
         </div>
-      )}
-    </AdminLayout>
-  );
+       )}
+    </PageShell>
+   );
 }

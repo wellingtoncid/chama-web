@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
-import { AdminLayout } from '@/components/admin';
+import { PageShell } from '@/components/admin';
 import { 
   Shield, Plus, Trash2, Edit3, X, Check, Loader2,
   Truck, ShoppingCart, Building2, Users, Megaphone, MessageSquare,
@@ -98,7 +98,7 @@ export default function PermissionsManager() {
   const labelClass = "text-[10px] font-black uppercase text-slate-400 tracking-wider";
 
   return (
-    <AdminLayout
+    <PageShell
       title="Permissões"
       description="Gerencie as permissões do sistema"
       actions={
@@ -196,6 +196,6 @@ export default function PermissionsManager() {
           </div>
         </div>
       )}
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

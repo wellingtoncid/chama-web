@@ -5,7 +5,7 @@ import {
   UserCheck, UserX
 } from 'lucide-react';
 import { 
-  AdminLayout, StatsGrid, StatCard, FilterBar, DataTable, StatusBadge, 
+  PageShell, StatsGrid, StatCard, FilterBar, DataTable, StatusBadge, 
   type TableColumn 
 } from '@/components/admin';
 
@@ -217,10 +217,9 @@ export default function AuthorRequestsAdminPage() {
   ];
 
   return (
-    <AdminLayout
+    <PageShell
       title="Solicitações de Autores"
       description="Gerencie solicitações de usuários para se tornarem autores"
-      icon={UserPlus}
     >
       {error && (
         <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-center gap-3">
@@ -230,10 +229,10 @@ export default function AuthorRequestsAdminPage() {
       )}
 
       <StatsGrid>
-        <StatCard label="Total" value={stats.total} />
-        <StatCard label="Pendentes" value={stats.pending} variant="yellow" />
-        <StatCard label="Aprovados" value={stats.approved} variant="green" />
-        <StatCard label="Rejeitados" value={stats.rejected} variant="red" />
+        <StatCard label="Total" value={stats.total} icon={UserPlus} />
+        <StatCard label="Pendentes" value={stats.pending} variant="yellow" icon={AlertCircle} />
+        <StatCard label="Aprovados" value={stats.approved} variant="green" icon={UserCheck} />
+        <StatCard label="Rejeitados" value={stats.rejected} variant="red" icon={UserX} />
       </StatsGrid>
 
       <FilterBar
@@ -301,7 +300,7 @@ export default function AuthorRequestsAdminPage() {
             </div>
           </div>
         </div>
-      )}
-    </AdminLayout>
-  );
+       )}
+    </PageShell>
+   );
 }

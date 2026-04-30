@@ -6,7 +6,7 @@ import {
   CheckCircle2, Zap, Layout, ShieldCheck, Layers, List, LayoutGrid,
   Filter
 } from 'lucide-react';
-import { AdminLayout } from './index';
+import { PageShell } from './index';
 
 const PLAN_TYPES = [
   { id: 'all', label: 'Todos' },
@@ -98,7 +98,7 @@ export default function PlansManager() {
   };
 
   return (
-    <AdminLayout
+    <PageShell
       title="Planos de Assinatura"
       description="Gerencie planos de assinatura do sistema"
       actions={
@@ -257,6 +257,6 @@ export default function PlansManager() {
             <div className="absolute inset-0" onClick={() => setShowDrawer(false)} />
           </div>
         )}
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

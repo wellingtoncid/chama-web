@@ -6,7 +6,7 @@ import {
   UserPlus, Star, Calendar, ShieldCheck, Smartphone, X
 } from 'lucide-react';
 import ProfilePermissionsModal from './ProfilePermissionsModal';
-import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 
 export default function UsersManager() {
@@ -178,7 +178,7 @@ export default function UsersManager() {
   };
 
   return (
-    <AdminLayout
+    <PageShell
       title="Gestão de Usuários"
       description={`${users.length} contas registradas`}
       actions={
@@ -712,6 +712,6 @@ export default function UsersManager() {
           </div>
         </div>
       )}
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

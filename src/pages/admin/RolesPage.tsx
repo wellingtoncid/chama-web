@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { MODULE_LIST } from '@/constants/modules';
 import { PERMISSION_LIST } from '@/constants/permissions';
-import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
   fretes: <Truck size={16} />,
@@ -276,7 +276,7 @@ export default function RolesPage() {
   }
 
   return (
-    <AdminLayout
+    <PageShell
       title="Cargos e Permissões"
       description="Gerencie cargos e suas permissões no sistema"
       actions={
@@ -647,6 +647,6 @@ export default function RolesPage() {
           </div>
         </div>
       )}
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

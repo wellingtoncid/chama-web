@@ -1,14 +1,12 @@
 import React from 'react';
-import { LucideIcon } from 'lucide-react';
 
 interface AdminHeaderProps {
   title: string;
   description?: string;
-  icon?: LucideIcon;
   actions?: React.ReactNode;
 }
 
-export default function AdminHeader({ title, description, icon: Icon, actions }: AdminHeaderProps) {
+export default function AdminHeader({ title, description, actions }: AdminHeaderProps) {
   return (
     <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
       <div>

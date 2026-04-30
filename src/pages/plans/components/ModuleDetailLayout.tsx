@@ -28,7 +28,7 @@ export default function ModuleDetailLayout({
   children,
 }: ModuleDetailLayoutProps) {
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <div className="space-y-6">
       {/* Header */}
       <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[2rem] p-6 text-white relative overflow-hidden">
         <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl"></div>

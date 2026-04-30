@@ -7,7 +7,7 @@ import {
   Eye, Copy, ArrowUpDown, ChevronUp, ChevronDown
 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 interface PricingRule {
   id: number;
@@ -263,7 +263,7 @@ export default function PricingManager() {
   );
 
   return (
-    <AdminLayout
+    <PageShell
       title="Precificação"
       description="Configure preços por módulo, limites grátis e valores"
       actions={
@@ -653,6 +653,6 @@ export default function PricingManager() {
         </div>
         <p className="text-xs text-slate-400 mt-2">Tempo que cada anúncio fica visível antes de trocar para o próximo</p>
       </div>
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

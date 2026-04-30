@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 import Swal from 'sweetalert2';
-import { AdminLayout } from '@/components/admin';
+import { PageShell } from '@/components/admin';
 import { 
   Plus, Edit3, Trash2, ToggleLeft, ToggleRight, 
   GripVertical, Loader2, X, Check
@@ -182,16 +182,16 @@ export default function ListingCategoriesManager() {
 
   if (loading) {
     return (
-      <AdminLayout title="Categorias do Marketplace">
+      <PageShell title="Categorias do Marketplace">
         <div className="flex items-center justify-center p-20">
           <Loader2 className="animate-spin text-emerald-600" size={40} />
         </div>
-      </AdminLayout>
+      </PageShell>
     );
   }
 
   return (
-    <AdminLayout
+    <PageShell
       title="Categorias do Marketplace"
       description="Gerencie as categorias dos anúncios"
       actions={
@@ -381,6 +381,6 @@ export default function ListingCategoriesManager() {
           </div>
         </div>
       )}
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

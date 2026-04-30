@@ -5,7 +5,7 @@ import {
   Warehouse, Box, X, Send, Trash2, Edit, Eye, Plus
 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 interface Quote {
   id: number;
@@ -239,7 +239,7 @@ export default function QuotesManager() {
   };
 
   return (
-    <AdminLayout
+    <PageShell
       title="Gestão de Cotações"
       description="Gerencie cotações da plataforma"
       actions={
@@ -716,6 +716,6 @@ export default function QuotesManager() {
           </div>
         </div>
       )}
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

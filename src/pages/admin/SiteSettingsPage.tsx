@@ -274,8 +274,7 @@ export default function SiteSettingsPage() {
 {jsonFormatExample}
         </pre>
       </div>
-    </div>
-    </div>
+      </div>
   );
 }
 

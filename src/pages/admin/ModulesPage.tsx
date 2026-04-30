@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
-import { AdminLayout } from '@/components/admin';
+import { PageShell } from '@/components/admin';
 import {
   LayoutGrid, ChevronDown, ChevronUp,
   Truck, ShoppingBag, FileText, Megaphone,
@@ -76,32 +76,31 @@ export default function ModulesPage() {
 
   if (loading) {
     return (
-      <AdminLayout title="Módulos do Sistema" description="Visualize os módulos disponíveis e seus cargos com acesso" icon={LayoutGrid}>
+      <PageShell title="Módulos do Sistema" description="Visualize os módulos disponíveis e seus cargos com acesso">
         <div className="flex items-center justify-center h-64">
           <Loader2 className="animate-spin text-blue-600" size={32} />
         </div>
-      </AdminLayout>
+      </PageShell>
     );
   }
 
   if (error) {
     return (
-      <AdminLayout title="Módulos do Sistema" icon={LayoutGrid}>
+      <PageShell title="Módulos do Sistema">
         <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
           <p className="text-red-600 dark:text-red-400">{error}</p>
           <button onClick={fetchData} className="mt-2 text-sm text-red-600 hover:underline">
             Tentar novamente
           </button>
         </div>
-      </AdminLayout>
+      </PageShell>
     );
   }
 
   return (
-    <AdminLayout
+    <PageShell
       title="Módulos do Sistema"
       description="Visualize os módulos disponíveis e seus cargos com acesso"
-      icon={LayoutGrid}
     >
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -255,6 +254,6 @@ export default function ModulesPage() {
           );
         })}
       </div>
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

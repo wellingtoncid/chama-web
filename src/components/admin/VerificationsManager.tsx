@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { Loader2, Shield, ShieldCheck, X, Check, Clock, FileText, ExternalLink, Eye, User, Building2 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { AdminLayout, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
 
 interface DriverDocument {
   document_type: string;
@@ -256,20 +256,19 @@ export default function VerificationsManager() {
 
   if (loading) {
     return (
-      <AdminLayout title="Verificações" description="Gerencie verificações de motoristas e empresas" icon={ShieldCheck}>
+      <PageShell title="Verificações" description="Gerencie verificações de motoristas e empresas">
         <div className="flex flex-col items-center justify-center py-20">
           <Loader2 className="animate-spin text-orange-500 mb-4" size={40} />
           <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
         </div>
-      </AdminLayout>
+      </PageShell>
     );
   }
 
   return (
-    <AdminLayout 
+    <PageShell 
       title="Verificações" 
       description="Gerencie verificações de motoristas e empresas"
-      icon={ShieldCheck}
     >
       {/* Modal de Visualização de Documento */}
       {selectedDoc && (
@@ -583,6 +582,6 @@ export default function VerificationsManager() {
           ))}
         </div>
       )}
-    </AdminLayout>
-  );
+    </PageShell>
+   );
 }

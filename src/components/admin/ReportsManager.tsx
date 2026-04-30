@@ -1,8 +1,24 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api/api';
-import { Loader2, Flag, User, MessageSquare, Check, X, Eye, Trash2, AlertTriangle } from 'lucide-react';
+import { Loader2, Flag, Check, X, AlertTriangle, Eye, Trash2 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { Link } from 'react-router-dom';
+import PageShell, { StatsGrid, StatCard, TimeFilter } from '@/components/admin';
+
+// Interfaces para melhor tipagem
+interface Report {
+  id: number;
+  status: ReportStatus;
+  target_type: TargetType;
+  reason: string;
+  description?: string;
+  reporter_name: string;
+  reporter_role: string;
+  target_user_name?: string;
+  target_user_role?: string;
+  created_at: string;
+  assigned_name?: string;
+  resolution_notes?: string;
+}
 
 type ReportStatus = 'pending' | 'reviewing' | 'resolved' | 'dismissed';
 type TargetType = 'user' | 'review' | 'freight' | 'listing' | 'message';
@@ -41,19 +57,19 @@ const STATUS_COLORS: Record<ReportStatus, string> = {
 export default function ReportsManager() {
   const [activeTab, setActiveTab] = useState<ReportStatus | 'all'>('all');
   const [loading, setLoading] = useState(true);
-  const [reports, setReports] = useState<any[]>([]);
+  const [reports, setReports] = useState<Report[]>([]);
   const [counts, setCounts] = useState<Record<string, number>>({});
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [processingId, setProcessingId] = useState<number | null>(null);
+  const [timeFilter, setTimeFilter] = useState<'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all'>('all');
 
-  useEffect(() => {
-    loadReports();
-  }, [activeTab]);
-
-  const loadReports = async () => {
+  const loadReports = useCallback(async () => {
     setLoading(true);
     try {
-      const params: any = { limit: 50 };
+      const params: any = { 
+        limit: 50,
+        period: timeFilter !== 'all' ? timeFilter : undefined 
+      };
       if (activeTab !== 'all') params.status = activeTab;
       
       const res = await api.get('admin/reports', { params });
@@ -66,78 +82,71 @@ export default function ReportsManager() {
     } finally {
       setLoading(false);
     }
+  }, [activeTab, timeFilter]);
+
+  useEffect(() => {
+    loadReports();
+  }, [loadReports]);
+
+  const handleTimeFilterChange = (value: any) => {
+    setTimeFilter(value);
   };
 
-  const handleAssign = async (reportId: number) => {
+  const handleAction = async (reportId: number, endpoint: string, method: 'post' | 'delete' = 'post', data?: any) => {
     setProcessingId(reportId);
     try {
-      const res = await api.post(`admin/reports/${reportId}/assign`);
+      const res = await api[method](`admin/reports/${reportId}/${endpoint}`, data);
       if (res.data?.success) {
-        Swal.fire('Atribuído!', 'Denúncia atribuída a você.', 'success');
         loadReports();
+        return true;
       }
     } catch (err: any) {
-      Swal.fire('Erro', err.response?.data?.message || 'Erro ao atribuir.', 'error');
+      Swal.fire('Erro', err.response?.data?.message || 'Erro ao processar ação.', 'error');
     } finally {
       setProcessingId(null);
     }
+    return false;
   };
 
-  const handleResolve = async (reportId: number) => {
+  const handleAssign = async (id: number) => {
+    if (await handleAction(id, 'assign')) {
+      Swal.fire('Atribuído!', 'Denúncia atribuída a você.', 'success');
+    }
+  };
+
+  const handleResolve = async (id: number) => {
     const { value: notes } = await Swal.fire({
       title: 'Resolver Denúncia',
-      text: 'Adicione uma nota sobre a resolução:',
       input: 'textarea',
-      inputPlaceholder: 'Descreva como a denúncia foi resolvida...',
+      inputPlaceholder: 'Descreva a resolução...',
       showCancelButton: true,
       confirmButtonText: 'Resolver',
-      cancelButtonText: 'Cancelar'
     });
 
     if (notes !== undefined) {
-      setProcessingId(reportId);
-      try {
-        const res = await api.post(`admin/reports/${reportId}/resolve`, { notes });
-        if (res.data?.success) {
-          Swal.fire('Resolvida!', 'Denúncia marcada como resolvida.', 'success');
-          loadReports();
-        }
-      } catch (err: any) {
-        Swal.fire('Erro', err.response?.data?.message || 'Erro ao resolver.', 'error');
-      } finally {
-        setProcessingId(null);
+      if (await handleAction(id, 'resolve', 'post', { notes })) {
+        Swal.fire('Resolvida!', 'Denúncia marcada como resolvida.', 'success');
       }
     }
   };
 
-  const handleDismiss = async (reportId: number) => {
+  const handleDismiss = async (id: number) => {
     const { value: notes } = await Swal.fire({
       title: 'Descartar Denúncia',
-      text: 'Informe o motivo:',
       input: 'textarea',
       inputPlaceholder: 'Motivo do descarte...',
       showCancelButton: true,
       confirmButtonText: 'Descartar',
-      cancelButtonText: 'Cancelar'
     });
 
     if (notes !== undefined) {
-      setProcessingId(reportId);
-      try {
-        const res = await api.post(`admin/reports/${reportId}/dismiss`, { notes });
-        if (res.data?.success) {
-          Swal.fire('Descartada!', 'Denúncia descartada.', 'success');
-          loadReports();
-        }
-      } catch (err: any) {
-        Swal.fire('Erro', err.response?.data?.message || 'Erro ao descartar.', 'error');
-      } finally {
-        setProcessingId(null);
+      if (await handleAction(id, 'dismiss', 'post', { notes })) {
+        Swal.fire('Descartada!', 'Denúncia descartada.', 'success');
       }
     }
   };
 
-  const handleDelete = async (reportId: number) => {
+  const handleDelete = async (id: number) => {
     const result = await Swal.fire({
       title: 'Excluir Denúncia?',
       text: 'Esta ação não pode ser desfeita.',
@@ -145,21 +154,11 @@ export default function ReportsManager() {
       showCancelButton: true,
       confirmButtonColor: '#ef4444',
       confirmButtonText: 'Sim, excluir',
-      cancelButtonText: 'Cancelar'
     });
 
     if (result.isConfirmed) {
-      setProcessingId(reportId);
-      try {
-        const res = await api.post(`admin/reports/${reportId}/delete`);
-        if (res.data?.success) {
-          Swal.fire('Excluída!', 'Denúncia excluída.', 'success');
-          loadReports();
-        }
-      } catch (err: any) {
-        Swal.fire('Erro', err.response?.data?.message || 'Erro ao excluir.', 'error');
-      } finally {
-        setProcessingId(null);
+      if (await handleAction(id, 'delete', 'post')) {
+        Swal.fire('Excluída!', 'Denúncia excluída.', 'success');
       }
     }
   };
@@ -173,35 +172,36 @@ export default function ReportsManager() {
   ];
 
   return (
-    <div className="p-6">
-      <div className="mb-6">
-        <h1 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic">
-          <Flag size={28} className="inline mr-2 text-red-500" />
-          Gestão de Denúncias
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Gerencie denúncias de usuários sobre conteúdos inadequados
-        </p>
+    <PageShell
+      title="Denúncias"
+      description="Gerencie denúncias de usuários sobre conteúdos inadequados"
+    >
+      <StatsGrid>
+        <StatCard label="Total" value={counts.total || 0} icon={Flag} />
+        <StatCard label="Pendentes" value={counts.pending || 0} variant="yellow" icon={AlertTriangle} />
+        <StatCard label="Em Análise" value={counts.reviewing || 0} variant="blue" icon={Eye} />
+        <StatCard label="Resolvidas" value={counts.resolved || 0} variant="green" icon={Check} />
+      </StatsGrid>
+
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+        <div className="flex flex-wrap items-center gap-2 overflow-x-auto pb-2">
+          {tabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-wider transition-all ${
+                activeTab === tab.key
+                  ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
+                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300'
+              }`}
+            >
+              {tab.label} ({tab.count})
+            </button>
+          ))}
+        </div>
+        <TimeFilter value={timeFilter} onChange={handleTimeFilterChange} />
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 mb-6 overflow-x-auto pb-2">
-        {tabs.map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider whitespace-nowrap transition-all ${
-              activeTab === tab.key
-                ? 'bg-red-500 text-white shadow-lg shadow-red-500/20'
-                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-            }`}
-          >
-            {tab.label} ({tab.count})
-          </button>
-        ))}
-      </div>
-
-      {/* Loading */}
       {loading ? (
         <div className="flex justify-center py-20">
           <Loader2 size={32} className="animate-spin text-slate-400" />
@@ -220,23 +220,20 @@ export default function ReportsManager() {
                 expandedId === report.id ? 'ring-2 ring-red-500/20' : ''
               }`}
             >
-              {/* Header */}
               <div className="p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-3">
-                    <div className={`p-2 rounded-xl ${STATUS_COLORS[report.status as ReportStatus]}`}>
+                    <div className={`p-2 rounded-xl ${STATUS_COLORS[report.status]}`}>
                       <Flag size={18} />
                     </div>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-slate-900 dark:text-white">
-                          #{report.id}
-                        </span>
-                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${STATUS_COLORS[report.status as ReportStatus]}`}>
-                          {STATUS_LABELS[report.status as ReportStatus]}
+                        <span className="font-bold text-slate-900 dark:text-white">#{report.id}</span>
+                        <span className={`text-[10px] font-black uppercase px-2 py-0.5 rounded-full ${STATUS_COLORS[report.status]}`}>
+                          {STATUS_LABELS[report.status]}
                         </span>
                         <span className="text-[10px] font-bold text-slate-400 uppercase">
-                          {TARGET_LABELS[report.target_type as TargetType] || report.target_type}
+                          {TARGET_LABELS[report.target_type] || report.target_type}
                         </span>
                       </div>
                       <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
@@ -245,7 +242,6 @@ export default function ReportsManager() {
                       </p>
                     </div>
                   </div>
-
                   <button
                     onClick={() => setExpandedId(expandedId === report.id ? null : report.id)}
                     className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-1"
@@ -254,10 +250,9 @@ export default function ReportsManager() {
                   </button>
                 </div>
 
-                {/* Expanded Content */}
                 {expandedId === report.id && (
                   <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800 space-y-3">
-                    <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                       <div>
                         <span className="text-slate-400 text-xs font-bold uppercase">Denunciante</span>
                         <p className="text-slate-700 dark:text-slate-300 font-medium">
@@ -293,7 +288,6 @@ export default function ReportsManager() {
                       </div>
                     )}
 
-                    {/* Actions */}
                     <div className="flex gap-2 pt-2 flex-wrap">
                       {report.status === 'pending' && (
                         <button
@@ -312,26 +306,23 @@ export default function ReportsManager() {
                             disabled={processingId === report.id}
                             className="flex items-center gap-1 px-4 py-2 bg-emerald-500 text-white rounded-xl text-xs font-bold hover:bg-emerald-600 disabled:opacity-50"
                           >
-                            {processingId === report.id ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
-                            Resolver
+                            <Check size={12} /> Resolver
                           </button>
                           <button
                             onClick={() => handleDismiss(report.id)}
                             disabled={processingId === report.id}
                             className="flex items-center gap-1 px-4 py-2 bg-slate-500 text-white rounded-xl text-xs font-bold hover:bg-slate-600 disabled:opacity-50"
                           >
-                            {processingId === report.id ? <Loader2 size={12} className="animate-spin" /> : <X size={12} />}
-                            Descartar
+                            <X size={12} /> Descartar
                           </button>
                         </>
                       )}
                       <button
                         onClick={() => handleDelete(report.id)}
                         disabled={processingId === report.id}
-                        className="flex items-center gap-1 px-4 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold hover:bg-red-100 dark:hover:bg-red-500/20 disabled:opacity-50"
+                        className="flex items-center gap-1 px-4 py-2 bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold hover:bg-red-100 disabled:opacity-50"
                       >
-                        {processingId === report.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                        Excluir
+                        <Trash2 size={12} /> Excluir
                       </button>
                     </div>
                   </div>
@@ -341,6 +332,6 @@ export default function ReportsManager() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import RequestModal from '../../components/modals/RequestModal';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 // Canonical payment flow will be used via the existing MP checkout from cards
 // No extra modals; plan purchases go through the canonical path
@@ -774,8 +775,27 @@ export default function PlansPage() {
   const status = getModuleStatus(selectedModule);
 
   return (
-    <>
+    <PageShell
+      title="Planos e Módulos"
+      description="Gerencie planos de assinatura e módulos do sistema"
+      actions={
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl font-bold text-xs uppercase tracking-wider bg-slate-100 hover:bg-slate-200 transition-all"
+        >
+          <History size={16} />
+          {showHistory ? 'Ocultar Histórico' : 'Ver Histórico'}
+        </button>
+      }
+    >
       
+      {/* StatsGrid */}
+      <StatsGrid>
+        <StatCard label="Total" value={plans.length} icon={CreditCard} />
+        <StatCard label="Ativos" value={plans.filter(p => p.active).length} variant="green" icon={Check} />
+        <StatCard label="Expirados" value={plans.filter(p => !p.active).length} variant="red" icon={AlertCircle} />
+      </StatsGrid>
+
       {selectedModule === 'freights' && (
         <FreightModule
           plans={getSubscriptionPlans('freight_subscription')}
@@ -834,6 +854,6 @@ export default function PlansPage() {
       )}
 
       {/* RequestModal removed as part of canonical flow; cotação module is isolated for future */}
-    </>
+    </PageShell>
   );
 }
