@@ -5,7 +5,7 @@ import { StatsGrid, StatCard, TimeFilter, PageShell } from '@/components/admin';
 import {
   Search, Trash2, Star, Loader2,
   Edit3, PlusCircle,
-  Package, DollarSign, ChevronRight, MapPin,
+  Package, DollarSign, ChevronRight,
   Clock
 } from 'lucide-react';
 
@@ -84,7 +84,7 @@ export default function FreightsManagerView() {
     
     // Filtros de status padrão (Active/Paused/etc se houver campo status no frete)
     if (statusFilter !== 'all' && f.status) return matchesSearch && f.status === statusFilter;
-
+    
     return matchesSearch;
   });
 
@@ -102,40 +102,44 @@ export default function FreightsManagerView() {
       actions={
         <button 
           onClick={() => navigate('/novo-frete')}
-          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase italic tracking-wider transition-all shadow-lg hover:shadow-blue-500/40 active:scale-95"
+          className="flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-black text-xs uppercase italic tracking-wider transition-all shadow-lg hover:shadow-blue-500/40 active:scale-95"
         >
           <PlusCircle size={18} />
           Criar Frete
         </button>
       }
     >
-      <StatsGrid>
-        <StatCard label="Total" value={totalFretes} icon={Package} />
-        <StatCard label="Destaques" value={fretesDestaque} variant="yellow" icon={Star} />
-        <StatCard label="Pedidos" value={fretesPedido} variant="purple" icon={Clock} />
-        <StatCard label="Valor Total" value={valorTotalFormatado} variant="green" icon={DollarSign} />
-      </StatsGrid>
+      {/* Espaçamento entre header e stats */}
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard label="Total" value={totalFretes} icon={<Package size={16} />} />
+          <StatCard label="Destaque" value={fretesDestaque} variant="yellow" icon={<Star size={16} />} />
+          <StatCard label="Pedidos" value={fretesPedido} variant="purple" icon={<Clock size={16} />} />
+          <StatCard label="Valor Total" value={valorTotalFormatado} variant="green" icon={<DollarSign size={16} />} />
+        </StatsGrid>
+      </div>
 
+      {/* Search & Filters */}
       <div className="flex flex-col md:flex-row gap-3 mt-6">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             type="text"
             placeholder="Buscar por ID, Empresa, Cidade ou Produto..."
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-slate-200 font-bold text-xs text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            className="w-full pl-11 pr-4 py-3 bg-white rounded-xl border border-slate-200 font-bold text-xs text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-
+        
         <div className="flex flex-wrap items-center gap-2">
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white px-4 py-3 rounded-2xl border border-slate-200 font-black text-xs uppercase text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 font-black text-xs uppercase text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Todos os Status</option>
-            <option value="featured">Apenas Destaques</option>
+            <option value="featured">Apenas Destaque</option>
             <option value="requested">Pedidos de Destaque</option>
             <option value="active">Ativos</option>
             <option value="paused">Pausados</option>
@@ -146,59 +150,53 @@ export default function FreightsManagerView() {
           <button 
             onClick={loadFreights} 
             disabled={loading}
-            className="p-3 bg-white rounded-2xl border border-slate-200 text-slate-500 hover:text-blue-500 disabled:opacity-50 transition-all"
+            className="p-2.5 bg-white rounded-xl border border-slate-200 text-slate-500 hover:text-blue-500 disabled:opacity-50 transition-all"
           >
             <Loader2 size={16} className={loading ? "animate-spin" : ""} />
           </button>
         </div>
       </div>
 
+      {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm mt-6">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">ID / Rota</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</th>
-                <th className="px-4 py-3 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Anunciante</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest">Valor</th>
-                <th className="px-4 py-3 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest">Destaque</th>
-                <th className="px-4 py-3 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest">Ações</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">ID</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">Origem/Destino</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">Produto</th>
+                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">Anunciante</th>
+                <th className="px-4 py-3 text-right text-xs font-black uppercase text-slate-400 tracking-widest">Valor</th>
+                <th className="px-4 py-3 text-center text-xs font-black uppercase text-slate-400 tracking-widest">Destaque</th>
+                <th className="px-4 py-3 text-right text-xs font-black uppercase text-slate-400 tracking-widest">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && freights.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center">
+                  <td colSpan={7} className="px-4 py-12 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-400" size={32} />
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-slate-400 font-bold uppercase italic">Nenhum frete encontrado</td>
+                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400 font-bold uppercase italic">Nenhum frete encontrado</td>
                 </tr>
               ) : (
-                filtered.map((f) => (
+                 filtered.map((f) => (
                   <tr key={f.id} className="hover:bg-slate-50 transition-colors">
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <span className="text-[10px] font-black text-slate-300">#{f.id}</span>
-                        <div>
-                          <p className="text-xs font-black text-slate-900 uppercase italic flex items-center gap-1">
-                            {f.origin_city} <ChevronRight size={10} className="text-blue-500"/> {f.dest_city}
-                          </p>
-                          <p className="text-[10px] text-slate-400 font-bold">
-                            {f.origin_state} → {f.dest_state}
-                          </p>
-                        </div>
-                      </div>
+                      <p className="text-xs font-black text-slate-900 uppercase italic flex items-center gap-1">
+                        #{f.id} {f.origin_city}/<span className="text-slate-400">{f.origin_uf}</span> <ChevronRight size={10} className="text-blue-500"/> {f.dest_city}/<span className="text-slate-400">{f.dest_uf}</span>
+                      </p>
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-xs font-bold text-slate-700 uppercase">{f.product || 'CARGA GERAL'}</p>
                     </td>
                     <td className="px-4 py-3">
                       <p className="text-xs font-black text-slate-800 uppercase leading-none">{f.company_name || 'PARTICULAR'}</p>
-                      <p className="text-[9px] text-slate-400 mt-1 font-bold">USER ID: {f.user_id}</p>
+                      <p className="text-xs text-slate-400 mt-1 font-bold">USER ID: {f.user_id}</p>
                     </td>
                     <td className="px-4 py-3 text-right">
                       <p className="text-xs font-black text-emerald-600">

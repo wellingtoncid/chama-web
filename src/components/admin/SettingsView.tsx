@@ -4,8 +4,9 @@ import {
   Settings, Save, Clock, ShieldAlert, CheckCircle2,
   Loader2, Star, Image, Trash2, Plus, X, DollarSign, Edit3,
   Building2, Users, Truck, ShoppingCart, Megaphone, MessageSquare,
-  CreditCard, Gift, Globe, Eye, EyeOff, Package, Award, Wrench, GripVertical, AlertCircle, ShieldCheck
+  CreditCard, Gift, Globe, Eye, EyeOff, Package, Award, Wrench, GripVertical, AlertCircle, ShieldCheck, Search
 } from 'lucide-react';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 interface Plan {
   id: number | null;
@@ -32,7 +33,6 @@ const tabs: Tab[] = [
   { id: 'finance', label: 'Financeiro', icon: <DollarSign size={16} /> },
   { id: 'payments', label: 'Pagamentos', icon: <CreditCard size={16} /> },
   { id: 'referral', label: 'Indicações', icon: <Gift size={16} /> },
-  { id: 'plans', label: 'Planos', icon: <Star size={16} /> },
   { id: 'system', label: 'Sistema', icon: <ShieldAlert size={16} /> },
   { id: 'moderation', label: 'Moderação', icon: <ShieldCheck size={16} /> },
   { id: 'smtp', label: 'Email SMTP', icon: <MessageSquare size={16} /> },
@@ -53,6 +53,7 @@ export default function SettingsView() {
   const [activeTab, setActiveTab] = useState<TabId>('general');
   const [showPlanModal, setShowPlanModal] = useState(false);
   const [showPaymentSecrets, setShowPaymentSecrets] = useState(false);
+  const [searchTab, setSearchTab] = useState('');
   
   const [plans, setPlans] = useState<Plan[]>([]);
   
@@ -908,27 +909,59 @@ export default function SettingsView() {
   );
 
   return (
-    <div className="max-w-5xl space-y-8 animate-in fade-in duration-500 pb-32">
-      {/* TABS */}
-      <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-black uppercase text-[10px] whitespace-nowrap transition-all ${
-              activeTab === tab.id 
-                ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' 
-                : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
-            }`}
-          >
-            {tab.icon}
-            {tab.label}
-          </button>
-        ))}
+    <PageShell
+      title="Configurações do Sistema"
+      description="Gerencie configurações gerais, módulos, cadastro, financeiro, pagamentos, indicações, sistema, moderação e SMTP"
+    >
+      {/* STATS GRID */}
+      <StatsGrid>
+        <StatCard label="Total de Abas" value={tabs.length} icon={<Settings size={16} />} />
+        <StatCard label="Geral" value={1} variant="blue" icon={<Globe size={16} />} />
+        <StatCard label="Listas" value={1} variant="purple" icon={<Package size={16} />} />
+        <StatCard label="Módulos" value={1} variant="green" icon={<Settings size={16} />} />
+      </StatsGrid>
+
+      {/* SEARCH & TABS */}
+      <div className="space-y-4">
+        {/* Search Bar */}
+        <div className="relative max-w-md">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            type="text"
+            placeholder="Buscar configuração..."
+            value={searchTab}
+            onChange={(e) => setSearchTab(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-orange-500"
+          />
+        </div>
+
+        {/* Tabs */}
+        <div className="flex overflow-x-auto gap-2 pb-2 scrollbar-hide">
+          {tabs.filter(tab => 
+            !searchTab || 
+            tab.label.toLowerCase().includes(searchTab.toLowerCase()) ||
+            tab.id.toLowerCase().includes(searchTab.toLowerCase())
+          ).map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-2 px-4 py-3 rounded-2xl font-black uppercase text-[10px] whitespace-nowrap transition-all ${
+                activeTab === tab.id 
+                  ? 'bg-orange-500 text-white shadow-lg shadow-orange-200' 
+                  : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'
+              }`}
+            >
+              {tab.icon}
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* TAB CONTENT */}
       {renderTabContent()}
+
+      {/* Rest of the content (floating button, modal, etc.) */}
 
       {/* BOTÃO FLUTUANTE */}
       <div className="fixed bottom-10 right-10 z-[100]">
@@ -1016,6 +1049,6 @@ export default function SettingsView() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { api } from '../../api/api';
 import { 
   Users, Flame, Download, Search, Filter, ChevronLeft, ChevronRight,
   Trash2, X, Clock, Check, Phone, Mail, Calendar,
@@ -7,6 +6,8 @@ import {
   TrendingUp, TrendingDown, Target, Kanban, List,
   Edit
 } from 'lucide-react';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
+import { api } from '../../api/api';
 
 const PIPELINE_STAGES = [
   { id: 'new', label: 'Novo', color: 'bg-slate-100 border-slate-300' },

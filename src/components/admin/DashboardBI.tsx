@@ -6,6 +6,7 @@ import { WidgetContainer } from './widgets/WidgetContainer';
 import { WidgetSelector } from './widgets/WidgetSelector';
 import { BIWidget } from './widgets/BIWidget';
 import { BarChartWidget } from './widgets/BarChartWidget';
+import { PageShell } from '@/components/admin';
 
 interface BIStats {
   freights?: { current: number; growth: number; all_time: number; by_status?: any[]; by_day?: any[] };
@@ -38,11 +39,11 @@ interface AvailableWidget {
 }
 
 const periodOptions = [
+  { value: 'today', label: 'Hoje' },
+  { value: 'last_7_days', label: 'Últimos 7 dias' },
+  { value: 'last_15_days', label: 'Últimos 15 dias' },
+  { value: 'last_30_days', label: 'Últimos 30 dias' },
   { value: 'this_month', label: 'Este Mês' },
-  { value: 'last_month', label: 'Mês Passado' },
-  { value: 'last_3_months', label: 'Últimos 3 Meses' },
-  { value: 'this_year', label: 'Este Ano' },
-  { value: 'all_time', label: 'Todos os Tempos' },
   { value: 'custom', label: 'Personalizado' },
 ];
 
@@ -263,151 +264,147 @@ export default function DashboardBI({ user }: { user: any }) {
   };
 
 return (
-    <div className={`p-5 lg:p-8 space-y-6 animate-in fade-in duration-500 pb-24 max-w-[1440px] mx-auto ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-      {/* Header */}
-      <div className={`flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-2xl p-5 lg:p-6 border`}>
-        <div>
-          <h2 className={`text-2xl lg:text-3xl font-black ${isDark ? 'text-white' : 'text-slate-900'}`}>Dashboard BI</h2>
-          <p className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'} mt-1`}>
-            Visão geral das métricas e indicadores
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          {/* Period Selector Pills */}
-          <div className={`flex p-1 rounded-xl ${isDark ? 'bg-slate-800' : 'bg-slate-100'}`}>
-            {periodOptions.filter(o => o.value !== 'custom').map(opt => (
-              <button
-                key={opt.value}
-                onClick={() => handlePeriodChange(opt.value)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  period === opt.value 
-                    ? (isDark ? 'bg-slate-700 text-white shadow-sm' : 'bg-white text-slate-900 shadow-sm')
-                    : (isDark ? 'text-slate-400 hover:text-slate-200' : 'text-slate-500 hover:text-slate-700')
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          
-          {/* Custom Date Picker */}
-          <div className={`flex items-center gap-2 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-xl px-3 py-2`}>
-            <input 
-              type="date" 
+  <PageShell
+    title="Dashboard BI"
+    description="Business Intelligence Dashboard"
+    actions={
+      <div className="flex items-center gap-3">
+        {/* Period Select (SaaS Standard) */}
+        <select
+          value={period}
+          onChange={(e) => handlePeriodChange(e.target.value)}
+          className={`rounded-xl px-4 py-2.5 text-sm font-medium border-none outline-none transition-all ${
+            isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
+          }`}
+        >
+          {periodOptions.map(opt => (
+            <option key={opt.value} value={opt.value}>{opt.label}</option>
+          ))}
+        </select>
+
+        {/* Custom Date Picker (Show only if 'custom' is selected) */}
+        {period === 'custom' && (
+          <div className={`flex items-center gap-2 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-xl px-4 py-2.5`}>
+            <input
+              type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
               className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'} bg-transparent border-none outline-none w-24`}
             />
             <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>-</span>
-            <input 
-              type="date" 
+            <input
+              type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
               className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'} bg-transparent border-none outline-none w-24`}
             />
-            <button 
+            <button
               onClick={handleCustomApply}
               disabled={!customStart || !customEnd}
-              className={`${isDark ? 'bg-slate-600 disabled:bg-slate-700' : 'bg-slate-900 disabled:bg-slate-400'} text-white px-3 py-1 rounded-lg text-sm font-medium`}
+              className={`${isDark ? 'bg-slate-600 disabled:bg-slate-700' : 'bg-slate-900 disabled:bg-slate-400'} text-white px-4 py-1 rounded-lg text-sm font-medium`}
             >
               OK
             </button>
           </div>
-          
-          {/* Actions */}
-          <button 
-            onClick={() => setIsEditing(!isEditing)}
-            className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
-            title={isEditing ? 'Fechar' : 'Personalizar'}
-          >
-            <LayoutGrid size={18} />
-          </button>
-          <button 
-            onClick={handleRefresh}
-            disabled={refreshing}
-            className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
-            title="Atualizar"
-          >
-            <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
-          </button>
-        </div>
-      </div>
+        )}
 
+        {/* Actions */}
+        <button
+          onClick={() => setIsEditing(!isEditing)}
+          className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
+          title={isEditing ? 'Fechar' : 'Personalizar'}
+        >
+          <LayoutGrid size={18} />
+        </button>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
+          title="Atualizar"
+        >
+          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+        </button>
+      </div>
+    }
+  >
+
+    {/* Add spacing between header and content */}
+    <div className="mt-4">
       {/* Editing Toolbar */}
       {isEditing && (
         <div className={`${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'} border rounded-2xl p-4`}>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => setShowSelector(!showSelector)}
-                className={`${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all`}
-              >
-                <Plus size={16} />
-                Adicionar
-              </button>
-              <button
-                onClick={handleResetWidgets}
-                className={`${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all border`}
-              >
-                <RotateCcw size={16} />
-                Resetar
-              </button>
-            </div>
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2">
             <button
-              onClick={handleSaveWidgets}
-              className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all"
+              onClick={() => setShowSelector(!showSelector)}
+              className={`${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all`}
             >
-              <Settings size={16} />
-              Salvar Layout
+              <Plus size={16} />
+              Adicionar
+            </button>
+            <button
+              onClick={handleResetWidgets}
+              className={`${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all border`}
+            >
+              <RotateCcw size={16} />
+              Resetar
             </button>
           </div>
-
-          {showSelector && (
-            <div className="mt-4 pt-4 border-t border-indigo-200">
-              <WidgetSelector
-                availableWidgets={availableWidgets.map(w => ({
-                  widget_key: w.widget_key,
-                  widget_type: w.widget_type,
-                  label: w.label,
-                  description: w.description,
-                  icon: w.icon,
-                  category: w.category
-                }))}
-                selectedWidgets={selectedWidgetKeys}
-                onToggle={handleToggleWidget}
-              />
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Widgets Grid */}
-      <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-6 ${isEditing ? 'opacity-75' : ''}`}>
-        {userWidgets.map((widget) => (
-          <WidgetContainer
-            key={widget.widget_key}
-            colSpan={widget.col_span}
-            isEditing={isEditing}
-            onRemove={isEditing ? () => handleToggleWidget(widget.widget_key) : undefined}
-          >
-            {renderWidget(widget)}
-          </WidgetContainer>
-        ))}
-      </div>
-
-      {userWidgets.length === 0 && !isEditing && (
-        <div className={`text-center py-16 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-2xl border p-12`}>
-          <LayoutGrid size={48} className={`mx-auto mb-4 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
-          <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium mb-4`}>Nenhum widget configurado</p>
           <button
-            onClick={() => setIsEditing(true)}
-            className="text-indigo-600 font-bold text-sm hover:underline"
+            onClick={handleSaveWidgets}
+            className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all"
           >
-            Adicionar widgets
+            <Settings size={16} />
+            Salvar Layout
           </button>
         </div>
-      )}
+
+        {showSelector && (
+          <div className="mt-4 pt-4 border-t border-indigo-200">
+            <WidgetSelector
+              availableWidgets={availableWidgets.map(w => ({
+                widget_key: w.widget_key,
+                widget_type: w.widget_type,
+                label: w.label,
+                description: w.description,
+                icon: w.icon,
+                category: w.category
+              }))}
+              selectedWidgets={selectedWidgetKeys}
+              onToggle={handleToggleWidget}
+            />
+          </div>
+        )}
+      </div>
+    )}
+
+    {/* Widgets Grid */}
+    <div className={`grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 lg:gap-6 ${isEditing ? 'opacity-75' : ''}`}>
+      {userWidgets.map((widget) => (
+        <WidgetContainer
+          key={widget.widget_key}
+          colSpan={widget.col_span}
+          isEditing={isEditing}
+          onRemove={isEditing ? () => handleToggleWidget(widget.widget_key) : undefined}
+        >
+          {renderWidget(widget)}
+        </WidgetContainer>
+      ))}
     </div>
-  );
+
+    {userWidgets.length === 0 && !isEditing && (
+      <div className={`text-center py-16 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-2xl border p-12`}>
+        <LayoutGrid size={48} className={`mx-auto mb-4 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
+        <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium mb-4`}>Nenhum widget configurado</p>
+        <button
+          onClick={() => setIsEditing(true)}
+          className="text-indigo-600 font-bold text-sm hover:underline"
+        >
+          Adicionar widgets
+        </button>
+       </div>
+     )}
+     </div>
+   </PageShell>
+);
 }

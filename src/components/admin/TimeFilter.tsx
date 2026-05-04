@@ -35,7 +35,7 @@ export default function TimeFilter({ value, onChange, className = '' }: TimeFilt
       <select
         value={value}
         onChange={(e) => onChange(e.target.value as TimeFilterValue)}
-        className="bg-white dark:bg-slate-800 px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-600 dark:text-slate-300 outline-none"
+        className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
       >
         {TIME_OPTIONS.map(option => (
           <option key={option.key} value={option.key}>
@@ -50,14 +50,14 @@ export default function TimeFilter({ value, onChange, className = '' }: TimeFilt
             type="date"
             value={customStart}
             onChange={(e) => setCustomStart(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
           />
           <span className="text-slate-400 text-xs">até</span>
           <input
             type="date"
             value={customEnd}
             onChange={(e) => setCustomEnd(e.target.value)}
-            className="px-3 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none"
+            className="px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-600 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       )}

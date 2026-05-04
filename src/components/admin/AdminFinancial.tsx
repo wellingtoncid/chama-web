@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
-import { TrendingUp, Wallet, ArrowDownCircle, Download, CreditCard, Search, Calendar, ChevronLeft, ChevronRight, X, Filter } from 'lucide-react';
+import { TrendingUp, Wallet, ArrowDownCircle, Download, CreditCard, Search, ChevronLeft, ChevronRight, X, Filter } from 'lucide-react';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 const formatCurrency = (value: number | string) => {
   const num = typeof value === 'string' ? parseFloat(value.replace(/[^0-9.-]/g, '')) : value;
@@ -118,8 +119,10 @@ export default function AdminFinancial() {
       .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
     const approved = txs.filter((t: any) => ['approved', 'completed'].includes(t.status))
       .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
+    const cancelled = txs.filter((t: any) => t.status === 'cancelled')
+      .reduce((sum: number, t: any) => sum + Number(t.amount || 0), 0);
     
-    return { total, pending, approved, count: txs.length };
+    return { total, pending, approved, cancelled, count: txs.length };
   }, [filteredTransactions]);
 
   const statusCounts = useMemo(() => {
@@ -164,70 +167,21 @@ export default function AdminFinancial() {
   if (loading) return <div className="p-20 text-center animate-pulse font-black italic uppercase text-slate-400">Consolidando Caixa...</div>;
 
   return (
-    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
-            Gestão Financeira
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Controle de receitas e transações
-          </p>
-        </div>
+    <PageShell
+      title="Gestão Financeira"
+      description="Controle de receitas e transações"
+      actions={
         <button onClick={exportToCSV} className="flex items-center gap-2 text-xs font-bold uppercase bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700 transition-all">
           <Download size={16} /> Exportar
         </button>
-      </div>
-
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl">
-              <TrendingUp size={20} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Receita Total</p>
-              <p className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">{formatCurrency(filteredStats.total)}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl">
-              <ArrowDownCircle size={20} className="text-blue-500" />
-            </div>
-            <div>
-              <p className="text-xs text-blue-700 dark:text-blue-400 font-bold uppercase">Pendente</p>
-              <p className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">{formatCurrency(filteredStats.pending)}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl">
-              <Wallet size={20} className="text-purple-500" />
-            </div>
-            <div>
-              <p className="text-xs text-purple-700 dark:text-purple-400 font-bold uppercase">Aprovado</p>
-              <p className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">{formatCurrency(filteredStats.approved)}</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-orange-100 dark:bg-orange-900/30 p-2 rounded-xl">
-              <CreditCard size={20} className="text-orange-500" />
-            </div>
-            <div>
-              <p className="text-xs text-orange-700 dark:text-orange-400 font-bold uppercase">Transações</p>
-              <p className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">{formatNumber(filteredStats.count)}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      }
+    >
+      <StatsGrid>
+        <StatCard label="Receita Total" value={formatCurrency(filteredStats.total)} icon={<TrendingUp size={16} />} />
+        <StatCard label="Pendente" value={formatCurrency(filteredStats.pending)} variant="blue" icon={<ArrowDownCircle size={16} />} />
+        <StatCard label="Aprovado" value={formatCurrency(filteredStats.approved)} variant="purple" icon={<Wallet size={16} />} />
+        <StatCard label="Cancelado" value={formatCurrency(filteredStats.cancelled)} variant="red" icon={<CreditCard size={16} />} />
+      </StatsGrid>
 
       <div className="flex flex-wrap items-center gap-3">
         <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -410,6 +364,6 @@ export default function AdminFinancial() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

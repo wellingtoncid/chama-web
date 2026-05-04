@@ -10,6 +10,7 @@ import CheckoutModal from './CheckoutModal';
 import Swal from 'sweetalert2';
 import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 import { UsageMeter } from '../shared/UsageMeter';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
@@ -18,6 +19,7 @@ export default function FreightManager({ user }: any) {
   const [showCheckout, setShowCheckout] = useState(false);
   const [selectedFreightId, setSelectedFreightId] = useState<number | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const [modules, setModules] = useState<any>({});
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pricingData, setPricingData] = useState<any>(null);
@@ -231,78 +233,78 @@ export default function FreightManager({ user }: any) {
     f.product?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-10">
+return (
+  <PageShell
+    title="Gestão de Cargas"
+    description="Controle operacional da sua frota e fretes"
+    actions={
+      <button 
+        onClick={() => checkAccessAndRun(() => navigate('/novo-frete'))}
+        className="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black uppercase flex items-center gap-3 hover:bg-orange-500 transition-all group"
+      >
+        <PlusCircle size={18} className="group-hover:rotate-90 transition-transform" /> 
+        Nova Publicação
+      </button>
+    }
+  >
+    {/* Usage Meter */}
+    <UsageMeter moduleKey="freights" />
+
+    {/* StatsGrid */}
+    <div className="mt-6">
+      <StatsGrid>
+        <StatCard label="Visualizações" value={stats.totalViews} icon={<Eye size={16} />} />
+        <StatCard label="Cargas Ativas" value={stats.activeFreights} variant="blue" icon={<Package size={16} />} />
+        <StatCard label="Interesses" value={stats.totalInterests} variant="purple" icon={<MessageCircle size={16} />} />
+      </StatsGrid>
+    </div>
+
+    {/* Search & Filters */}
+    <div className="flex flex-col md:flex-row gap-4 items-center justify-between mx-2 mt-4">
+      <div className="relative w-full max-w-md">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
+        <input 
+          type="text" 
+          placeholder="Filtrar por rota ou produto..."
+          className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-4 py-3 pl-12 rounded-xl outline-none focus:border-orange-500 transition-all font-bold text-slate-600 dark:text-slate-300 text-[11px] uppercase shadow-sm"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
       
-      {/* HEADER DINÂMICO */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 px-2">
-        <div>
-          <h2 className="text-3xl font-black uppercase italic text-slate-900 tracking-tighter">
-            Gestão de <span className="text-orange-500">Cargas</span>
-          </h2>
-          <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest mt-1">
-            Controle operacional da sua frota e fretes
-          </p>
-        </div>
-        
-        <button 
-          onClick={() => checkAccessAndRun(() => navigate('/novo-frete'))}
-          className="bg-slate-900 text-white px-8 py-4 rounded-2xl font-black uppercase italic flex items-center gap-3 shadow-xl hover:bg-orange-500 transition-all group"
-        >
-          <PlusCircle size={20} className="group-hover:rotate-90 transition-transform" /> 
-          Nova Publicação
-        </button>
+      {/* Status Filter Tabs */}
+      <div className="flex items-center gap-2">
+        {[
+          { key: 'all', label: 'Todos' },
+          { key: 'active', label: 'Ativos' },
+          { key: 'completed', label: 'Concluídos' },
+          { key: 'cancelled', label: 'Cancelados' }
+        ].map(tab => (
+          <button
+            key={tab.key}
+            onClick={() => setStatusFilter(tab.key)}
+            className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${
+              statusFilter === tab.key
+                ? 'bg-slate-900 text-white'
+                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
+            }`}
+          >
+            {tab.label}
+          </button>
+        ))}
       </div>
 
-      {/* MEDIDOR DE USO - versão importada */}
-      <UsageMeter moduleKey="freights" />
-
-      {/* INDICADORES ESPECÍFICOS DO MÓDULO */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <MiniMetricCard 
-          icon={<Eye size={18} />} 
-          label="Visualizações" 
-          value={stats.totalViews} 
-          color="blue"
-        />
-        <MiniMetricCard 
-          icon={<Package size={18} />} 
-          label="Cargas Ativas" 
-          value={stats.activeFreights} 
-          color="orange"
-        />
-        <MiniMetricCard 
-          icon={<MessageCircle size={18} />} 
-          label="Interesses" 
-          value={stats.totalInterests} 
-          color="slate"
-        />
-      </div>
-
-      {/* BARRA DE BUSCA E FILTROS */}
-      <div className="flex flex-col md:flex-row gap-4 items-center justify-between mx-2">
-        <div className="relative w-full max-w-md">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-          <input 
-            type="text" 
-            placeholder="Filtrar por rota ou produto..."
-            className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 p-4 pl-12 rounded-[1.5rem] outline-none focus:border-orange-500 transition-all font-bold text-slate-600 dark:text-slate-300 text-[11px] uppercase shadow-sm"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex items-center gap-2">
-           <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg border border-orange-100 dark:border-orange-800">
+      <div className="flex items-center gap-2">
+         <div className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-100 dark:border-orange-800">
               <Zap size={12} fill="currentColor" />
               <span className="text-[10px] font-black uppercase tracking-tight">
                 {myFreights.filter(f => Number(f.is_featured) === 1).length} Destaques
               </span>
-           </div>
-        </div>
+         </div>
       </div>
+    </div>
 
-      {/* LISTAGEM PRINCIPAL */}
+    {/* Rest of content (table/list) */}
       <div className="bg-white dark:bg-slate-800 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px]">
         {loading ? (
           <div className="py-32 text-center flex flex-col items-center gap-4">
@@ -409,13 +411,12 @@ export default function FreightManager({ user }: any) {
       {showCheckout && selectedFreightId !== null && (
         <CheckoutModal 
           freightId={selectedFreightId}
-          freightData={myFreights.find(f => f.id === selectedFreightId)}
           onClose={() => { setShowCheckout(false); setSelectedFreightId(null); }}
           onSuccess={() => { setShowCheckout(false); setSelectedFreightId(null); fetchFreights(); }} 
         />
       )}
 
-      {/* MODAL DE UPGRADE (Limite atingido) */}
+       {/* MODAL DE UPGRADE (Limite atingido) */}
       <UpgradeModal
         isOpen={showUpgradeModal}
         onClose={() => setShowUpgradeModal(false)}
@@ -427,7 +428,7 @@ export default function FreightManager({ user }: any) {
         pricePerUse={pricingData?.pricePerUse || 0}
         priceMonthly={pricingData?.priceMonthly || 0}
       />
-    </div>
+    </PageShell>
   );
 }
 

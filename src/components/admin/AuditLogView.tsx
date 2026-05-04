@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '@/api/api';
-import { Shield, Clock, User, Search, RefreshCw, Calendar, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Clock, User, Search, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 interface AuditLog {
   id: number;
@@ -52,7 +53,7 @@ export default function AuditLogsView() {
     date_from: '',
     date_to: ''
   });
-  
+   
   const [showFilters, setShowFilters] = useState(false);
   const [expandedLog, setExpandedLog] = useState<number | null>(null);
 
@@ -63,17 +64,15 @@ export default function AuditLogsView() {
         page: String(page),
         per_page: String(pagination.per_page)
       };
-      
+       
       if (filters.search) params.search = filters.search;
       if (filters.target_type) params.target_type = filters.target_type;
       if (filters.action_type) params.action_type = filters.action_type;
       if (filters.date_from) params.date_from = filters.date_from;
       if (filters.date_to) params.date_to = filters.date_to;
-      
-      console.log('AuditLogView: Fetching logs with params:', params);
+       
       const response = await api.get('admin-audit-logs', { params });
-      console.log('AuditLogView: Response:', response.data);
-      
+       
       if (response.data?.success) {
         setLogs(response.data.data || []);
         if (response.data.pagination) {
@@ -87,16 +86,12 @@ export default function AuditLogsView() {
           setActionTypes(response.data.filters.action_types || []);
         }
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erro ao buscar logs:", error);
     } finally {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    fetchLogs(1);
-  }, []);
 
   useEffect(() => {
     fetchLogs(1);
@@ -138,7 +133,7 @@ export default function AuditLogsView() {
   const getTargetIcon = (target: string) => {
     const iconClass = "w-8 h-8 rounded-full flex items-center justify-center";
     const targetLower = (target || '').toLowerCase();
-    
+     
     if (targetLower.includes('user')) {
       return <div className={`${iconClass} bg-blue-100 text-blue-600`}><User size={14} /></div>;
     }
@@ -152,49 +147,25 @@ export default function AuditLogsView() {
   };
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
-      {/* HEADER */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="bg-blue-600 p-3 rounded-2xl text-white shadow-lg shadow-blue-200">
-            <Shield size={24} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black uppercase italic text-slate-900 leading-none">
-              Auditoria do Sistema
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              Histórico completo de ações administrativas
-            </p>
-          </div>
-        </div>
+    <PageShell
+      title="Auditoria do Sistema"
+      description="Histórico completo de ações administrativas"
+      actions={
         <button 
           onClick={() => fetchLogs(pagination.page)}
           className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-blue-600 hover:border-blue-200 transition-all"
         >
           <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
         </button>
-      </div>
-
+      }
+    >
       {/* STATS */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-200">
-          <p className="text-xs font-bold text-slate-400 uppercase">Hoje</p>
-          <p className="text-2xl font-black text-slate-900">{stats.today}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-blue-200">
-          <p className="text-xs font-bold text-blue-500 uppercase">Esta Semana</p>
-          <p className="text-2xl font-black text-blue-600">{stats.this_week}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200">
-          <p className="text-xs font-bold text-slate-400 uppercase">Este Mês</p>
-          <p className="text-2xl font-black text-slate-900">{stats.this_month}</p>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200">
-          <p className="text-xs font-bold text-slate-400 uppercase">Total</p>
-          <p className="text-2xl font-black text-slate-900">{stats.total}</p>
-        </div>
-      </div>
+      <StatsGrid>
+        <StatCard label="Hoje" value={stats.today} />
+        <StatCard label="Esta Semana" value={stats.this_week} variant="blue" />
+        <StatCard label="Este Mês" value={stats.this_month} />
+        <StatCard label="Total" value={stats.total} />
+      </StatsGrid>
 
       {/* SEARCH & FILTERS */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4">
@@ -203,82 +174,86 @@ export default function AuditLogsView() {
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
             <input
               type="text"
-              placeholder="Buscar por usuário, descrição..."
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none transition-all"
               value={filters.search}
-              onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+              onChange={(e) => setFilters(prev => ({...prev, search: e.target.value}))}
+              placeholder="Buscar por descrição, usuário, IP..."
+              className="w-full pl-11 pr-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 ring-blue-500/20"
             />
           </div>
           <button
-            type="button"
-            onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-3 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium text-slate-600 hover:bg-slate-100 transition-colors"
-          >
-            <Calendar size={18} />
-            Filtros
-            {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-          </button>
-          <button
             type="submit"
-            className="px-6 py-3 bg-blue-600 text-white rounded-xl font-bold text-sm hover:bg-blue-700 transition-colors"
+            className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase hover:bg-blue-500 transition-all"
           >
             Buscar
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowFilters(!showFilters)}
+            className="px-4 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+          >
+            {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         </form>
 
         {showFilters && (
-          <div className="flex flex-wrap gap-3 mt-4 pt-4 border-t border-slate-100">
-            <select
-              className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium"
-              value={filters.target_type}
-              onChange={(e) => setFilters({ ...filters, target_type: e.target.value })}
-            >
-              <option value="">Todas as Entidades</option>
-              {targetTypes.map((t) => (
-                <option key={t.value} value={t.value}>{t.label || t.value}</option>
-              ))}
-            </select>
-            
-            <select
-              className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium"
-              value={filters.action_type}
-              onChange={(e) => setFilters({ ...filters, action_type: e.target.value })}
-            >
-              <option value="">Todas as Ações</option>
-              {actionTypes.map((a) => (
-                <option key={a.value} value={a.value}>{a.label || a.value}</option>
-              ))}
-            </select>
-            
-            <input
-              type="date"
-              className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium"
-              value={filters.date_from}
-              onChange={(e) => setFilters({ ...filters, date_from: e.target.value })}
-              placeholder="Data Início"
-            />
-            
-            <input
-              type="date"
-              className="px-4 py-2 bg-slate-50 rounded-xl border border-slate-200 text-sm font-medium"
-              value={filters.date_to}
-              onChange={(e) => setFilters({ ...filters, date_to: e.target.value })}
-              placeholder="Data Fim"
-            />
-            
-            <button
-              onClick={clearFilters}
-              className="px-4 py-2 text-red-500 text-sm font-medium hover:underline"
-            >
-              Limpar
-            </button>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-200">
+            <div>
+              <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Tipo de Alvo</label>
+              <select
+                value={filters.target_type}
+                onChange={(e) => setFilters(prev => ({...prev, target_type: e.target.value}))}
+                className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+              >
+                <option value="">Todos</option>
+                {targetTypes.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Tipo de Ação</label>
+              <select
+                value={filters.action_type}
+                onChange={(e) => setFilters(prev => ({...prev, action_type: e.target.value}))}
+                className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+              >
+                <option value="">Todas</option>
+                {actionTypes.map(opt => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Data Início</label>
+                <input
+                  type="date"
+                  value={filters.date_from}
+                  onChange={(e) => setFilters(prev => ({...prev, date_from: e.target.value}))}
+                  className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Data Fim</label>
+                <input
+                  type="date"
+                  value={filters.date_to}
+                  onChange={(e) => setFilters(prev => ({...prev, date_to: e.target.value}))}
+                  className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+                />
+              </div>
+            </div>
           </div>
         )}
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-        <div className="overflow-x-auto">
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <RefreshCw className="animate-spin text-blue-500" size={40} />
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <table className="w-full text-left">
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200">
@@ -289,13 +264,7 @@ export default function AuditLogsView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {loading ? (
-                <tr>
-                  <td colSpan={4} className="p-12 text-center">
-                    <RefreshCw className="animate-spin text-blue-500 mx-auto" size={32} />
-                  </td>
-                </tr>
-              ) : logs.length === 0 ? (
+              {logs.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="p-12 text-center text-slate-400 font-medium">
                     Nenhum registro encontrado
@@ -310,7 +279,7 @@ export default function AuditLogsView() {
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          {getTargetIcon(log.target_type || undefined)}
+                          {getTargetIcon(log.target_type || '')}
                           <div>
                             <p className="font-bold text-sm text-slate-900">{log.user_name || 'Sistema'}</p>
                             <p className="text-xs text-slate-400">ID: {log.user_id}</p>
@@ -357,9 +326,7 @@ export default function AuditLogsView() {
                             </div>
                             <div>
                               <p className="font-bold text-slate-400 uppercase">Dados Antigos</p>
-                              <p className="text-slate-600 font-medium text-[10px] truncate">
-                                {log.old_values ? JSON.parse(log.old_values) : 'Nenhum'}
-                              </p>
+                              <p className="text-slate-600 font-medium truncate">{log.old_values ? JSON.parse(log.old_values) : 'Nenhum'}</p>
                             </div>
                           </div>
                         </td>
@@ -371,35 +338,35 @@ export default function AuditLogsView() {
             </tbody>
           </table>
         </div>
+      )}
 
-        {/* PAGINATION */}
-        {pagination.total_pages > 1 && (
-          <div className="flex items-center justify-between px-5 py-4 border-t border-slate-200">
-            <p className="text-xs text-slate-500">
-              Mostrando {(pagination.page - 1) * pagination.per_page + 1} - {Math.min(pagination.page * pagination.per_page, pagination.total)} de {pagination.total}
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handlePageChange(pagination.page - 1)}
-                disabled={pagination.page === 1}
-                className="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Anterior
-              </button>
-              <span className="px-3 py-1 text-xs font-bold text-slate-600">
-                {pagination.page} / {pagination.total_pages}
-              </span>
-              <button
-                onClick={() => handlePageChange(pagination.page + 1)}
-                disabled={pagination.page >= pagination.total_pages}
-                className="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Próximo
-              </button>
-            </div>
+      {/* PAGINATION */}
+      {pagination.total_pages > 1 && (
+        <div className="flex items-center justify-between px-5 py-4 border-t border-slate-200">
+          <p className="text-xs text-slate-500">
+            Mostrando {(pagination.page - 1) * pagination.per_page + 1} - {Math.min(pagination.page * pagination.per_page, pagination.total)} de {pagination.total}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => handlePageChange(pagination.page - 1)}
+              disabled={pagination.page === 1}
+              className="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200 transition-all disabled:opacity-50"
+            >
+              Anterior
+            </button>
+            <span className="px-3 py-1 text-xs font-bold text-slate-600">
+              {pagination.page} / {pagination.total_pages}
+            </span>
+            <button
+              onClick={() => handlePageChange(pagination.page + 1)}
+              disabled={pagination.page >= pagination.total_pages}
+              className="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200 transition-all disabled:opacity-50"
+            >
+              Próximo
+            </button>
           </div>
-        )}
-      </div>
-    </div>
+        </div>
+      )}
+    </PageShell>
   );
 }

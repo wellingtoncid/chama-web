@@ -6,6 +6,7 @@ import {
   ChevronDown, Filter, Eye, Mail
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 interface Ticket {
   id: number;
@@ -208,66 +209,17 @@ export default function SupportTicketsManager() {
   const progressCount = tickets.filter(t => t.status === 'IN_PROGRESS').length;
 
   return (
-    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* HEADER */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white">
-            Gestão de Suporte
-          </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-            Gerencie chamados de clientes
-          </p>
-        </div>
-      </div>
-
+    <PageShell
+      title="Gestão de Suporte"
+      description="Gerencie chamados de clientes"
+    >
       {/* STATS GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-xl">
-              <MessageCircle size={20} className="text-blue-500" />
-            </div>
-            <div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Total</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{tickets.length}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-indigo-100 dark:bg-indigo-900/30 p-2 rounded-xl">
-              <Clock size={20} className="text-indigo-500" />
-            </div>
-            <div>
-              <p className="text-xs text-indigo-700 dark:text-indigo-400 font-bold uppercase">Abertos</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{openCount}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-xl">
-              <AlertCircle size={20} className="text-purple-500" />
-            </div>
-            <div>
-              <p className="text-xs text-purple-700 dark:text-purple-400 font-bold uppercase">Em Andamento</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{progressCount}</p>
-            </div>
-          </div>
-        </div>
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <div className="bg-emerald-100 dark:bg-emerald-900/30 p-2 rounded-xl">
-              <CheckCircle size={20} className="text-emerald-500" />
-            </div>
-            <div>
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 font-bold uppercase">Fechados</p>
-              <p className="text-2xl font-black text-slate-900 dark:text-white">{tickets.filter(t => t.status === 'CLOSED').length}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <StatsGrid>
+        <StatCard label="Total" value={tickets.length} icon={<MessageCircle size={16} />} />
+        <StatCard label="Abertos" value={openCount} variant="blue" icon={<Clock size={16} />} />
+        <StatCard label="Em Andamento" value={progressCount} variant="purple" icon={<AlertCircle size={16} />} />
+        <StatCard label="Fechados" value={tickets.filter(t => t.status === 'CLOSED').length} variant="green" icon={<CheckCircle size={16} />} />
+      </StatsGrid>
 
       {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-3">
@@ -502,6 +454,6 @@ export default function SupportTicketsManager() {
           )}
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
