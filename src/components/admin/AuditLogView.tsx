@@ -160,36 +160,38 @@ export default function AuditLogsView() {
       }
     >
       {/* STATS */}
-      <StatsGrid>
+      <div className="mt-6">
+        <StatsGrid>
         <StatCard label="Hoje" value={stats.today} />
         <StatCard label="Esta Semana" value={stats.this_week} variant="blue" />
         <StatCard label="Este Mês" value={stats.this_month} />
-        <StatCard label="Total" value={stats.total} />
-      </StatsGrid>
+          <StatCard label="Total" value={stats.total} />
+        </StatsGrid>
+      </div>
 
       {/* SEARCH & FILTERS */}
-      <div className="bg-white rounded-2xl border border-slate-200 p-4">
+      <div className="mt-4">
         <form onSubmit={handleSearch} className="flex flex-col md:flex-row gap-3">
           <div className="flex-1 relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
             <input
               type="text"
               value={filters.search}
               onChange={(e) => setFilters(prev => ({...prev, search: e.target.value}))}
               placeholder="Buscar por descrição, usuário, IP..."
-              className="w-full pl-11 pr-4 py-3 bg-slate-50 rounded-xl text-xs font-bold outline-none focus:ring-2 ring-blue-500/20"
+              className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
           <button
             type="submit"
-            className="bg-slate-900 text-white px-6 py-3 rounded-xl font-bold text-xs uppercase hover:bg-blue-500 transition-all"
+            className="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-blue-500 transition-all"
           >
             Buscar
           </button>
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-3 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+            className="px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
           >
             {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
@@ -198,26 +200,24 @@ export default function AuditLogsView() {
         {showFilters && (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-200">
             <div>
-              <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Tipo de Alvo</label>
               <select
                 value={filters.target_type}
                 onChange={(e) => setFilters(prev => ({...prev, target_type: e.target.value}))}
-                className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+                className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Todos</option>
+                <option value="">Todos os Tipos</option>
                 {targetTypes.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
               </select>
             </div>
             <div>
-              <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Tipo de Ação</label>
               <select
                 value={filters.action_type}
                 onChange={(e) => setFilters(prev => ({...prev, action_type: e.target.value}))}
-                className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+                className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Todas</option>
+                <option value="">Todas as Ações</option>
                 {actionTypes.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
                 ))}
@@ -225,21 +225,19 @@ export default function AuditLogsView() {
             </div>
             <div className="flex gap-2">
               <div className="flex-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Data Início</label>
                 <input
                   type="date"
                   value={filters.date_from}
                   onChange={(e) => setFilters(prev => ({...prev, date_from: e.target.value}))}
-                  className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+                  className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="flex-1">
-                <label className="text-[9px] font-black uppercase text-slate-400 ml-2">Data Fim</label>
                 <input
                   type="date"
                   value={filters.date_to}
                   onChange={(e) => setFilters(prev => ({...prev, date_to: e.target.value}))}
-                  className="w-full p-3 bg-slate-50 rounded-xl text-xs outline-none"
+                  className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
-import { Loader2, Shield, ShieldCheck, X, Check, Clock, FileText, ExternalLink, Eye, User, Building2 } from 'lucide-react';
+import { Loader2, Shield, X, Check, Clock, FileText, ExternalLink, Eye, User, Building2, Search } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 interface DriverDocument {
   document_type: string;
@@ -61,17 +61,17 @@ const DOCUMENT_LABELS: Record<string, string> = {
 
 type TabType = 'pending' | 'approved' | 'rejected';
 
-const TABS: { key: TabType; label: string; color: string; bgColor: string; borderColor: string }[] = [
-  { key: 'pending', label: 'Aguardando', color: 'text-amber-600', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
-  { key: 'approved', label: 'Aprovados', color: 'text-emerald-600', bgColor: 'bg-emerald-50', borderColor: 'border-emerald-200' },
-  { key: 'rejected', label: 'Rejeitados', color: 'text-red-600', bgColor: 'bg-red-50', borderColor: 'border-red-200' }
-];
+const STATUS_COLORS: Record<string, string> = {
+  pending: 'bg-amber-100 text-amber-600',
+  approved: 'bg-emerald-100 text-emerald-600',
+  rejected: 'bg-red-100 text-red-600'
+};
 
-const TYPE_TABS = [
-  { key: 'all', label: 'Todos' },
-  { key: 'driver', label: 'Motoristas' },
-  { key: 'company', label: 'Empresas' }
-];
+const STATUS_LABELS: Record<string, string> = {
+  pending: 'Pendente',
+  approved: 'Aprovado',
+  rejected: 'Rejeitado'
+};
 
 export default function VerificationsManager() {
   const [verifications, setVerifications] = useState<Verification[]>([]);
@@ -81,18 +81,19 @@ export default function VerificationsManager() {
   const [expandedCards, setExpandedCards] = useState<Set<number>>(new Set());
   const [activeTab, setActiveTab] = useState<TabType>('pending');
   const [typeFilter, setTypeFilter] = useState<'all' | 'driver' | 'company'>('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [counts, setCounts] = useState<Record<string, number>>({});
 
   async function loadCounts() {
     try {
       const countsData: Record<string, number> = { pending: 0, approved: 0, rejected: 0 };
         
-      for (const tab of TABS) {
+      for (const status of ['pending', 'approved', 'rejected']) {
         const res = await api.get('/admin/verifications', {
-          params: { status: tab.key, type: 'all', limit: 1 }
+          params: { status, type: 'all', limit: 1 }
         });
         if (res.data?.success) {
-          countsData[tab.key] = res.data.data?.total || res.data.data?.verifications?.length || 0;
+          countsData[status] = res.data.data?.total || res.data.data?.verifications?.length || 0;
         }
       }
         
@@ -118,6 +119,14 @@ export default function VerificationsManager() {
     }
   }
  
+  const filteredVerifications = verifications.filter(v => {
+    if (!searchTerm) return true;
+    const lower = searchTerm.toLowerCase();
+    return v.user_name?.toLowerCase().includes(lower) ||
+           v.user_email?.toLowerCase().includes(lower) ||
+           v.cnpj?.includes(lower) ||
+           v.razao_social?.toLowerCase().includes(lower);
+  });
   useEffect(() => {
     loadCounts();
     loadVerifications();
@@ -257,9 +266,9 @@ export default function VerificationsManager() {
   if (loading) {
     return (
       <PageShell title="Verificações" description="Gerencie verificações de motoristas e empresas">
-        <div className="flex flex-col items-center justify-center py-20">
+        <div className="mt-6 flex flex-col items-center justify-center py-20">
           <Loader2 className="animate-spin text-orange-500 mb-4" size={40} />
-          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
+          <span className="text-xs font-bold text-slate-400">Carregando...</span>
         </div>
       </PageShell>
     );
@@ -308,74 +317,67 @@ export default function VerificationsManager() {
       )}
 
       {/* Stats Grid */}
-      <StatsGrid>
-        <StatCard 
-          label="Total" 
-          value={(counts.pending || 0) + (counts.approved || 0) + (counts.rejected || 0)} 
-          icon={Shield} 
-        />
-        <StatCard 
-          label="Pendentes" 
-          value={counts.pending || 0} 
-          icon={Clock}
-          variant="yellow"
-        />
-        <StatCard 
-          label="Aprovados" 
-          value={counts.approved || 0} 
-          icon={Check}
-          variant="green"
-        />
-        <StatCard 
-          label="Rejeitados" 
-          value={counts.rejected || 0} 
-          icon={X}
-          variant="red"
-        />
-      </StatsGrid>
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard 
+            label="Total" 
+            value={(counts.pending || 0) + (counts.approved || 0) + (counts.rejected || 0)} 
+            icon={Shield} 
+          />
+          <StatCard 
+            label="Pendentes" 
+            value={counts.pending || 0} 
+            icon={Clock}
+            variant="yellow"
+          />
+          <StatCard 
+            label="Aprovados" 
+            value={counts.approved || 0} 
+            icon={Check}
+            variant="green"
+          />
+          <StatCard 
+            label="Rejeitados" 
+            value={counts.rejected || 0} 
+            icon={X}
+            variant="red"
+          />
+        </StatsGrid>
+      </div>
 
-      {/* Filter Bar */}
-      <FilterBar
-        tabs={[
-          { key: 'pending', label: 'Aguardando', icon: Clock },
-          { key: 'approved', label: 'Aprovados', icon: Check },
-          { key: 'rejected', label: 'Rejeitados', icon: X }
-        ]}
-        activeTab={activeTab}
-        onTabChange={(tab) => setActiveTab(tab as TabType)}
-        search={{
-          placeholder: 'Buscar por nome ou email...',
-          value: '',
-          onChange: () => {} // TODO: adicionar busca se necessário
-        }}
-      />
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mt-4 items-center">
+        <select 
+          value={activeTab} 
+          onChange={e => setActiveTab(e.target.value as TabType)} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="pending">Aguardando</option>
+          <option value="approved">Aprovados</option>
+          <option value="rejected">Rejeitados</option>
+        </select>
 
-      {/* Filtro de Tipo (sub-tabs) */}
-      <div className="flex gap-2 bg-white p-2 rounded-2xl border border-slate-100 w-fit">
-        {TYPE_TABS.map((tab) => (
-          <button
-            key={tab.key}
-            onClick={() => setTypeFilter(tab.key as 'all' | 'driver' | 'company')}
-            className={`
-              py-2 px-4 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2
-              ${typeFilter === tab.key 
-                ? 'bg-orange-500 text-white' 
-                : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}
-            `}
-          >
-            {tab.key === 'all' && <Shield size={16} />}
-            {tab.key === 'driver' && <User size={16} />}
-            {tab.key === 'company' && <Building2 size={16} />}
-            {tab.label}
-          </button>
-        ))}
+        <select 
+          value={typeFilter} 
+          onChange={e => setTypeFilter(e.target.value as 'all' | 'driver' | 'company')} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="all">Todos os Tipos</option>
+          <option value="driver">Motoristas</option>
+          <option value="company">Empresas</option>
+        </select>
+
+        <div className="relative flex-1 max-w-xs">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" placeholder="Buscar por nome ou email..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500" />
+        </div>
       </div>
 
       {/* Lista de Verificações */}
-      {verifications.length === 0 ? (
-        <div className="bg-white rounded-[2rem] p-12 text-center border border-slate-100">
+      {filteredVerifications.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
           <Shield size={48} className="mx-auto text-slate-200 mb-4" />
-          <h3 className="text-lg font-black uppercase italic text-slate-400 mb-2">
+          <h3 className="text-lg font-bold text-slate-400 mb-2">
             {activeTab === 'pending' ? 'Nenhuma verificação pendente' : 
              activeTab === 'approved' ? 'Nenhuma verificação aprovada ainda' : 
              'Nenhuma verificação rejeitada'}
@@ -386,9 +388,9 @@ export default function VerificationsManager() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {verifications.map((v) => (
-            <div key={`${v.type}-${v.verification_id}`} className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          {filteredVerifications.map((v) => (
+            <div key={`${v.type}-${v.verification_id}`} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
               {/* Header do Card */}
               <div className="bg-slate-50 p-4 flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -408,16 +410,8 @@ export default function VerificationsManager() {
                     </p>
                   </div>
                 </div>
-                <span className={`
-                  px-3 py-1 rounded-lg text-[10px] font-black uppercase flex items-center gap-1
-                  ${activeTab === 'pending' ? 'bg-amber-100 text-amber-600' : ''}
-                  ${activeTab === 'approved' ? 'bg-emerald-100 text-emerald-600' : ''}
-                  ${activeTab === 'rejected' ? 'bg-red-100 text-red-600' : ''}
-                `}>
-                  {activeTab === 'pending' && <Clock size={10} />}
-                  {activeTab === 'approved' && <Check size={10} />}
-                  {activeTab === 'rejected' && <X size={10} />}
-                  {activeTab === 'pending' ? 'Pendente' : activeTab === 'approved' ? 'Aprovado' : 'Rejeitado'}
+                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${STATUS_COLORS[activeTab]}`}>
+                  {STATUS_LABELS[activeTab]}
                 </span>
               </div>
 
@@ -553,7 +547,7 @@ export default function VerificationsManager() {
                   <button
                     onClick={() => handleApprove(v)}
                     disabled={processingId === v.verification_id}
-                    className="flex-1 bg-emerald-500 hover:bg-emerald-600 text-white py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                   >
                     {processingId === v.verification_id ? (
                       <Loader2 size={14} className="animate-spin" />
@@ -566,7 +560,7 @@ export default function VerificationsManager() {
                   <button
                     onClick={() => handleReject(v)}
                     disabled={processingId === v.verification_id}
-                    className="flex-1 bg-red-500 hover:bg-red-600 text-white py-3 rounded-xl font-black uppercase text-xs flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
                   >
                     {processingId === v.verification_id ? (
                       <Loader2 size={14} className="animate-spin" />

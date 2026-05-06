@@ -4,10 +4,10 @@ import {
   Plus, Edit3, Trash2, X, Loader2, 
   Tag, Truck,
   ShoppingBag, Megaphone, FileText, Shield,
-  Eye, Copy, ArrowUpDown, ChevronUp, ChevronDown
+  Eye, Copy, ChevronUp, ChevronDown
 } from 'lucide-react';
 import Swal from 'sweetalert2';
-import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 interface PricingRule {
   id: number;
@@ -177,7 +177,7 @@ export default function PricingManager() {
 
   const SortHeader = ({ column, label }: { column: string, label: string }) => (
     <th 
-      className="text-left p-4 text-[10px] font-black uppercase text-slate-400 cursor-pointer hover:text-slate-600 transition-colors"
+      className="px-5 py-4 text-left text-[10px] font-bold uppercase text-slate-400 cursor-pointer hover:text-slate-600 transition-colors"
       onClick={() => handleSort(column)}
     >
       <div className="flex items-center gap-1">
@@ -275,20 +275,33 @@ export default function PricingManager() {
         </button>
       }
     >
-      <StatsGrid>
-        <StatCard label="Total Regras" value={stats.total} icon={Tag} />
-        <StatCard label="Ativas" value={stats.active} variant="green" icon={Shield} />
-        <StatCard label="Inativas" value={stats.inactive} variant="red" icon={Shield} />
-      </StatsGrid>
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard label="Total Regras" value={stats.total} icon={Tag} />
+          <StatCard label="Ativas" value={stats.active} variant="green" icon={Shield} />
+          <StatCard label="Inativas" value={stats.inactive} variant="red" icon={Shield} />
+        </StatsGrid>
+      </div>
 
-      <FilterBar
-        tabs={[
-          { key: 'all', label: 'Todos' },
-          ...modules.map(mod => ({ key: mod.key, label: mod.name }))
-        ]}
-        activeTab={filterModule}
-        onTabChange={(tab) => setFilterModule(tab)}
-      />
+      <div className="flex flex-wrap gap-3 mt-4 items-center">
+        <select 
+          value={filterModule} 
+          onChange={e => setFilterModule(e.target.value)} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="all">Todos os Módulos</option>
+          {modules.map(m => <option key={m.key} value={m.key}>{m.name}</option>)}
+        </select>
+
+        <div className="flex bg-white p-1 rounded-xl border border-slate-200 ml-auto">
+          {(['module_key', 'feature_name', 'pricing_type'] as const).map(col => (
+            <button key={col} onClick={() => handleSort(col)} className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${sortBy === col ? 'bg-orange-500 text-white' : 'text-slate-400'}`}>
+              {col === 'module_key' ? 'Módulo' : col === 'feature_name' ? 'Nome' : 'Tipo'}
+              {sortBy === col && (sortDir === 'asc' ? ' ↑' : ' ↓')}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {/* TABLE */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
@@ -298,15 +311,15 @@ export default function PricingManager() {
               <tr className="bg-slate-50 border-b border-slate-100">
                 <SortHeader column="module_key" label="Módulo" />
                 <SortHeader column="feature_name" label="Recurso" />
-                <th className="text-left p-4 text-[10px] font-black uppercase text-slate-400 hidden lg:table-cell">Descrição</th>
+                <th className="px-5 py-4 text-left text-[10px] font-bold uppercase text-slate-400 hidden lg:table-cell">Descrição</th>
                 <SortHeader column="ad_size" label="Tamanho" />
                 <SortHeader column="pricing_type" label="Tipo" />
-                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Grátis</th>
-                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Por Uso</th>
-                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Mensal</th>
-                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Duração</th>
-                <th className="text-center p-4 text-[10px] font-black uppercase text-slate-400">Status</th>
-                <th className="text-right p-4 text-[10px] font-black uppercase text-slate-400">Ações</th>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Grátis</th>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Por Uso</th>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Mensal</th>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Duração</th>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Status</th>
+                <th className="px-5 py-4 text-right text-[10px] font-bold uppercase text-slate-400">Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -314,45 +327,45 @@ export default function PricingManager() {
                 const modInfo = getModuleInfo(rule.module_key);
                 return (
                   <tr key={rule.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                    <td className="p-4">
-                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-black uppercase ${getModuleColor(rule.module_key)}`}>
+                    <td className="px-5 py-4">
+                      <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${getModuleColor(rule.module_key)}`}>
                         {modInfo.icon} {modInfo.name}
                       </span>
                     </td>
-                    <td className="p-4">
+                    <td className="px-5 py-4">
                       <div>
                         <p className="font-bold text-slate-900 text-sm">{rule.feature_name}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{rule.feature_key}</p>
                       </div>
                     </td>
-                    <td className="p-4 hidden lg:table-cell">
+                    <td className="px-5 py-4 hidden lg:table-cell">
                       <p className="text-xs text-slate-500 max-w-[200px] truncate" title={rule.description || '-'}>
                         {rule.description || '-'}
                       </p>
                     </td>
-                    <td className="p-4 text-center hidden md:table-cell">
+                    <td className="px-5 py-4 text-center hidden md:table-cell">
                       <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">
                         {rule.ad_size || '-'}
                       </span>
                     </td>
-                    <td className="p-4">
-                      <span className="text-[10px] font-black uppercase bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
+                    <td className="px-5 py-4">
+                      <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
                         {getPricingTypeLabel(rule.pricing_type)}
                       </span>
                     </td>
-                    <td className="p-4 text-center font-bold text-slate-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-slate-600 text-sm">
                       {rule.free_limit > 0 ? `${rule.free_limit}x` : '-'}
                     </td>
-                    <td className="p-4 text-center font-bold text-emerald-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-emerald-600 text-sm">
                       {formatPrice(rule.price_per_use)}
                     </td>
-                    <td className="p-4 text-center font-bold text-blue-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-blue-600 text-sm">
                       {formatPrice(rule.price_monthly)}
                     </td>
-                    <td className="p-4 text-center font-bold text-slate-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-slate-600 text-sm">
                       {rule.duration_days || 30} dias
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="px-5 py-4 text-center">
                       <button
                         onClick={() => toggleActive(rule)}
                         className={`w-12 h-6 rounded-full transition-all ${rule.is_active ? 'bg-emerald-500' : 'bg-slate-200'}`}
@@ -360,18 +373,18 @@ export default function PricingManager() {
                         <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${rule.is_active ? 'translate-x-6' : 'translate-x-0.5'}`} />
                       </button>
                     </td>
-                    <td className="p-4">
-                      <div className="flex gap-1 justify-end">
-                        <button onClick={() => handlePreview(rule)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-indigo-600" title="Preview">
+                    <td className="px-5 py-4">
+                      <div className="flex gap-2 justify-end">
+                        <button onClick={() => handlePreview(rule)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Preview">
                           <Eye size={16} />
                         </button>
-                        <button onClick={() => handleDuplicate(rule)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-green-600" title="Duplicar">
+                        <button onClick={() => handleDuplicate(rule)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100" title="Duplicar">
                           <Copy size={16} />
                         </button>
-                        <button onClick={() => handleEdit(rule)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600">
+                        <button onClick={() => handleEdit(rule)} className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200">
                           <Edit3 size={16} />
                         </button>
-                        <button onClick={() => handleDelete(rule.id)} className="p-2 hover:bg-red-50 rounded-lg text-slate-400 hover:text-red-600">
+                        <button onClick={() => handleDelete(rule.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -394,7 +407,7 @@ export default function PricingManager() {
       {/* Modal de Edição/Criação */}
       {showModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h3 className="text-xl font-bold text-slate-900">
                 {ruleData.id ? 'Editar' : 'Nova'} Regra
@@ -404,164 +417,164 @@ export default function PricingManager() {
               </button>
             </div>
 
-          <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 mb-2">Módulo</label>
-                <select 
-                  value={ruleData.module_key}
-                  onChange={(e) => setRuleData({...ruleData, module_key: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                >
-                  {modules.map(m => (
-                    <option key={m.key} value={m.key}>{m.name}</option>
-                  ))}
-                </select>
-              </div>
+          <div className="space-y-5">
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Módulo</label>
+              <select 
+                value={ruleData.module_key}
+                onChange={(e) => setRuleData({...ruleData, module_key: e.target.value})}
+                className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                {modules.map(m => (
+                  <option key={m.key} value={m.key}>{m.name}</option>
+                ))}
+              </select>
+            </div>
 
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Chave (ID)</label>
-                  <input 
-                    type="text" 
-                    value={ruleData.feature_key}
-                    onChange={(e) => setRuleData({...ruleData, feature_key: e.target.value})}
-                    placeholder="sidebar, footer..."
-                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Nome</label>
-                  <input 
-                    type="text" 
-                    value={ruleData.feature_name}
-                    onChange={(e) => setRuleData({...ruleData, feature_name: e.target.value})}
-                    placeholder="Banner Lateral"
-                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-              </div>
-
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Descrição</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Chave (ID)</label>
                 <input 
                   type="text" 
-                  value={ruleData.description || ''}
-                  onChange={(e) => setRuleData({...ruleData, description: e.target.value})}
-                  placeholder="Banner exibido na barra lateral..."
-                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
+                  value={ruleData.feature_key}
+                  onChange={(e) => setRuleData({...ruleData, feature_key: e.target.value})}
+                  placeholder="sidebar, footer..."
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Tamanho (ex: 300x600)</label>
-                  <input 
-                    type="text" 
-                    value={ruleData.ad_size || ''}
-                    onChange={(e) => setRuleData({...ruleData, ad_size: e.target.value})}
-                    placeholder="300x600"
-                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Ícone (lucide key)</label>
-                  <input 
-                    type="text" 
-                    value={ruleData.icon_key || ''}
-                    onChange={(e) => setRuleData({...ruleData, icon_key: e.target.value})}
-                    placeholder="layout, star..."
-                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-              </div>
-
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Tipo de Preço</label>
-                <select 
-                  value={ruleData.pricing_type}
-                  onChange={(e) => setRuleData({...ruleData, pricing_type: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                >
-                  <option value="free_limit">Limite Grátis</option>
-                  <option value="per_use">Por Uso</option>
-                  <option value="monthly">Mensal</option>
-                  <option value="daily">Diário</option>
-                </select>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Nome</label>
+                <input 
+                  type="text" 
+                  value={ruleData.feature_name}
+                  onChange={(e) => setRuleData({...ruleData, feature_name: e.target.value})}
+                  placeholder="Banner Lateral"
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                />
               </div>
+            </div>
 
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Descrição</label>
+              <input 
+                type="text" 
+                value={ruleData.description || ''}
+                onChange={(e) => setRuleData({...ruleData, description: e.target.value})}
+                placeholder="Banner exibido na barra lateral..."
+                className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">
-                  Limite Grátis (quantidade)
-                </label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Tamanho (ex: 300x600)</label>
+                <input 
+                  type="text" 
+                  value={ruleData.ad_size || ''}
+                  onChange={(e) => setRuleData({...ruleData, ad_size: e.target.value})}
+                  placeholder="300x600"
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Ícone (lucide key)</label>
+                <input 
+                  type="text" 
+                  value={ruleData.icon_key || ''}
+                  onChange={(e) => setRuleData({...ruleData, icon_key: e.target.value})}
+                  placeholder="layout, star..."
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Tipo de Preço</label>
+              <select 
+                value={ruleData.pricing_type}
+                onChange={(e) => setRuleData({...ruleData, pricing_type: e.target.value})}
+                className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+              >
+                <option value="free_limit">Limite Grátis</option>
+                <option value="per_use">Por Uso</option>
+                <option value="monthly">Mensal</option>
+                <option value="daily">Diário</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">
+                Limite Grátis (quantidade)
+              </label>
+              <input 
+                type="number" 
+                value={ruleData.free_limit}
+                onChange={(e) => setRuleData({...ruleData, free_limit: parseInt(e.target.value) || 0})}
+                className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Por Uso (R$)</label>
                 <input 
                   type="number" 
-                  value={ruleData.free_limit}
-                  onChange={(e) => setRuleData({...ruleData, free_limit: parseInt(e.target.value) || 0})}
-                  className="w-full p-3 rounded-xl border border-slate-200 text-sm"
+                  step="0.01"
+                  value={ruleData.price_per_use}
+                  onChange={(e) => setRuleData({...ruleData, price_per_use: parseFloat(e.target.value) || 0})}
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
                 />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Por Uso (R$)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={ruleData.price_per_use}
-                    onChange={(e) => setRuleData({...ruleData, price_per_use: parseFloat(e.target.value) || 0})}
-                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Mensal (R$)</label>
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    value={ruleData.price_monthly}
-                    onChange={(e) => setRuleData({...ruleData, price_monthly: parseFloat(e.target.value) || 0})}
-                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Duração (dias)</label>
-                  <input 
-                    type="number" 
-                    value={ruleData.duration_days || 30}
-                    onChange={(e) => setRuleData({...ruleData, duration_days: parseInt(e.target.value) || 30})}
-                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
-                  />
-                </div>
-                <div className="flex items-center gap-3 pt-6">
-                  <input 
-                    type="checkbox" 
-                    id="is_active"
-                    checked={ruleData.is_active}
-                    onChange={(e) => setRuleData({...ruleData, is_active: e.target.checked ? 1 : 0})}
-                    className="w-5 h-5 rounded"
-                  />
-                  <label htmlFor="is_active" className="font-bold text-sm text-slate-600">Regra ativa</label>
-                </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Mensal (R$)</label>
+                <input 
+                  type="number" 
+                  step="0.01"
+                  value={ruleData.price_monthly}
+                  onChange={(e) => setRuleData({...ruleData, price_monthly: parseFloat(e.target.value) || 0})}
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                />
               </div>
             </div>
 
-            <div className="flex gap-3 mt-8">
-              <button 
-                onClick={() => setShowModal(false)}
-                className="flex-1 py-3 rounded-xl border-2 border-slate-200 font-black uppercase text-xs"
-              >
-                Cancelar
-              </button>
-              <button 
-                onClick={handleSave}
-                disabled={saving}
-                className="flex-1 py-3 rounded-xl bg-orange-500 text-white font-black uppercase text-xs flex items-center justify-center gap-2"
-              >
-                {saving ? <Loader2 className="animate-spin" size={16} /> : 'Salvar'}
-              </button>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Duração (dias)</label>
+                <input 
+                  type="number" 
+                  value={ruleData.duration_days || 30}
+                  onChange={(e) => setRuleData({...ruleData, duration_days: parseInt(e.target.value) || 30})}
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+                />
+              </div>
+              <div className="flex items-center gap-3 pt-6">
+                <input 
+                  type="checkbox" 
+                  id="is_active"
+                  checked={Boolean(ruleData.is_active)}
+                  onChange={(e) => setRuleData({...ruleData, is_active: e.target.checked ? 1 : 0})}
+                  className="w-5 h-5 rounded"
+                />
+                <label htmlFor="is_active" className="font-bold text-sm text-slate-600">Regra ativa</label>
+              </div>
             </div>
+          </div>
+
+          <div className="flex gap-3 mt-8">
+            <button 
+              onClick={() => setShowModal(false)}
+              className="flex-1 py-2.5 rounded-xl border-2 border-slate-200 font-bold text-xs uppercase"
+            >
+              Cancelar
+            </button>
+            <button 
+              onClick={handleSave}
+              disabled={saving}
+              className="flex-1 py-2.5 rounded-xl bg-orange-500 text-white font-bold text-xs uppercase flex items-center justify-center gap-2"
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} /> : 'Salvar'}
+            </button>
+          </div>
           </div>
         </div>
       )}
@@ -630,23 +643,23 @@ export default function PricingManager() {
       )}
 
       {/* CONFIGURAÇÕES DE PUBLICIDADE */}
-      <div className="bg-white p-6 rounded-2xl border border-slate-200">
+      <div className="bg-white p-6 rounded-2xl border border-slate-200 mt-4">
         <h3 className="text-lg font-bold text-slate-900 mb-4">Configurações de Publicidade</h3>
         <div className="flex items-center gap-4">
           <div className="flex-1 max-w-xs">
-            <label className="block text-xs font-bold uppercase text-slate-500 mb-2">Tempo de Rotação (segundos)</label>
+            <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Tempo de Rotação (segundos)</label>
             <input 
               type="number" 
               min="3" 
               max="60"
               value={rotationSeconds}
               onChange={(e) => setRotationSeconds(parseInt(e.target.value) || 8)}
-              className="w-full p-3 rounded-xl border border-slate-200 text-sm"
+              className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
             />
           </div>
           <button 
             onClick={() => saveRotation(rotationSeconds)}
-            className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold text-sm mt-6"
+            className="py-2.5 px-4 bg-orange-500 hover:bg-orange-600 text-white rounded-xl font-bold text-xs uppercase mt-6"
           >
             Salvar
           </button>

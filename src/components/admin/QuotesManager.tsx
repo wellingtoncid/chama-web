@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { 
-  FileText, Search, Loader2, Package, Truck, 
+  FileText, Loader2, Package, Truck, 
   Warehouse, Box, X, Send, Trash2, Edit, Eye, Plus
 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -245,19 +245,21 @@ export default function QuotesManager() {
       actions={
         <button 
           onClick={() => { loadCompanies(); setShowCreateModal(true); }}
-          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-3 rounded-2xl font-black text-xs uppercase tracking-wider transition-all shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40 active:scale-95"
+          className="flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase transition-colors"
         >
-          <Plus size={18} />
+          <Plus size={16} />
           Nova Cotação
         </button>
       }
     >
-      <StatsGrid>
+      <div className="mt-6">
+        <StatsGrid>
         <StatCard label="Total" value={quotes.length} icon={FileText} />
         <StatCard label="Abertas" value={quotes.filter(q => q.status === 'open').length} variant="green" icon={Package} />
         <StatCard label="Fechadas" value={quotes.filter(q => q.status === 'closed').length} variant="yellow" icon={Truck} />
         <StatCard label="Expiradas" value={quotes.filter(q => q.status === 'expired').length} variant="red" icon={Warehouse} />
-      </StatsGrid>
+        </StatsGrid>
+      </div>
 
       <FilterBar
         search={{
@@ -276,13 +278,13 @@ export default function QuotesManager() {
       />
 
       {/* Filtro adicional: Tipo de Cotação */}
-      <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+      <div className="mt-4">
         <select
           value={filter.type}
           onChange={(e) => setFilter({...filter, type: e.target.value})}
-          className="px-4 py-2 rounded-lg font-bold text-xs uppercase bg-transparent outline-none text-slate-700 dark:text-slate-300"
+          className="px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
         >
-          <option value="all">Todos Tipos</option>
+          <option value="all">Todos os Tipos</option>
           {quoteTypes.map(t => (
             <option key={t.value} value={t.value}>{t.label}</option>
           ))}
@@ -470,9 +472,9 @@ export default function QuotesManager() {
       {/* Edit Modal */}
       {showEditModal && selectedQuote && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase italic text-slate-900">Editar Cotação</h3>
+              <h3 className="text-lg font-bold text-slate-900">Editar Cotação</h3>
               <button onClick={() => setShowEditModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
                 <X size={20} className="text-slate-400" />
               </button>
@@ -480,42 +482,42 @@ export default function QuotesManager() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Título</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Título</label>
                 <input 
                   type="text"
                   value={editData.title}
                   onChange={(e) => setEditData({...editData, title: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Origem</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Origem</label>
                   <input 
                     type="text"
                     value={editData.origin_city}
                     onChange={(e) => setEditData({...editData, origin_city: e.target.value})}
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Destino</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Destino</label>
                   <input 
                     type="text"
                     value={editData.dest_city}
                     onChange={(e) => setEditData({...editData, dest_city: e.target.value})}
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Status</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Status</label>
                 <select 
                   value={editData.status}
                   onChange={(e) => setEditData({...editData, status: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="open">Aberta</option>
                   <option value="closed">Fechada</option>
@@ -526,7 +528,7 @@ export default function QuotesManager() {
               <button
                 onClick={handleSaveEdit}
                 disabled={saving}
-                className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50"
+                className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors disabled:opacity-50"
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Edit size={18} />}
                 Salvar Alterações
@@ -539,9 +541,9 @@ export default function QuotesManager() {
       {/* Response Modal */}
       {showResponseModal && selectedQuote && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase italic text-slate-900">Responder como Admin</h3>
+              <h3 className="text-lg font-bold text-slate-900">Responder como Admin</h3>
               <button onClick={() => setShowResponseModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
                 <X size={20} className="text-slate-400" />
               </button>
@@ -555,11 +557,11 @@ export default function QuotesManager() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Empresa *</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Empresa *</label>
                 <select 
                   value={responseData.company_id}
                   onChange={(e) => setResponseData({...responseData, company_id: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Selecione uma empresa</option>
                   {companies.map(c => (
@@ -569,42 +571,42 @@ export default function QuotesManager() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Preço (R$) *</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Preço (R$) *</label>
                 <input 
                   type="number"
                   value={responseData.price}
                   onChange={(e) => setResponseData({...responseData, price: e.target.value})}
                   placeholder="0,00"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Prazo</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Prazo</label>
                 <input 
                   type="text"
                   value={responseData.delivery_time}
                   onChange={(e) => setResponseData({...responseData, delivery_time: e.target.value})}
                   placeholder="Ex: 5 dias úteis"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Condições</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Condições</label>
                 <input 
                   type="text"
                   value={responseData.conditions}
                   onChange={(e) => setResponseData({...responseData, conditions: e.target.value})}
                   placeholder="Ex: Pagamento em 30 dias"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <button
                 onClick={handleResponse}
                 disabled={saving}
-                className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50"
+                className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors disabled:opacity-50"
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
                 Enviar Resposta
@@ -617,9 +619,9 @@ export default function QuotesManager() {
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl p-8 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase italic text-slate-900">Nova Cotação</h3>
+              <h3 className="text-lg font-bold text-slate-900">Nova Cotação</h3>
               <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
                 <X size={20} className="text-slate-400" />
               </button>
@@ -633,11 +635,11 @@ export default function QuotesManager() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Criar em nome de</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Criar em nome de</label>
                 <select 
                   value={createData.user_id}
                   onChange={(e) => setCreateData({...createData, user_id: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   <option value="">Próprio (Admin)</option>
                   {companies.map(c => (
@@ -647,11 +649,11 @@ export default function QuotesManager() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Tipo *</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Tipo *</label>
                 <select 
                   value={createData.type}
                   onChange={(e) => setCreateData({...createData, type: e.target.value})}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 >
                   {quoteTypes.map(t => (
                     <option key={t.value} value={t.value}>{t.label}</option>
@@ -660,54 +662,54 @@ export default function QuotesManager() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Título *</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Título *</label>
                 <input 
                   type="text"
                   value={createData.title}
                   onChange={(e) => setCreateData({...createData, title: e.target.value})}
                   placeholder="Descreva o serviço desejado"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Origem</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Origem</label>
                   <input 
                     type="text"
                     value={createData.origin_city}
                     onChange={(e) => setCreateData({...createData, origin_city: e.target.value})}
                     placeholder="Cidade/Estado"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Destino</label>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Destino</label>
                   <input 
                     type="text"
                     value={createData.dest_city}
                     onChange={(e) => setCreateData({...createData, dest_city: e.target.value})}
                     placeholder="Cidade/Estado"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Descrição</label>
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">Descrição</label>
                 <textarea 
                   value={createData.description}
                   onChange={(e) => setCreateData({...createData, description: e.target.value})}
                   placeholder="Detalhes adicionais..."
                   rows={3}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm resize-none"
+                  className="w-full px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                 />
               </div>
 
               <button
                 onClick={handleCreate}
                 disabled={saving}
-                className="w-full py-4 bg-indigo-600 text-white rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all disabled:opacity-50"
+                className="w-full py-2.5 bg-indigo-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 hover:bg-indigo-700 transition-colors disabled:opacity-50"
               >
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Plus size={18} />}
                 Criar Cotação

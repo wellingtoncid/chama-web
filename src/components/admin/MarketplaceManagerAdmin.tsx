@@ -2,13 +2,12 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 import { 
-  ShoppingBag, Search, Loader2, MapPin, Trash2, Edit, 
-  Eye, Package, Star, ExternalLink, MousePointer, 
-  LayoutGrid, List
+  ShoppingBag, Search, Loader2, Package, 
+  Eye, MousePointer, List, LayoutGrid, Trash2, Edit, Star
 } from 'lucide-react';
 import { AdImage } from '../AdImage';
 import Swal from 'sweetalert2';
-import { PageShell } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 // --- Constantes e Helpers ---
 const CATEGORIES = [
@@ -25,6 +24,37 @@ const STATUS_MAP: Record<string, { label: string, color: string }> = {
   active: { label: 'Ativo', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
   inactive: { label: 'Inativo', color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400' },
   pending: { label: 'Pendente', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+  expired: { label: 'Expirado', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  deleted: { label: 'Excluído', color: 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400' },
+  sold: { label: 'Vendido', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  paused: { label: 'Pausado', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+};
+
+const DATE_PRESETS = [
+  { value: 'all', label: 'Qualquer data' },
+  { value: 'today', label: 'Hoje' },
+  { value: '7d', label: 'Últimos 7 dias' },
+  { value: '30d', label: 'Últimos 30 dias' },
+  { value: 'this_month', label: 'Este mês' },
+  { value: 'custom', label: 'Personalizado' },
+];
+
+const formatDateISO = (d: Date) => d.toISOString().split('T')[0];
+const getToday = () => new Date();
+const getDaysAgo = (n: number) => { const d = new Date(); d.setDate(d.getDate() - n); return d; };
+
+const resolveDateRange = (preset: string) => {
+  const now = getToday();
+  switch (preset) {
+    case 'today': return { from: formatDateISO(now), to: formatDateISO(now) };
+    case '7d': return { from: formatDateISO(getDaysAgo(7)), to: formatDateISO(now) };
+    case '30d': return { from: formatDateISO(getDaysAgo(30)), to: formatDateISO(now) };
+    case 'this_month': {
+      const first = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: formatDateISO(first), to: formatDateISO(now) };
+    }
+    default: return { from: '', to: '' };
+  }
 };
 
 const formatNumber = (v: number) => v >= 1000 ? `${(v/1000).toFixed(1)}K` : v.toString();
@@ -35,7 +65,20 @@ export default function MarketplaceManagerAdmin() {
   const [loading, setLoading] = useState(true);
   const [listings, setListings] = useState<any[]>([]);
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
-  const [filter, setFilter] = useState({ status: 'all', category: 'all', search: '', is_affiliate: 'all' });
+  const [filter, setFilter] = useState({ status: 'all', category: 'all', search: '', is_affiliate: 'all', date_from: '', date_to: '' });
+  const [datePreset, setDatePreset] = useState('all');
+  const [showCustomDates, setShowCustomDates] = useState(false);
+
+  const applyDatePreset = (preset: string) => {
+    setDatePreset(preset);
+    if (preset === 'custom') {
+      setShowCustomDates(true);
+      return;
+    }
+    setShowCustomDates(false);
+    const { from, to } = resolveDateRange(preset);
+    setFilter(prev => ({ ...prev, date_from: from, date_to: to }));
+  };
 
   useEffect(() => { loadListings(); }, [filter]);
 
@@ -60,9 +103,9 @@ export default function MarketplaceManagerAdmin() {
     clicks: listings.reduce((s, l) => s + (l.clicks_count || 0), 0),
   }), [listings]);
 
-  const handleAction = async (id: number, action: 'delete' | 'view' | 'edit', e: React.MouseEvent, url?: string) => {
+  const handleAction = async (id: number, action: 'delete' | 'view' | 'edit', e: React.MouseEvent, url?: string, slug?: string) => {
     e.stopPropagation();
-    if (action === 'view') return window.open(url || `/anuncio/${id}`, '_blank');
+    if (action === 'view') return window.open(url || `/anuncio/${slug}`, '_blank');
     if (action === 'edit') return navigate(`/editar-anuncio/${id}`);
     
     const result = await Swal.fire({
@@ -91,54 +134,83 @@ export default function MarketplaceManagerAdmin() {
       description="Gerencie anúncios e afiliados"
       actions={
         <div className="flex items-center gap-3">
-          <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+          <div className="flex bg-white p-1 rounded-xl border border-slate-200">
             {[ {m: 'table', i: List}, {m: 'cards', i: LayoutGrid} ].map(v => (
-              <button key={v.m} onClick={() => setViewMode(v.m as any)} className={`p-2 rounded-lg ${viewMode === v.m ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>
-                <v.i size={18} />
+              <button key={v.m} onClick={() => setViewMode(v.m as 'table' | 'cards')} className={`p-2.5 rounded-lg ${viewMode === v.m ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>
+                <v.i size={16} />
               </button>
             ))}
           </div>
-          <button onClick={() => navigate('/novo-anuncio')} className="flex items-center gap-2 bg-purple-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-purple-700 transition-all shadow-lg shadow-purple-500/20">
-            <Package size={18} /> Novo Anúncio
+          <button onClick={() => navigate('/novo-anuncio')} className="flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-purple-700 transition-colors">
+            <Package size={16} /> Novo Anúncio
           </button>
         </div>
       }
     >
       {/* Indicadores Rápidos */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {[
-          { label: 'Total', val: stats.total, icon: ShoppingBag, color: 'text-purple-600', bg: 'bg-purple-100' },
-          { label: 'Afiliados', val: stats.affiliates, icon: Star, color: 'text-amber-600', bg: 'bg-amber-100' },
-          { label: 'Views', val: formatNumber(stats.views), icon: Eye, color: 'text-blue-600', bg: 'bg-blue-100' },
-          { label: 'Cliques', val: formatNumber(stats.clicks), icon: MousePointer, color: 'text-emerald-600', bg: 'bg-emerald-100' },
-        ].map((s, i) => (
-          <div key={i} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 flex items-center gap-3">
-            <div className={`${s.bg} dark:bg-opacity-10 p-2 rounded-xl`}><s.icon size={20} className={s.color} /></div>
-            <div>
-              <p className="text-[10px] font-black uppercase text-slate-400 leading-none mb-1">{s.label}</p>
-              <p className="text-xl font-black text-slate-800 dark:text-white leading-none">{s.val}</p>
-            </div>
-          </div>
-        ))}
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard label="Total" value={stats.total} icon={ShoppingBag} />
+          <StatCard label="Afiliados" value={stats.affiliates} variant="yellow" icon={Package} />
+          <StatCard label="Views" value={formatNumber(stats.views)} variant="blue" icon={Eye} />
+          <StatCard label="Cliques" value={formatNumber(stats.clicks)} variant="green" icon={MousePointer} />
+        </StatsGrid>
       </div>
 
       {/* Barra de Filtros */}
-      <div className="flex flex-wrap gap-3 mb-6 items-center">
-        <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          {['all', 'active', 'pending'].map(s => (
-            <button key={s} onClick={() => setFilter({...filter, status: s})} className={`px-4 py-2 rounded-lg text-xs font-bold uppercase ${filter.status === s ? 'bg-purple-600 text-white' : 'text-slate-500'}`}>
-              {s === 'all' ? 'Todos' : s === 'active' ? 'Ativos' : 'Pendentes'}
-            </button>
-          ))}
-        </div>
+      <div className="flex flex-wrap gap-3 mt-4 items-center">
+        <select 
+          value={filter.status} 
+          onChange={e => setFilter({...filter, status: e.target.value})} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+        >
+          <option value="all">Todos os Status</option>
+          <option value="active">Ativos</option>
+          <option value="pending">Pendentes</option>
+          <option value="inactive">Inativos</option>
+          <option value="sold">Vendidos</option>
+          <option value="paused">Pausados</option>
+          <option value="expired">Expirados</option>
+          <option value="deleted">Excluídos</option>
+        </select>
         
-        <select value={filter.category} onChange={e => setFilter({...filter, category: e.target.value})} className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-4 py-2 text-xs font-bold uppercase outline-none">
+        <select 
+          value={filter.category} 
+          onChange={e => setFilter({...filter, category: e.target.value})} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+        >
           {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
 
+        <select 
+          value={datePreset} 
+          onChange={e => applyDatePreset(e.target.value)} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+        >
+          {DATE_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
+        </select>
+
+        {showCustomDates && (
+          <div className="flex items-center gap-2">
+            <input 
+              type="date" 
+              value={filter.date_from}
+              onChange={e => setFilter({...filter, date_from: e.target.value})}
+              className="bg-white px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+            />
+            <span className="text-xs font-bold text-slate-400">até</span>
+            <input 
+              type="date" 
+              value={filter.date_to}
+              onChange={e => setFilter({...filter, date_to: e.target.value})}
+              className="bg-white px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+            />
+          </div>
+        )}
+
         <div className="relative flex-1 max-w-xs">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Buscar anúncio..." value={filter.search} onChange={e => setFilter({...filter, search: e.target.value})} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-purple-500" />
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" placeholder="Buscar anúncio..." value={filter.search} onChange={e => setFilter({...filter, search: e.target.value})} className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500" />
         </div>
       </div>
 
@@ -148,56 +220,54 @@ export default function MarketplaceManagerAdmin() {
           <Loader2 className="animate-spin text-purple-600" size={40} />
           <p className="text-slate-400 font-bold animate-pulse">CARREGANDO MARKETPLACE...</p>
         </div>
-      ) : (
-        <div className={viewMode === 'cards' ? "grid grid-cols-1 md:grid-cols-4 gap-6" : ""}>
-          {listings.length === 0 ? (
-            <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-3xl border-2 border-dashed border-slate-200 dark:border-slate-700">
-              <ShoppingBag size={48} className="mx-auto text-slate-200 mb-4" />
-              <p className="text-slate-400 font-medium">Nenhum anúncio encontrado com esses filtros.</p>
-            </div>
-          ) : viewMode === 'table' ? (
+      ) : listings.length === 0 ? (
+        <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200">
+          <ShoppingBag size={48} className="mx-auto text-slate-200 mb-4" />
+          <p className="text-slate-400 font-medium">Nenhum anúncio encontrado com esses filtros.</p>
+        </div>
+      ) : viewMode === 'table' ? (
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] uppercase font-black text-slate-400 border-b border-slate-100 dark:border-slate-700">
+                <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200">
                   <tr>
-                    <th className="px-6 py-4">Produto</th>
-                    <th className="px-6 py-4">Preço</th>
-                    <th className="px-6 py-4 text-center">Status</th>
-                    <th className="px-6 py-4 text-center">Stats</th>
-                    <th className="px-6 py-4 text-right">Ações</th>
+                    <th className="px-5 py-4">Produto</th>
+                    <th className="px-5 py-4">Preço</th>
+                    <th className="px-5 py-4 text-center">Status</th>
+                    <th className="px-5 py-4 text-center">Stats</th>
+                    <th className="px-5 py-4 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-50 dark:divide-slate-700/50">
+                <tbody className="divide-y divide-slate-100">
                   {listings.map(l => (
-                    <tr key={l.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors">
-                      <td className="px-6 py-4">
+                    <tr key={l.id} className="hover:bg-slate-50 transition-colors group">
+                      <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0">
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
                             <AdImage url={l.main_image || l.images?.[0]} className="w-full h-full object-cover" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-700 dark:text-white line-clamp-1">{l.title}</p>
-                            <p className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">{l.category} • ID: #{l.id}</p>
+                            <p className="text-sm font-bold text-slate-700 line-clamp-1">{l.title}</p>
+                            <p className="text-[10px] text-slate-400 font-medium">{l.category} • #{l.id}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 font-black text-purple-600 dark:text-purple-400 text-sm">{formatBRL(l.price)}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black uppercase ${STATUS_MAP[l.status]?.color || ''}`}>
+                      <td className="px-5 py-4 font-bold text-purple-600 text-sm tabular-nums">{formatBRL(l.price)}</td>
+                      <td className="px-5 py-4 text-center">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${STATUS_MAP[l.status]?.color || ''}`}>
                           {STATUS_MAP[l.status]?.label || l.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-5 py-4">
                         <div className="flex justify-center gap-4 text-slate-400">
-                          <div className="flex items-center gap-1"><Eye size={12} /> <span className="text-xs font-bold">{formatNumber(l.views_count)}</span></div>
-                          <div className="flex items-center gap-1"><MousePointer size={12} /> <span className="text-xs font-bold">{formatNumber(l.clicks_count)}</span></div>
+                          <div className="flex items-center gap-1"><Eye size={12} /> <span className="text-xs font-bold tabular-nums">{formatNumber(l.views_count)}</span></div>
+                          <div className="flex items-center gap-1"><MousePointer size={12} /> <span className="text-xs font-bold tabular-nums">{formatNumber(l.clicks_count)}</span></div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-5 py-4 text-right">
                          <div className="flex justify-end gap-2">
-                            <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url)} className="p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-lg"><Eye size={16}/></button>
-                            <button onClick={(e) => handleAction(l.id, 'edit', e)} className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-lg"><Edit size={16}/></button>
-                            <button onClick={(e) => handleAction(l.id, 'delete', e)} className="p-2 bg-red-50 dark:bg-red-900/20 text-red-600 rounded-lg"><Trash2 size={16}/></button>
+                            <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url, l.slug)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Eye size={16}/></button>
+                            <button onClick={(e) => handleAction(l.id, 'edit', e)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><Edit size={16}/></button>
+                            <button onClick={(e) => handleAction(l.id, 'delete', e)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Trash2 size={16}/></button>
                          </div>
                       </td>
                     </tr>
@@ -206,35 +276,44 @@ export default function MarketplaceManagerAdmin() {
               </table>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                {listings.map(l => (
-                 <div key={l.id} className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-xl transition-all group">
-                    <div className="h-48 relative overflow-hidden">
-                      <AdImage url={l.main_image || l.images?.[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                 <div key={l.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group">
+                    <div className="h-44 relative overflow-hidden bg-slate-100">
+                      <AdImage url={l.main_image || l.images?.[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       {l.is_affiliate === 1 && (
-                        <div className="absolute top-3 left-3 bg-amber-500 text-white text-[10px] font-black px-2 py-1 rounded-lg shadow-lg flex items-center gap-1 uppercase">
-                          <Star size={10} className="fill-white" /> Afiliado
+                        <div className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
+                          <Star size={12} className="fill-white" /> Afiliado
                         </div>
                       )}
+                      <div className="absolute top-3 right-3">
+                        <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${STATUS_MAP[l.status]?.color}`}>
+                          {STATUS_MAP[l.status]?.label}
+                        </span>
+                      </div>
                     </div>
-                    <div className="p-5">
-                      <p className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase mb-2 ${STATUS_MAP[l.status]?.color}`}>
-                        {STATUS_MAP[l.status]?.label}
-                      </p>
-                      <h3 className="font-bold text-slate-800 dark:text-white text-sm line-clamp-1 mb-1">{l.title}</h3>
-                      <p className="text-purple-600 dark:text-purple-400 font-black text-lg mb-4">{formatBRL(l.price)}</p>
-                      <div className="flex gap-2">
-                        <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url)} className="flex-1 bg-slate-100 dark:bg-slate-700 p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-purple-600 hover:text-white transition-all"><Eye size={18} className="mx-auto"/></button>
-                        <button onClick={(e) => handleAction(l.id, 'edit', e)} className="flex-1 bg-slate-100 dark:bg-slate-700 p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-purple-600 hover:text-white transition-all"><Edit size={18} className="mx-auto"/></button>
-                        <button onClick={(e) => handleAction(l.id, 'delete', e)} className="flex-1 bg-red-50 dark:bg-red-900/20 p-2 rounded-xl text-red-600 hover:bg-red-600 hover:text-white transition-all"><Trash2 size={18} className="mx-auto"/></button>
+                    <div className="p-4 space-y-3">
+                      <div>
+                        <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{l.title}</h3>
+                        <p className="text-xs text-slate-400">{l.category} • #{l.id}</p>
+                      </div>
+                      <p className="text-purple-600 font-bold text-lg tabular-nums">{formatBRL(l.price)}</p>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                          <span className="flex items-center gap-1"><Eye size={12} /> {formatNumber(l.views_count)}</span>
+                          <span className="flex items-center gap-1"><MousePointer size={12} /> {formatNumber(l.clicks_count)}</span>
+                        </div>
+                      </div>
+                      <div className="flex gap-2 pt-1">
+                        <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url, l.slug)} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-blue-600 hover:text-white transition-colors flex-1 flex justify-center"><Eye size={16}/></button>
+                        <button onClick={(e) => handleAction(l.id, 'edit', e)} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-purple-600 hover:text-white transition-colors flex-1 flex justify-center"><Edit size={16}/></button>
+                        <button onClick={(e) => handleAction(l.id, 'delete', e)} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-red-600 hover:text-white transition-colors flex-1 flex justify-center"><Trash2 size={16}/></button>
                       </div>
                     </div>
                  </div>
                ))}
-            </div>
-          )}
-        </div>
-      )}
+             </div>
+           )}
     </PageShell>
   );
 }

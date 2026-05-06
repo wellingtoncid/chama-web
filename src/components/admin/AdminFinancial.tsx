@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
-import { TrendingUp, Wallet, ArrowDownCircle, Download, CreditCard, Search, ChevronLeft, ChevronRight, X, Filter } from 'lucide-react';
+import { TrendingUp, Wallet, ArrowDownCircle, Download, CreditCard, Search, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 const formatCurrency = (value: number | string) => {
@@ -125,16 +125,6 @@ export default function AdminFinancial() {
     return { total, pending, approved, cancelled, count: txs.length };
   }, [filteredTransactions]);
 
-  const statusCounts = useMemo(() => {
-    const txs = stats?.latest_transactions || [];
-    return {
-      all: txs.length,
-      pending: txs.filter((t: any) => !['approved', 'completed'].includes(t.status)).length,
-      approved: txs.filter((t: any) => ['approved', 'completed'].includes(t.status)).length,
-      cancelled: txs.filter((t: any) => t.status === 'cancelled').length
-    };
-  }, [stats?.latest_transactions]);
-
   const totalPages = Math.ceil(filteredTransactions.length / pageSize);
   const paginatedTransactions = filteredTransactions.slice(
     (currentPage - 1) * pageSize,
@@ -176,90 +166,73 @@ export default function AdminFinancial() {
         </button>
       }
     >
-      <StatsGrid>
+      <div className="mt-6">
+        <StatsGrid>
         <StatCard label="Receita Total" value={formatCurrency(filteredStats.total)} icon={<TrendingUp size={16} />} />
         <StatCard label="Pendente" value={formatCurrency(filteredStats.pending)} variant="blue" icon={<ArrowDownCircle size={16} />} />
         <StatCard label="Aprovado" value={formatCurrency(filteredStats.approved)} variant="purple" icon={<Wallet size={16} />} />
-        <StatCard label="Cancelado" value={formatCurrency(filteredStats.cancelled)} variant="red" icon={<CreditCard size={16} />} />
-      </StatsGrid>
+          <StatCard label="Cancelado" value={formatCurrency(filteredStats.cancelled)} variant="red" icon={<CreditCard size={16} />} />
+        </StatsGrid>
+      </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          {[
-            { key: 'all', label: 'Todos', count: statusCounts.all },
-            { key: 'pending', label: 'Pendente', count: statusCounts.pending },
-            { key: 'approved', label: 'Aprovado', count: statusCounts.approved },
-            { key: 'cancelled', label: 'Cancelado', count: statusCounts.cancelled }
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setStatusFilter(tab.key)}
-              className={`px-3 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
-                statusFilter === tab.key 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              {tab.label} ({tab.count})
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          {[
-            { key: 'all', label: 'Todos Períodos' },
-            { key: 'today', label: 'Hoje' },
-            { key: 'week', label: '7 Dias' },
-            { key: 'month', label: 'Este Mês' },
-            { key: 'lastmonth', label: 'Mês Passado' },
-            { key: 'custom', label: 'Personalizado' },
-          ].map(period => (
-            <button
-              key={period.key}
-              onClick={() => { setDateFilter(period.key); setShowCustomDate(period.key === 'custom'); }}
-              className={`px-3 py-2 rounded-lg font-bold text-xs uppercase transition-all flex items-center gap-1.5 ${
-                dateFilter === period.key 
-                  ? 'bg-slate-800 text-white' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              <Filter size={12} /> {period.label}
-            </button>
-          ))}
-        </div>
-
-        {showCustomDate && (
-          <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
-            <input 
-              type="date"
-              value={customDateStart}
-              onChange={(e) => setCustomDateStart(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium outline-none"
-            />
-            <span className="text-slate-400">até</span>
-            <input 
-              type="date"
-              value={customDateEnd}
-              onChange={(e) => setCustomDateEnd(e.target.value)}
-              className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium outline-none"
-            />
-            {(customDateStart || customDateEnd) && (
-              <button onClick={() => { setCustomDateStart(''); setCustomDateEnd(''); }} className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-600 rounded-lg">
-                <X size={14} className="text-slate-400" />
-              </button>
-            )}
-          </div>
-        )}
-
-        <div className="relative flex-1 min-w-[200px] max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="flex flex-col md:flex-row gap-3 mt-4">
+        <div className="flex-1 relative">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
             placeholder="Buscar transação..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
           />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">Todos os Status</option>
+            <option value="pending">Pendente</option>
+            <option value="approved">Aprovado</option>
+            <option value="cancelled">Cancelado</option>
+          </select>
+
+          <select
+            value={dateFilter}
+            onChange={(e) => { setDateFilter(e.target.value); setShowCustomDate(e.target.value === 'custom'); }}
+            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="all">Todos os Períodos</option>
+            <option value="today">Hoje</option>
+            <option value="week">Últimos 7 dias</option>
+            <option value="month">Este Mês</option>
+            <option value="lastmonth">Mês Passado</option>
+            <option value="custom">Personalizado</option>
+          </select>
+
+          {showCustomDate && (
+            <div className="flex items-center gap-2">
+              <input 
+                type="date"
+                value={customDateStart}
+                onChange={(e) => setCustomDateStart(e.target.value)}
+                className="px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              <input 
+                type="date"
+                value={customDateEnd}
+                onChange={(e) => setCustomDateEnd(e.target.value)}
+                className="px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+              />
+              {(customDateStart || customDateEnd) && (
+                <button onClick={() => { setCustomDateStart(''); setCustomDateEnd(''); }} className="p-2.5 hover:bg-slate-100 rounded-xl border border-slate-200">
+                  <X size={14} className="text-slate-400" />
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </div>
 

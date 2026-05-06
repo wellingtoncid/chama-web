@@ -134,7 +134,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
       </div>
 
       {/* Main Content Area */}
-      <main className="max-w-[1440px] mx-auto p-5 lg:p-8 pb-32">
+      <main className="max-w-[1280px] mx-auto px-6 lg:px-10 py-6 pb-32">
         <div className="animate-in fade-in slide-in-from-bottom-3 duration-700 ease-out">
           <Outlet />
         </div>

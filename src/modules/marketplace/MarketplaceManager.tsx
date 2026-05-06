@@ -29,6 +29,16 @@ interface PricingRule {
   duration_days?: number;
 }
 
+const STATUS_MAP: Record<string, { label: string; color: string }> = {
+  active: { label: 'Ativo', color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' },
+  sold: { label: 'Vendido', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' },
+  paused: { label: 'Pausado', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' },
+  expired: { label: 'Expirado', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' },
+  deleted: { label: 'Excluído', color: 'bg-slate-200 text-slate-500 dark:bg-slate-700 dark:text-slate-400' },
+  inactive: { label: 'Inativo', color: 'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-400' },
+  pending: { label: 'Pendente', color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' },
+};
+
 const MarketplaceManager = ({ user }: { user: { id: number } }) => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -425,8 +435,8 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
                 {/* Conteúdo */}
                 <div className="p-4">
                   <div className="flex justify-between items-center mb-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      {item.status}
+                    <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${STATUS_MAP[item.status]?.color || 'bg-slate-100 text-slate-500'}`}>
+                      {STATUS_MAP[item.status]?.label || item.status}
                     </span>
                     {item.location_state && (
                       <span className="text-[10px] text-slate-500 flex items-center gap-0.5">

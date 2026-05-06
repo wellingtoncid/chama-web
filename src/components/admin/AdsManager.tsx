@@ -1,59 +1,25 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import {
-  Trash2, Loader2, Plus, Pencil,
+  Trash2, Loader2, Plus,
   Search, BarChart3,
   Play, Pause, RotateCcw, AlertTriangle
 } from 'lucide-react';
-import { useAdPositions } from '../../hooks/useAdPositions';
-import { StatsGrid, StatCard, TimeFilter, PageShell } from '@/components/admin';
+import { StatsGrid, StatCard, PageShell } from '@/components/admin';
 
 export default function AdsManager() {
+  const navigate = useNavigate();
   const [ads, setAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [timeFilter, setTimeFilter] = useState<'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all'>('all');
-  
-  const handleTimeFilterChange = (value: 'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all', _customRange?: { start: string; end: string }) => {
-    setTimeFilter(value);
-    // TODO: integrar com loadAds passando o período
-  };
-
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [uploading, setUploading] = useState(false);
-  
-  // Estados do Formulário
-  const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [title, setTitle] = useState('');
-  const [link, setLink] = useState('');
-  const [externalImageUrl, setExternalImageUrl] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [category, setCategory] = useState('PROMOÇÃO');
-  const [position, setPosition] = useState('sidebar');
-  const [whatsapp, setWhatsapp] = useState('');
-  const [description, setDescription] = useState('');
-  const [locationCity, setLocationCity] = useState('Brasil');
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [_viewLimit, _setViewLimit] = useState<number | ''>('');
-  const [targetUserId, setTargetUserId] = useState<number | ''>('');
-  const [users, setUsers] = useState<{id: number; name: string; email: string}[]>([]);
-  const [currentUser, setCurrentUser] = useState<any>(null);
-
-  const { positions, loading: positionsLoading } = useAdPositions();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Cálculos de Métricas
   const allAds = ads;
   const activeAds = allAds.filter(a => a.computed_status === 'active' || a.computed_status === 'expiring_soon');
   const expiredAds = allAds.filter(a => a.computed_status === 'expired');
   const pausedAds = allAds.filter(a => a.computed_status === 'paused');
-  
-  const totalViews = allAds.reduce((acc, curr) => acc + (Number(curr.views_count) || 0), 0);
-  const totalClicks = allAds.reduce((acc, curr) => acc + (Number(curr.clicks_count) || 0), 0);
-  const averageCTR = totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(2) : "0.00";
 
   // Filtro lógico
   const filteredAds = ads.filter(ad => {
@@ -74,8 +40,6 @@ export default function AdsManager() {
     return `http://127.0.0.1:8000/${cleanPath}`;
   };
 
-  // --- CARREGAMENTO DE DADOS ---
-
   const loadAds = async () => {
     try {
       setLoading(true);
@@ -90,37 +54,7 @@ export default function AdsManager() {
     }
   };
 
-  const loadUsers = async () => {
-    try {
-      const res = await api.get('/companies');
-      const companiesData = res.data?.companies || res.data?.data || res.data || [];
-      setUsers(companiesData);
-    } catch (error) {
-      try {
-        const res = await api.get('/list-all-users');
-        const usersData = res.data?.users || res.data?.data || res.data || [];
-        const companies = usersData.filter((u: any) => u.type === 'COMPANY' || u.user_type === 'COMPANY');
-        setUsers(companies);
-      } catch {
-        setUsers([]); 
-      }
-    }
-  };
-
-  const loadCurrentUser = async () => {
-    try {
-      const userData = localStorage.getItem('@ChamaFrete:user');
-      if (userData) setCurrentUser(JSON.parse(userData));
-    } catch (error) {
-      console.error("Erro ao carregar usuário atual", error);
-    }
-  };
-
-  useEffect(() => { 
-    loadAds(); 
-    loadUsers();
-    loadCurrentUser();
-  }, []);
+  useEffect(() => { loadAds(); }, []);
 
   // --- HANDLES DE AÇÃO ---
 
@@ -161,115 +95,68 @@ export default function AdsManager() {
     }
   };
 
-  const handleEdit = (ad: any) => {
-      resetForm();
-      setEditingId(ad.id);
-      setTitle(ad.title || '');
-      setLink(ad.destination_url || ad.link || ''); 
-      setWhatsapp(ad.link_whatsapp || '');
-      setDescription(ad.description || '');
-      setCategory(ad.category || 'PROMOÇÃO');
-      setPosition(ad.position || 'sidebar');
-      setLocationCity(ad.location_city || 'Brasil');
-      setTargetUserId(ad.user_id || '');
-      
-      if (ad.image_url) {
-          if (ad.image_url.startsWith('http')) {
-              setImageMode('url');
-              setExternalImageUrl(ad.image_url);
-              setPreviewUrl(ad.image_url);
-          } else {
-              setImageMode('upload');
-              setPreviewUrl(getFullImageUrl(ad.image_url));
-          }
-      }
-      setIsModalOpen(true);
-  };
-
-  const resetForm = () => {
-    setEditingId(null);
-    setTitle(''); setLink(''); setDescription(''); setWhatsapp('');
-    setCategory('PROMOÇÃO'); setSelectedFile(null); setPreviewUrl(null);
-    setExternalImageUrl(''); setPosition('sidebar'); setLocationCity('Brasil');
-    setTargetUserId(''); setImageMode('upload');
-  };
-
   return (
     <PageShell
       title="Publicidade"
       description="Gerencie anúncios publicitários do sistema"
       actions={
         <button 
-          onClick={() => { resetForm(); setIsModalOpen(true); }}
-          className="flex items-center justify-center gap-2 bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-xs uppercase italic tracking-wider transition-all shadow-lg hover:bg-orange-500"
+          onClick={() => navigate('/novo-anuncio')}
+          className="flex items-center gap-2 bg-orange-500 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-orange-600 transition-colors"
         >
-          <Plus size={18} /> Novo Anúncio
+          <Plus size={16} /> Novo Anúncio
         </button>
       }
     >
 
-      <StatsGrid>
-        <StatCard label="Ativos" value={activeAds.length} variant="green" icon={Play} />
-        <StatCard label="Expirando" value={expiredAds.length} variant="yellow" icon={AlertTriangle} />
-        <StatCard label="Pausados" value={pausedAds.length} variant="default" icon={Pause} />
-        <StatCard label="Total" value={allAds.length} icon={BarChart3} />
-      </StatsGrid>
+      {/* Stats Grid */}
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard label="Ativos" value={activeAds.length} variant="green" icon={Play} />
+          <StatCard label="Expirando" value={expiredAds.length} variant="yellow" icon={AlertTriangle} />
+          <StatCard label="Pausados" value={pausedAds.length} variant="default" icon={Pause} />
+          <StatCard label="Total" value={allAds.length} icon={BarChart3} />
+        </StatsGrid>
+      </div>
 
-      <div className="flex flex-col md:flex-row gap-3 mt-6">
-        <div className="flex-1 relative">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-          <input
-            type="text"
-            placeholder="Buscar por campanha, cidade ou categoria..."
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-2xl border border-slate-200 font-bold text-xs text-slate-900 placeholder:text-slate-400 shadow-sm focus:ring-2 focus:ring-orange-500 outline-none transition-all"
-            value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-          />
-        </div>
-        
-        <div className="flex flex-wrap items-center gap-2">
-          {['all', 'active', 'expiring_soon', 'paused', 'expired'].map((status) => (
-            <button
-              key={status}
-              onClick={() => setStatusFilter(status)}
-              className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${
-                statusFilter === status
-                  ? status === 'all' ? 'bg-slate-900 text-white' :
-                    status === 'active' || status === 'expiring_soon' ? 'bg-emerald-500 text-white' :
-                    status === 'paused' ? 'bg-slate-400 text-white' :
-                    'bg-red-500 text-white'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {status === 'all' ? 'Todos' :
-               status === 'active' ? 'Ativos' :
-               status === 'expiring_soon' ? 'Expirando' :
-               status === 'paused' ? 'Pausados' : 'Expirados'}
-            </button>
-          ))}
-        </div>
+      {/* Filters */}
+      <div className="flex flex-wrap gap-3 mt-4 items-center">
+        <select 
+          value={statusFilter} 
+          onChange={e => setStatusFilter(e.target.value)} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="all">Todos os Status</option>
+          <option value="active">Ativos</option>
+          <option value="expiring_soon">Expirando</option>
+          <option value="paused">Pausados</option>
+          <option value="expired">Expirados</option>
+        </select>
 
-        <TimeFilter value={timeFilter} onChange={handleTimeFilterChange} />
+        <div className="relative flex-1 max-w-xs">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" placeholder="Buscar campanha..." value={filter} onChange={e => setFilter(e.target.value)} className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-orange-500" />
+        </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mt-6">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
-              <tr className="bg-slate-50/50">
-                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Preview</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Campanha</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Anunciante</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest">Status</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest text-center">Performance</th>
-                <th className="px-6 py-4 text-[9px] font-black uppercase text-slate-400 tracking-widest text-right">Ações</th>
+              <tr className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200">
+                <th className="px-5 py-4">Preview</th>
+                <th className="px-5 py-4">Campanha</th>
+                <th className="px-5 py-4">Anunciante</th>
+                <th className="px-5 py-4">Status</th>
+                <th className="px-5 py-4 text-center">Performance</th>
+                <th className="px-5 py-4 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading ? (
-                <tr><td colSpan={6} className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
+                <tr><td colSpan={6} className="px-5 py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
               ) : filteredAds.length === 0 ? (
-                <tr><td colSpan={6} className="py-20 text-center font-bold text-slate-400 uppercase italic">Nenhum anúncio encontrado</td></tr>
+                <tr><td colSpan={6} className="px-5 py-20 text-center font-bold text-slate-400">Nenhum anúncio encontrado</td></tr>
               ) : filteredAds.map((ad: any) => {
                 const statusConfig: Record<string, {color: string; bg: string; label: string}> = {
                   active: { color: 'text-emerald-600', bg: 'bg-emerald-100', label: '● ATIVO' },
@@ -280,60 +167,57 @@ export default function AdsManager() {
                 const status = statusConfig[ad.computed_status] || statusConfig.active;
                 
                 return (
-                  <tr key={ad.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="w-20 h-12 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 relative">
+                  <tr key={ad.id} className="hover:bg-slate-50 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="w-20 h-12 bg-slate-100 rounded-xl overflow-hidden border border-slate-200 relative">
                         <img src={getFullImageUrl(ad.image_url)} alt="" className="w-full h-full object-cover" />
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="font-black text-slate-800 uppercase italic text-xs">{ad.title}</p>
+                    <td className="px-5 py-4">
+                      <p className="font-bold text-slate-800 text-sm">{ad.title}</p>
                       <div className="flex items-center gap-2 mt-1">
-                        <span className="text-[8px] bg-slate-100 px-2 py-0.5 rounded font-black text-slate-500 uppercase">{ad.position}</span>
-                        <span className="text-[8px] text-slate-400 font-bold">{ad.location_city}</span>
+                        <span className="text-[10px] bg-slate-100 px-2 py-0.5 rounded font-bold text-slate-500 uppercase">{ad.position}</span>
+                        <span className="text-[10px] text-slate-400 font-bold">{ad.location_city}</span>
                       </div>
                     </td>
-                    <td className="px-6 py-4">
-                      <p className="text-xs font-black text-slate-700">{ad.user_name || 'Desconhecido'}</p>
-                      <p className="text-[9px] text-slate-400 truncate max-w-[150px]">{ad.location_city || 'Nacional'}</p>
+                    <td className="px-5 py-4">
+                      <p className="text-xs font-bold text-slate-700">{ad.user_name || 'Desconhecido'}</p>
+                      <p className="text-[10px] text-slate-400 truncate max-w-[150px]">{ad.location_city || 'Nacional'}</p>
                     </td>
-                    <td className="px-6 py-4">
-                      <span className={`${status.bg} ${status.color} text-[9px] font-black px-3 py-1.5 rounded-full uppercase`}>
+                    <td className="px-5 py-4">
+                      <span className={`${status.bg} ${status.color} text-[10px] font-bold px-2.5 py-1 rounded-lg uppercase`}>
                         {status.label}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-center">
+                    <td className="px-5 py-4 text-center">
                       <div className="flex justify-center gap-4">
                           <div className="flex flex-col">
-                              <span className="text-sm font-black text-slate-800 leading-none">{ad.clicks_count || 0}</span>
-                              <span className="text-[7px] font-black text-orange-500 uppercase mt-0.5">Cliques</span>
+                              <span className="text-sm font-bold text-slate-800 leading-none">{ad.clicks_count || 0}</span>
+                              <span className="text-[9px] font-bold text-orange-500 uppercase mt-0.5">Cliques</span>
                           </div>
                           <div className="flex flex-col">
-                              <span className="text-sm font-black text-slate-800 leading-none">{ad.views_count || 0}</span>
-                              <span className="text-[7px] font-black text-blue-500 uppercase mt-0.5">Views</span>
+                              <span className="text-sm font-bold text-slate-800 leading-none">{ad.views_count || 0}</span>
+                              <span className="text-[9px] font-bold text-blue-500 uppercase mt-0.5">Views</span>
                           </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
                         {ad.computed_status === 'active' || ad.computed_status === 'expiring_soon' ? (
-                          <button onClick={() => pauseAd(ad.id)} className="p-2 bg-amber-100 text-amber-600 rounded-xl hover:bg-amber-500 hover:text-white transition-all">
+                          <button onClick={() => pauseAd(ad.id)} className="p-2 bg-amber-50 text-amber-600 rounded-lg hover:bg-amber-100">
                             <Pause size={14}/>
                           </button>
                         ) : (
-                          <button onClick={() => activateAd(ad.id)} className="p-2 bg-emerald-100 text-emerald-600 rounded-xl hover:bg-emerald-500 hover:text-white transition-all">
+                          <button onClick={() => activateAd(ad.id)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100">
                             <Play size={14}/>
                           </button>
                         )}
                         {(ad.computed_status === 'expired' || ad.computed_status === 'paused') && (
-                          <button onClick={() => renewAd(ad.id, 30)} className="p-2 bg-blue-100 text-blue-600 rounded-xl hover:bg-blue-500 hover:text-white transition-all">
+                          <button onClick={() => renewAd(ad.id, 30)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">
                             <RotateCcw size={14}/>
                           </button>
                         )}
-                        <button onClick={() => handleEdit(ad)} className="p-2 bg-slate-100 rounded-xl hover:bg-slate-900 hover:text-white transition-all">
-                          <Pencil size={14}/>
-                        </button>
-                        <button onClick={() => handleDelete(ad.id)} className="p-2 bg-red-50 text-red-400 rounded-xl hover:bg-red-500 hover:text-white transition-all">
+                        <button onClick={() => handleDelete(ad.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
                           <Trash2 size={14}/>
                         </button>
                       </div>

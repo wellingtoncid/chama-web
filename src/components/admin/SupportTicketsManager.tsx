@@ -214,71 +214,55 @@ export default function SupportTicketsManager() {
       description="Gerencie chamados de clientes"
     >
       {/* STATS GRID */}
-      <StatsGrid>
-        <StatCard label="Total" value={tickets.length} icon={<MessageCircle size={16} />} />
-        <StatCard label="Abertos" value={openCount} variant="blue" icon={<Clock size={16} />} />
-        <StatCard label="Em Andamento" value={progressCount} variant="purple" icon={<AlertCircle size={16} />} />
-        <StatCard label="Fechados" value={tickets.filter(t => t.status === 'CLOSED').length} variant="green" icon={<CheckCircle size={16} />} />
-      </StatsGrid>
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard label="Total" value={tickets.length} icon={<MessageCircle size={16} />} />
+          <StatCard label="Abertos" value={openCount} variant="blue" icon={<Clock size={16} />} />
+          <StatCard label="Em Andamento" value={progressCount} variant="purple" icon={<AlertCircle size={16} />} />
+          <StatCard label="Fechados" value={tickets.filter(t => t.status === 'CLOSED').length} variant="green" icon={<CheckCircle size={16} />} />
+        </StatsGrid>
+      </div>
 
       {/* FILTERS */}
-      <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          {[
-            { value: '%', label: 'Todos' },
-            { value: 'OPEN', label: 'Abertos' },
-            { value: 'IN_PROGRESS', label: 'Em Andamento' },
-            { value: 'CLOSED', label: 'Fechados' }
-          ].map(f => (
-            <button
-              key={f.value}
-              onClick={() => setFilter(f.value)}
-              className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
-                filter === f.value 
-                  ? 'bg-indigo-600 text-white' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          {[
-            { value: '%', label: 'Todas Prioridades' },
-            { value: 'vip', label: 'VIP Only' },
-            { value: 'normal', label: 'Free' }
-          ].map(f => (
-            <button
-              key={f.value}
-              onClick={() => setPriorityFilter(f.value)}
-              className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
-                priorityFilter === f.value 
-                  ? 'bg-amber-500 text-white' 
-                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-
-        <div className="relative flex-1 max-w-md">
-          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+      <div className="flex flex-col md:flex-row gap-3 mt-4">
+        <div className="flex-1 relative">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
             placeholder="Buscar por ID ou assunto..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500"
+            className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
           />
+        </div>
+        
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="%">Todos os Status</option>
+            <option value="OPEN">Abertos</option>
+            <option value="IN_PROGRESS">Em Andamento</option>
+            <option value="CLOSED">Fechados</option>
+          </select>
+
+          <select
+            value={priorityFilter}
+            onChange={(e) => setPriorityFilter(e.target.value)}
+            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="%">Todas Prioridades</option>
+            <option value="vip">VIP Only</option>
+            <option value="normal">Free</option>
+          </select>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
         {/* Tickets List */}
-        <div className="lg:col-span-1 bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden">
+        <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="max-h-[700px] overflow-y-auto">
             {loading ? (
               <div className="p-8 flex justify-center">
@@ -330,7 +314,7 @@ export default function SupportTicketsManager() {
         </div>
 
         {/* Ticket Detail */}
-        <div className="lg:col-span-2 bg-white rounded-[2.5rem] border border-slate-100 overflow-hidden min-h-[700px] flex flex-col">
+        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden min-h-[700px] flex flex-col">
           {selectedTicket ? (
             <>
               {/* Header */}
@@ -358,7 +342,7 @@ export default function SupportTicketsManager() {
                         <select
                           value={selectedTicket.urgency_code}
                           onChange={(e) => handleUpdateUrgency(selectedTicket.id, e.target.value)}
-                          className="ml-2 px-2 py-1 rounded-lg border border-slate-200 text-xs font-bold cursor-pointer"
+                          className="ml-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                           {urgencyOptions.map(u => (
                             <option key={u.value} value={u.value}>{u.label} ({u.value})</option>
@@ -372,11 +356,11 @@ export default function SupportTicketsManager() {
                       <>
                         <button 
                           onClick={() => handleCloseTicket(selectedTicket.id)}
-                          className="px-3 py-2 bg-red-50 text-red-600 rounded-lg font-bold text-xs uppercase hover:bg-red-100 transition-colors flex items-center gap-1"
+                          className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold text-xs uppercase hover:bg-red-100 transition-colors flex items-center gap-1"
                         >
                           <X size={14} /> Fechar
                         </button>
-                        <button className="px-3 py-2 bg-indigo-50 text-indigo-600 rounded-lg font-bold text-xs uppercase hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                        <button className="px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs uppercase hover:bg-indigo-100 transition-colors flex items-center gap-1">
                           <Mail size={14} /> Email
                         </button>
                       </>
@@ -431,7 +415,7 @@ export default function SupportTicketsManager() {
                       onChange={(e) => setReplyMessage(e.target.value)}
                       placeholder="Digite sua resposta..."
                       rows={2}
-                      className="flex-1 p-3 bg-slate-50 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                      className="flex-1 bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                     />
                     <button
                       onClick={handleReply}

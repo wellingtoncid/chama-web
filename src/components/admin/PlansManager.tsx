@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/api/api';
-import StatsGrid, { StatCard } from './StatsGrid'; 
+import { StatsGrid, StatCard } from '@/components/admin';
 import { 
   Plus, Edit3, Trash2, Star, X, Loader2, BadgeDollarSign, 
   CheckCircle2, Zap, Layout, ShieldCheck, Layers, List, LayoutGrid,
-  Filter
+  Search
 } from 'lucide-react';
-import { PageShell } from './index';
+import { PageShell } from '@/components/admin';
 
 const PLAN_TYPES = [
   { id: 'all', label: 'Todos' },
@@ -108,67 +108,69 @@ export default function PlansManager() {
       }
     >
       {/* STATS GRID */}
-      <StatsGrid>
-          <StatCard label="Total Planos" value={stats.total} icon={<Layers size={18}/>} />
-          <StatCard label="Ativos" value={stats.active} variant="green" icon={<CheckCircle2 size={18}/>} />
-          <StatCard label="Pausados" value={stats.paused} variant="red" icon={<Trash2 size={18}/>} />
-          <StatCard label="Receita Potencial" value={stats.revenue} prefix="R$ " variant="blue" icon={<BadgeDollarSign size={18}/>} />
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard label="Total Planos" value={stats.total} icon={Layers} />
+          <StatCard label="Ativos" value={stats.active} variant="green" icon={CheckCircle2} />
+          <StatCard label="Pausados" value={stats.paused} variant="red" icon={Trash2} />
+          <StatCard label="Receita Potencial" value={`R$ ${stats.revenue.toFixed(2)}`} variant="blue" icon={BadgeDollarSign} />
         </StatsGrid>
+      </div>
 
-        {/* FILTROS */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mt-8 mb-6">
-          <div className="flex flex-wrap gap-2">
-            {PLAN_TYPES.map(t => (
-              <button key={t.id} onClick={() => setTypeFilter(t.id)} className={`px-4 py-2 rounded-xl text-sm font-bold transition-all ${typeFilter === t.id ? 'bg-blue-600 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                {t.label}
-              </button>
-            ))}
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <input type="text" placeholder="Buscar..." value={search} onChange={e => setSearch(e.target.value)} className="pl-10 pr-4 py-2.5 bg-slate-100 dark:bg-slate-800 rounded-xl border-none text-sm" />
-              <Filter size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            </div>
-            <div className="flex bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-              <button onClick={() => setViewMode('table')} className={`p-2 rounded-lg transition-all ${viewMode === 'table' ? 'bg-white dark:bg-slate-700 shadow-md' : 'text-slate-400'}`}><List size={18}/></button>
-              <button onClick={() => setViewMode('grid')} className={`p-2 rounded-lg transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-slate-700 shadow-md' : 'text-slate-400'}`}><LayoutGrid size={18}/></button>
-            </div>
-          </div>
+      {/* FILTROS */}
+      <div className="flex flex-wrap gap-3 mt-4 items-center">
+        <select 
+          value={typeFilter} 
+          onChange={e => setTypeFilter(e.target.value)} 
+          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          {PLAN_TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+
+        <div className="relative">
+          <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input type="text" placeholder="Buscar plano..." value={search} onChange={e => setSearch(e.target.value)} className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" />
         </div>
+
+        <div className="flex bg-white p-1 rounded-xl border border-slate-200 ml-auto">
+          <button onClick={() => setViewMode('table')} className={`p-2.5 rounded-lg ${viewMode === 'table' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}><List size={16}/></button>
+          <button onClick={() => setViewMode('grid')} className={`p-2.5 rounded-lg ${viewMode === 'grid' ? 'bg-blue-600 text-white' : 'text-slate-400'}`}><LayoutGrid size={16}/></button>
+        </div>
+      </div>
 
         {/* TABELA */}
         {viewMode === 'table' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
             <table className="w-full">
-              <thead className="bg-slate-50 dark:bg-slate-700/50">
+              <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-bold uppercase text-slate-500">Tipo</th>
-                  <th className="px-4 py-4 text-left text-xs font-bold uppercase text-slate-500">Plano</th>
-                  <th className="px-4 py-4 text-left text-xs font-bold uppercase text-slate-500">Valor</th>
-                  <th className="px-4 py-4 text-left text-xs font-bold uppercase text-slate-500">Ciclo</th>
-                  <th className="px-4 py-4 text-left text-xs font-bold uppercase text-slate-500">Status</th>
-                  <th className="px-6 py-4 text-right text-xs font-bold uppercase text-slate-500">Ações</th>
+                  <th className="px-5 py-4">Tipo</th>
+                  <th className="px-5 py-4">Plano</th>
+                  <th className="px-5 py-4">Valor</th>
+                  <th className="px-5 py-4">Ciclo</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              <tbody className="divide-y divide-slate-100">
                 {filteredPlans.map((plan) => (
-                  <tr key={plan.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors ${Number(plan.active) !== 1 && 'opacity-60'}`}>
-                    <td className="px-6 py-4">{getPlanIcon(plan.type)}</td>
-                    <td className="px-4 py-4">
-                      <div className="font-bold text-slate-800 dark:text-white">{plan.name}</div>
+                  <tr key={plan.id} className={`hover:bg-slate-50 transition-colors ${Number(plan.active) !== 1 && 'opacity-60'}`}>
+                    <td className="px-5 py-4">{getPlanIcon(plan.type)}</td>
+                    <td className="px-5 py-4">
+                      <div className="font-bold text-slate-800">{plan.name}</div>
                       <div className="text-xs text-slate-400">{plan.type}</div>
                     </td>
-                    <td className="px-4 py-4 font-bold text-slate-800 dark:text-white">R$ {plan.price}</td>
-                    <td className="px-4 py-4 text-sm text-slate-500">{plan.duration_days} dias</td>
-                    <td className="px-4 py-4">
-                      <span className={`px-3 py-1 rounded-full text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' : 'bg-slate-100 text-slate-500'}`}>
+                    <td className="px-5 py-4 font-bold text-slate-800">R$ {plan.price}</td>
+                    <td className="px-5 py-4 text-sm text-slate-500">{plan.duration_days} dias</td>
+                    <td className="px-5 py-4">
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                         {Number(plan.active) === 1 ? 'Ativo' : 'Pausado'}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => openEdit(plan)} className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"><Edit3 size={16}/></button>
-                        <button onClick={() => togglePlanStatus(plan)} className={`p-2 rounded-lg transition-all ${Number(plan.active) === 1 ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30' : 'text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/30'}`}>
+                        <button onClick={() => openEdit(plan)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Edit3 size={16}/></button>
+                        <button onClick={() => togglePlanStatus(plan)} className={`p-2 rounded-lg transition-all ${Number(plan.active) === 1 ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-100'}`}>
                           {Number(plan.active) === 1 ? <Trash2 size={16}/> : <CheckCircle2 size={16}/>}
                         </button>
                       </div>
@@ -178,31 +180,31 @@ export default function PlansManager() {
               </tbody>
             </table>
             {filteredPlans.length === 0 && (
-              <div className="p-12 text-center text-slate-400">Nenhum plano encontrado</div>
+              <div className="p-12 text-center text-slate-400 font-bold">Nenhum plano encontrado</div>
             )}
           </div>
         )}
 
         {/* GRID */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {filteredPlans.map((plan) => (
-              <div key={plan.id} className={`bg-white dark:bg-slate-800 p-6 rounded-2xl border-2 transition-all group relative ${Number(plan.active) === 1 ? 'border-slate-100 dark:border-slate-700 hover:border-blue-300' : 'border-dashed border-slate-200 dark:border-slate-600 opacity-60'}`}>
+              <div key={plan.id} className={`bg-white p-6 rounded-2xl border border-slate-200 transition-all group relative ${Number(plan.active) === 1 ? 'hover:border-blue-300' : 'border-dashed border-slate-300 opacity-60'}`}>
                 <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => openEdit(plan)} className="p-2 bg-white dark:bg-slate-700 shadow-lg rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"><Edit3 size={14}/></button>
-                  <button onClick={() => togglePlanStatus(plan)} className={`p-2 bg-white dark:bg-slate-700 shadow-lg rounded-xl transition-colors ${Number(plan.active) === 1 ? 'text-red-500 hover:bg-red-600 hover:text-white' : 'text-emerald-500 hover:bg-emerald-600 hover:text-white'}`}>
+                  <button onClick={() => openEdit(plan)} className="p-2 bg-white shadow-lg rounded-xl text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"><Edit3 size={14}/></button>
+                  <button onClick={() => togglePlanStatus(plan)} className={`p-2 bg-white shadow-lg rounded-xl transition-colors ${Number(plan.active) === 1 ? 'text-red-500 hover:bg-red-600 hover:text-white' : 'text-emerald-500 hover:bg-emerald-600 hover:text-white'}`}>
                     {Number(plan.active) === 1 ? <Trash2 size={14}/> : <CheckCircle2 size={14}/>}
                   </button>
                 </div>
                 <div className="mb-4">{getPlanIcon(plan.type, 28)}</div>
-                <h4 className="font-bold text-slate-800 dark:text-white leading-tight mb-2">{plan.name}</h4>
+                <h4 className="font-bold text-slate-800 leading-tight mb-2">{plan.name}</h4>
                 <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-2xl font-bold text-slate-900 dark:text-white">R$ {plan.price}</span>
+                  <span className="text-2xl font-bold text-slate-900">R$ {plan.price}</span>
                   <span className="text-xs text-slate-400">/{plan.duration_days}d</span>
                 </div>
-                <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                <div className="pt-4 border-t border-slate-100">
                   <p className="text-xs text-slate-400 line-clamp-2 mb-3">{plan.description || 'Sem descrição'}</p>
-                  <span className={`px-2 py-1 rounded-full text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300' : 'bg-slate-100 text-slate-500'}`}>
+                  <span className={`px-2 py-1 rounded-lg text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                     {Number(plan.active) === 1 ? 'Ativo' : 'Pausado'}
                   </span>
                 </div>
@@ -221,22 +223,22 @@ export default function PlansManager() {
               </div>
               <div className="p-6 space-y-5">
                 <div>
-                  <label className="text-xs font-bold uppercase text-slate-500 mb-2 block">Nome do Plano</label>
-                  <input value={planData.name} onChange={e => setPlanData({...planData, name: e.target.value})} placeholder="Ex: Starter" className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Nome do Plano</label>
+                  <input value={planData.name} onChange={e => setPlanData({...planData, name: e.target.value})} placeholder="Ex: Starter" className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" />
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 mb-2 block">Preço (R$)</label>
-                    <input type="number" value={planData.price} onChange={e => setPlanData({...planData, price: e.target.value})} placeholder="0.00" className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                    <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Preço (R$)</label>
+                    <input type="number" value={planData.price} onChange={e => setPlanData({...planData, price: e.target.value})} placeholder="0.00" className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                   <div>
-                    <label className="text-xs font-bold uppercase text-slate-500 mb-2 block">Duração (dias)</label>
-                    <input type="number" value={planData.duration_days} onChange={e => setPlanData({...planData, duration_days: e.target.value})} placeholder="30" className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                    <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Duração (dias)</label>
+                    <input type="number" value={planData.duration_days} onChange={e => setPlanData({...planData, duration_days: e.target.value})} placeholder="30" className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" />
                   </div>
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase text-slate-500 mb-2 block">Tipo</label>
-                  <select value={planData.type} onChange={e => setPlanData({...planData, type: e.target.value})} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none cursor-pointer">
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Tipo</label>
+                  <select value={planData.type} onChange={e => setPlanData({...planData, type: e.target.value})} className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
                     <option value="freight_list">Lista de Fretes</option>
                     <option value="sidebar">Marketplace</option>
                     <option value="urgent">Urgente</option>
@@ -246,11 +248,11 @@ export default function PlansManager() {
                   </select>
                 </div>
                 <div>
-                  <label className="text-xs font-bold uppercase text-slate-500 mb-2 block">Descrição</label>
-                  <textarea value={planData.description} onChange={e => setPlanData({...planData, description: e.target.value})} rows={4} placeholder="Descrição do plano..." className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none resize-none focus:ring-2 focus:ring-blue-500" />
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Descrição</label>
+                  <textarea value={planData.description} onChange={e => setPlanData({...planData, description: e.target.value})} rows={4} placeholder="Descrição do plano..." className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none resize-none focus:ring-2 focus:ring-blue-500" />
                 </div>
-                <button onClick={handleSavePlan} disabled={saving} className="w-full py-4 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                  {saving ? <Loader2 className="animate-spin" size={18}/> : 'Salvar Plano'}
+                <button onClick={handleSavePlan} disabled={saving} className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
+                  {saving ? <Loader2 className="animate-spin" size={16}/> : 'Salvar Plano'}
                 </button>
               </div>
             </div>

@@ -120,13 +120,13 @@ export default function FreightsManagerView() {
       </div>
 
       {/* Search & Filters */}
-      <div className="flex flex-col md:flex-row gap-3 mt-6">
+      <div className="flex flex-col md:flex-row gap-3 mt-4">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
           <input
             type="text"
             placeholder="Buscar por ID, Empresa, Cidade ou Produto..."
-            className="w-full pl-11 pr-4 py-3 bg-white rounded-xl border border-slate-200 font-bold text-xs text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 focus:ring-2 focus:ring-blue-500 outline-none transition-all"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -136,7 +136,7 @@ export default function FreightsManagerView() {
           <select 
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 font-black text-xs uppercase text-slate-600 outline-none focus:ring-2 focus:ring-blue-500"
+            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="all">Todos os Status</option>
             <option value="featured">Apenas Destaque</option>
@@ -158,74 +158,82 @@ export default function FreightsManagerView() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm mt-6">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm mt-4">
         <div className="overflow-x-auto">
           <table className="w-full">
-            <thead className="bg-slate-50 border-b border-slate-200">
+            <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">ID</th>
-                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">Origem/Destino</th>
-                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">Produto</th>
-                <th className="px-4 py-3 text-left text-xs font-black uppercase text-slate-400 tracking-widest">Anunciante</th>
-                <th className="px-4 py-3 text-right text-xs font-black uppercase text-slate-400 tracking-widest">Valor</th>
-                <th className="px-4 py-3 text-center text-xs font-black uppercase text-slate-400 tracking-widest">Destaque</th>
-                <th className="px-4 py-3 text-right text-xs font-black uppercase text-slate-400 tracking-widest">Ações</th>
+                <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">ID / Rota</th>
+                <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</th>
+                <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Anunciante</th>
+                <th className="px-5 py-3.5 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest">Valor</th>
+                <th className="px-5 py-3.5 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest">Destaque</th>
+                <th className="px-5 py-3.5 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {loading && freights.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center">
-                    <Loader2 className="animate-spin mx-auto text-slate-400" size={32} />
+                  <td colSpan={6} className="px-5 py-16 text-center">
+                    <Loader2 className="animate-spin mx-auto text-slate-300" size={32} />
+                    <p className="text-xs font-bold text-slate-400 mt-3 uppercase tracking-wider">Carregando fretes...</p>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-slate-400 font-bold uppercase italic">Nenhum frete encontrado</td>
+                  <td colSpan={6} className="px-5 py-16 text-center">
+                    <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Nenhum frete encontrado</p>
+                  </td>
                 </tr>
               ) : (
                  filtered.map((f) => (
-                  <tr key={f.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <p className="text-xs font-black text-slate-900 uppercase italic flex items-center gap-1">
-                        #{f.id} {f.origin_city}/<span className="text-slate-400">{f.origin_uf}</span> <ChevronRight size={10} className="text-blue-500"/> {f.dest_city}/<span className="text-slate-400">{f.dest_uf}</span>
+                  <tr key={f.id} className="hover:bg-slate-50/50 transition-colors group">
+                    <td className="px-5 py-4">
+                      <p className="text-xs font-black text-slate-900 uppercase flex items-center gap-2">
+                        <span className="text-[10px] font-bold text-slate-400">#{f.id}</span>
+                        <span className="text-slate-700">{f.origin_city}<span className="text-slate-400 ml-0.5">/{f.origin_state}</span></span>
+                        <ChevronRight size={12} className="text-blue-500 shrink-0"/>
+                        <span className="text-slate-700">{f.dest_city}<span className="text-slate-400 ml-0.5">/{f.dest_state}</span></span>
                       </p>
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="text-xs font-bold text-slate-700 uppercase">{f.product || 'CARGA GERAL'}</p>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase text-slate-600">
+                        {f.product || 'Carga Geral'}
+                      </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <p className="text-xs font-black text-slate-800 uppercase leading-none">{f.company_name || 'PARTICULAR'}</p>
-                      <p className="text-xs text-slate-400 mt-1 font-bold">USER ID: {f.user_id}</p>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <p className="text-xs font-black text-emerald-600">
-                        {f.price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(f.price)) : 'A COMBINAR'}
+                    <td className="px-5 py-4">
+                      <p className="text-xs font-black uppercase leading-none">
+                        <span className="text-[10px] font-bold text-slate-400">#{f.user_id}</span>{' '}{f.company_name || 'Particular'}
                       </p>
                     </td>
-                    <td className="px-4 py-3 text-center">
+                    <td className="px-5 py-4 text-right">
+                      <p className="text-xs font-black text-emerald-600 tabular-nums">
+                        {f.price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseFloat(f.price)) : '—'}
+                      </p>
+                    </td>
+                    <td className="px-5 py-4 text-center">
                       <button 
                         onClick={() => handleToggleFeatured(f.id, f.is_featured)}
-                        className={`p-2 rounded-xl transition-all ${
+                        className={`inline-flex items-center justify-center p-2 rounded-lg transition-all ${
                           f.is_featured == "1" 
-                          ? 'bg-amber-100 text-amber-600 shadow-sm' 
-                          : 'bg-slate-50 text-slate-300 hover:bg-amber-50 hover:text-amber-400'
+                          ? 'bg-amber-100 text-amber-600 shadow-sm hover:bg-amber-200' 
+                          : 'bg-slate-100 text-slate-300 hover:bg-amber-50 hover:text-amber-400'
                         }`}
                       >
                         <Star size={14} fill={f.is_featured == "1" ? "currentColor" : "none"} />
                       </button>
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button 
                           onClick={() => navigate('/novo-frete', { state: { editData: f } })}
-                          className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
                         >
                           <Edit3 size={14} />
                         </button>
                         <button 
                           onClick={() => handleDelete(f.id)}
-                          className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
                         >
                           <Trash2 size={14} />
                         </button>

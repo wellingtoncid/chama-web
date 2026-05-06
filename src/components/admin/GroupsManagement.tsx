@@ -99,12 +99,14 @@ const GroupsManagement = () => {
       description="Gerencie grupos WhatsApp e categorias da plataforma"
     >
       {/* STATS GRID */}
-      <StatsGrid>
+      <div className="mt-6">
+        <StatsGrid>
         <StatCard label="Total" value={totalStats.total} icon={<Users size={16} />} />
         <StatCard label="Ativos" value={totalStats.ativos} variant="blue" icon={<Globe size={16} />} />
         <StatCard label="Premium" value={totalStats.premium} variant="purple" icon={<Star size={16} />} />
-        <StatCard label="Views" value={totalStats.views} variant="green" icon={<EyeIcon size={16} />} />
-      </StatsGrid>
+          <StatCard label="Views" value={totalStats.views} variant="green" icon={<EyeIcon size={16} />} />
+        </StatsGrid>
+      </div>
 
       {/* TABS */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
@@ -467,7 +469,7 @@ function GroupsTab() {
 
   return (
     <div>
-      <div className="flex flex-wrap gap-4 mb-6 p-4 bg-slate-50 rounded-xl">
+      <div className="flex flex-wrap gap-4 mt-4 p-4 bg-slate-50 rounded-xl">
         <div className="flex items-center gap-2">
           <EyeIcon className="w-5 h-5 text-slate-400" />
           <span className="text-sm font-bold">Views: {totals.views.toLocaleString()}</span>
@@ -478,7 +480,7 @@ function GroupsTab() {
         </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-4">
+      <div className="flex flex-wrap gap-3 mt-4">
         <Button onClick={() => { setEditingGroup(null); setIsSlideOverOpen(true); }} className="bg-[#1f4ead] rounded-xl font-bold">
           <Plus className="w-4 h-4 mr-2" /> Novo Grupo
         </Button>
@@ -490,9 +492,9 @@ function GroupsTab() {
         <div className="flex-1" />
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input className="pl-10 pr-4 py-3 bg-slate-50 border rounded-xl text-sm w-64" placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
+          <input className="pl-10 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 w-64" placeholder="Buscar..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
         </div>
-        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-4 py-3 bg-slate-50 border rounded-xl text-sm">
+        <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500">
           <option value="">Todas as categorias</option>
           {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
         </select>
