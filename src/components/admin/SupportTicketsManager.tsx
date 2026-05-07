@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
 import { 
   Headphones, Search, Loader2, CheckCircle, X, 
   Clock, AlertCircle, MessageCircle, Send, User,
-  ChevronDown, Filter, Eye, Mail
+  ChevronDown, Filter, Eye, Mail, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { PageShell, StatsGrid, StatCard } from '@/components/admin';
@@ -58,9 +58,9 @@ const urgencyOptions = [
 ];
 
 const statusColors: Record<string, string> = {
-  OPEN: 'bg-blue-100 text-blue-700',
-  IN_PROGRESS: 'bg-purple-100 text-purple-700',
-  CLOSED: 'bg-slate-100 text-slate-500'
+  OPEN: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
+  IN_PROGRESS: 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400',
+  CLOSED: 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
 };
 
 const categoryLabels: Record<string, string> = {
@@ -82,6 +82,12 @@ export default function SupportTicketsManager() {
   const [priorityFilter, setPriorityFilter] = useState<string>('%');
   const [searchTerm, setSearchTerm] = useState('');
   const [replyMessage, setReplyMessage] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, priorityFilter, searchTerm, pageSize]);
 
   useEffect(() => {
     loadTickets();
@@ -195,15 +201,23 @@ export default function SupportTicketsManager() {
     });
   };
 
-  const filteredTickets = tickets.filter(t => {
-    const matchesSearch = searchTerm === '' || 
-      t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      t.id.toString().includes(searchTerm);
-    const matchesPriority = priorityFilter === '%' || 
-      (priorityFilter === 'vip' && t.priority_level && t.priority_level > 1) ||
-      (priorityFilter === 'normal' && (!t.priority_level || t.priority_level === 1));
-    return matchesSearch && matchesPriority;
-  });
+  const filteredTickets = useMemo(() => {
+    return tickets.filter(t => {
+      const matchesSearch = searchTerm === '' || 
+        t.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        t.id.toString().includes(searchTerm);
+      const matchesPriority = priorityFilter === '%' || 
+        (priorityFilter === 'vip' && t.priority_level && t.priority_level > 1) ||
+        (priorityFilter === 'normal' && (!t.priority_level || t.priority_level === 1));
+      return matchesSearch && matchesPriority;
+    });
+  }, [tickets, searchTerm, priorityFilter]);
+
+  const totalPages = Math.ceil(filteredTickets.length / pageSize);
+  const paginatedTickets = filteredTickets.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const openCount = tickets.filter(t => t.status === 'OPEN').length;
   const progressCount = tickets.filter(t => t.status === 'IN_PROGRESS').length;
@@ -232,7 +246,7 @@ export default function SupportTicketsManager() {
             placeholder="Buscar por ID ou assunto..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
           />
         </div>
         
@@ -240,7 +254,7 @@ export default function SupportTicketsManager() {
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+            className="bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="%">Todos os Status</option>
             <option value="OPEN">Abertos</option>
@@ -251,7 +265,7 @@ export default function SupportTicketsManager() {
           <select
             value={priorityFilter}
             onChange={(e) => setPriorityFilter(e.target.value)}
-            className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+            className="bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
           >
             <option value="%">Todas Prioridades</option>
             <option value="vip">VIP Only</option>
@@ -262,77 +276,114 @@ export default function SupportTicketsManager() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-4">
         {/* Tickets List */}
-        <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-200 overflow-hidden">
-          <div className="max-h-[700px] overflow-y-auto">
+        <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+              Tickets ({filteredTickets.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              <select 
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium text-slate-700 dark:text-slate-200"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
+          <div className="max-h-[600px] overflow-y-auto">
             {loading ? (
               <div className="p-8 flex justify-center">
                 <Loader2 className="animate-spin text-indigo-500" size={32} />
               </div>
-            ) : filteredTickets.length === 0 ? (
+            ) : paginatedTickets.length === 0 ? (
               <div className="p-8 text-center">
-                <Headphones size={40} className="mx-auto mb-3 text-slate-300" />
-                <p className="text-slate-500 font-medium">Nenhum ticket encontrado</p>
+                <Headphones size={40} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+                <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhum ticket encontrado</p>
               </div>
             ) : (
-              filteredTickets.map(ticket => (
+              paginatedTickets.map(ticket => (
                 <button
                   key={ticket.id}
                   onClick={() => setSelectedTicket(ticket)}
-                  className={`w-full p-4 text-left border-b border-slate-50 hover:bg-slate-50 transition-colors ${
-                    selectedTicket?.id === ticket.id ? 'bg-indigo-50 border-l-4 border-l-indigo-500' : ''
+                  className={`w-full p-4 text-left border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${
+                    selectedTicket?.id === ticket.id ? 'bg-indigo-50 dark:bg-indigo-900/20 border-l-4 border-l-indigo-500' : ''
                   }`}
                 >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${statusColors[ticket.status] || 'bg-slate-100'}`}>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${statusColors[ticket.status] || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                         {ticket.status === 'OPEN' ? 'Aberto' : ticket.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Fechado'}
                       </span>
                       {ticket.priority_level && ticket.priority_level > 1 && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${userPriorityLabels.find(p => p.value === ticket.priority_level)?.color || 'bg-slate-100'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${userPriorityLabels.find(p => p.value === ticket.priority_level)?.color || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                           VIP {userPriorityLabels.find(p => p.value === ticket.priority_level)?.label}
                         </span>
                       )}
                       {ticket.urgency_code && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${urgencyOptions.find(u => u.value === ticket.urgency_code)?.color || 'bg-slate-100'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${urgencyOptions.find(u => u.value === ticket.urgency_code)?.color || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                           {ticket.urgency_code}
                         </span>
                       )}
                     </div>
-                    <span className="text-[10px] text-slate-400">#{ticket.id}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500">#{ticket.id}</span>
                   </div>
-                  <h4 className="font-bold text-slate-800 text-sm mb-1 line-clamp-1">{ticket.subject}</h4>
+                  <h4 className="font-bold text-slate-800 dark:text-white text-sm mb-1 line-clamp-1">{ticket.subject}</h4>
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-slate-400 flex items-center gap-1">
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 flex items-center gap-1">
                       <User size={10} /> {ticket.user_name || `User #${ticket.user_id}`}
                     </span>
-                    <span className="text-[10px] text-slate-400">{formatDate(ticket.created_at)}</span>
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500">{formatDate(ticket.created_at)}</span>
                   </div>
                 </button>
               ))
             )}
           </div>
+          {totalPages > 1 && (
+            <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Ticket Detail */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 overflow-hidden min-h-[700px] flex flex-col">
+        <div className="lg:col-span-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden min-h-[700px] flex flex-col">
           {selectedTicket ? (
             <>
               {/* Header */}
-              <div className="p-4 border-b border-slate-100 bg-slate-50/50">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-900/50">
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="flex items-center gap-2 mb-1 flex-wrap">
-                      <h3 className="font-black uppercase italic text-slate-800">{selectedTicket.subject}</h3>
+                      <h3 className="font-black uppercase italic text-slate-800 dark:text-white">{selectedTicket.subject}</h3>
                       <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${statusColors[selectedTicket.status]}`}>
                         {selectedTicket.status === 'OPEN' ? 'Aberto' : selectedTicket.status === 'IN_PROGRESS' ? 'Em Andamento' : 'Fechado'}
                       </span>
                       {selectedTicket.priority_level && selectedTicket.priority_level > 1 && (
-                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${userPriorityLabels.find(p => p.value === selectedTicket.priority_level)?.color || 'bg-slate-100'}`}>
+                        <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${userPriorityLabels.find(p => p.value === selectedTicket.priority_level)?.color || 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                           VIP {userPriorityLabels.find(p => p.value === selectedTicket.priority_level)?.label}
                         </span>
                       )}
                     </div>
-                    <div className="flex items-center gap-4 text-xs text-slate-400 flex-wrap">
+                    <div className="flex items-center gap-4 text-xs text-slate-400 dark:text-slate-500 flex-wrap">
                       <span className="flex items-center gap-1">
                         <User size={12} /> {selectedTicket.user_name || `User #${selectedTicket.user_id}`}
                       </span>
@@ -342,7 +393,7 @@ export default function SupportTicketsManager() {
                         <select
                           value={selectedTicket.urgency_code}
                           onChange={(e) => handleUpdateUrgency(selectedTicket.id, e.target.value)}
-                          className="ml-2 px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-indigo-500"
+                          className="ml-2 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                           {urgencyOptions.map(u => (
                             <option key={u.value} value={u.value}>{u.label} ({u.value})</option>
@@ -356,11 +407,11 @@ export default function SupportTicketsManager() {
                       <>
                         <button 
                           onClick={() => handleCloseTicket(selectedTicket.id)}
-                          className="px-4 py-2.5 bg-red-50 text-red-600 rounded-xl font-bold text-xs uppercase hover:bg-red-100 transition-colors flex items-center gap-1"
+                          className="px-4 py-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold text-xs uppercase hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors flex items-center gap-1"
                         >
                           <X size={14} /> Fechar
                         </button>
-                        <button className="px-4 py-2.5 bg-indigo-50 text-indigo-600 rounded-xl font-bold text-xs uppercase hover:bg-indigo-100 transition-colors flex items-center gap-1">
+                        <button className="px-4 py-2.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-xl font-bold text-xs uppercase hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-colors flex items-center gap-1">
                           <Mail size={14} /> Email
                         </button>
                       </>
@@ -376,7 +427,7 @@ export default function SupportTicketsManager() {
                     <Loader2 className="animate-spin text-indigo-500" size={32} />
                   </div>
                 ) : messages.length === 0 ? (
-                  <div className="flex items-center justify-center h-full text-slate-400">
+                  <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500">
                     <p className="text-sm">Nenhuma mensagem</p>
                   </div>
                 ) : (
@@ -388,14 +439,14 @@ export default function SupportTicketsManager() {
                       <div className={`max-w-[85%] p-4 rounded-2xl ${
                         msg.is_admin_reply 
                           ? 'bg-indigo-600 text-white rounded-tr-none' 
-                          : 'bg-slate-100 text-slate-800 rounded-tl-none'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded-tl-none'
                       }`}>
                         <div className="flex items-center gap-2 mb-2">
-                          <User size={12} className={msg.is_admin_reply ? 'text-indigo-200' : 'text-slate-400'} />
-                          <span className={`text-[10px] font-black uppercase ${msg.is_admin_reply ? 'text-indigo-200' : 'text-slate-500'}`}>
+                          <User size={12} className={msg.is_admin_reply ? 'text-indigo-200' : 'text-slate-400 dark:text-slate-500'} />
+                          <span className={`text-[10px] font-black uppercase ${msg.is_admin_reply ? 'text-indigo-200' : 'text-slate-500 dark:text-slate-400'}`}>
                             {msg.sender_name || (msg.is_admin_reply ? 'Suporte' : `User #${msg.sender_id}`)}
                           </span>
-                          <span className={`text-[10px] ${msg.is_admin_reply ? 'text-indigo-300' : 'text-slate-400'}`}>
+                          <span className={`text-[10px] ${msg.is_admin_reply ? 'text-indigo-300' : 'text-slate-400 dark:text-slate-500'}`}>
                             {formatDate(msg.created_at)}
                           </span>
                         </div>
@@ -408,14 +459,14 @@ export default function SupportTicketsManager() {
 
               {/* Reply Input */}
               {selectedTicket.status !== 'CLOSED' && (
-                <div className="p-4 border-t border-slate-100">
+                <div className="p-4 border-t border-slate-100 dark:border-slate-700">
                   <div className="flex gap-2">
                     <textarea
                       value={replyMessage}
                       onChange={(e) => setReplyMessage(e.target.value)}
                       placeholder="Digite sua resposta..."
                       rows={2}
-                      className="flex-1 bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
+                      className="flex-1 bg-white dark:bg-slate-700 dark:text-white dark:border-slate-600 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 resize-none"
                     />
                     <button
                       onClick={handleReply}
@@ -429,7 +480,7 @@ export default function SupportTicketsManager() {
               )}
             </>
           ) : (
-            <div className="flex items-center justify-center h-full text-slate-400">
+            <div className="flex items-center justify-center h-full text-slate-400 dark:text-slate-500">
               <div className="text-center">
                 <MessageCircle size={48} className="mx-auto mb-3 opacity-50" />
                 <p className="font-medium">Selecione um ticket</p>

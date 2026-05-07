@@ -1,10 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
 import { 
   Plus, Edit3, Trash2, X, Loader2, 
   Tag, Truck,
   ShoppingBag, Megaphone, FileText, Shield,
-  Eye, Copy, ChevronUp, ChevronDown
+  Eye, Copy, ChevronUp, ChevronDown, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { PageShell, StatsGrid, StatCard } from '@/components/admin';
@@ -35,6 +35,8 @@ export default function PricingManager() {
   const [filterModule, setFilterModule] = useState('all');
   const [sortBy, setSortBy] = useState('module_key');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
   const [ruleData, setRuleData] = useState<any>({
     id: null,
@@ -103,6 +105,10 @@ export default function PricingManager() {
 
   useEffect(() => { loadRules(); loadSettings(); }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterModule, sortBy, sortDir, pageSize]);
+
   const saveRotation = async (value: number) => {
     try {
       await api.post('/admin-settings', { ad_rotation_seconds: value.toString() });
@@ -143,7 +149,7 @@ export default function PricingManager() {
     return labels[type] || type;
   };
 
-  const filteredRules = (() => {
+  const filteredRules = useMemo(() => {
     let filtered = filterModule === 'all' 
       ? rules 
       : rules.filter(r => r.module_key === filterModule);
@@ -158,7 +164,15 @@ export default function PricingManager() {
     }
     
     return filtered;
-  })();
+  }, [rules, filterModule, sortBy, sortDir]);
+
+  const totalPages = Math.ceil(filteredRules.length / pageSize);
+  const paginatedRules = useMemo(() => {
+    return filteredRules.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize
+    );
+  }, [filteredRules, currentPage, pageSize]);
 
   const stats = {
     total: rules.length,
@@ -304,11 +318,30 @@ export default function PricingManager() {
       </div>
 
       {/* TABLE */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-4 lg:p-5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+          <h3 className="font-bold text-slate-900 dark:text-white">
+            Regras ({filteredRules.length})
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400">Mostrar</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-xs text-slate-500 dark:text-slate-400">por página</span>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-100">
+              <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700">
                 <SortHeader column="module_key" label="Módulo" />
                 <SortHeader column="feature_name" label="Recurso" />
                 <th className="px-5 py-4 text-left text-[10px] font-bold uppercase text-slate-400 hidden lg:table-cell">Descrição</th>
@@ -323,10 +356,10 @@ export default function PricingManager() {
               </tr>
             </thead>
             <tbody>
-              {filteredRules.map((rule) => {
+              {paginatedRules.map((rule) => {
                 const modInfo = getModuleInfo(rule.module_key);
                 return (
-                  <tr key={rule.id} className="border-b border-slate-50 hover:bg-slate-50/50">
+                  <tr key={rule.id} className="border-b border-slate-50 dark:border-slate-700 hover:bg-slate-50/50 dark:hover:bg-slate-700/50">
                     <td className="px-5 py-4">
                       <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase ${getModuleColor(rule.module_key)}`}>
                         {modInfo.icon} {modInfo.name}
@@ -334,57 +367,57 @@ export default function PricingManager() {
                     </td>
                     <td className="px-5 py-4">
                       <div>
-                        <p className="font-bold text-slate-900 text-sm">{rule.feature_name}</p>
+                        <p className="font-bold text-slate-900 dark:text-white text-sm">{rule.feature_name}</p>
                         <p className="text-[10px] text-slate-400 font-mono">{rule.feature_key}</p>
                       </div>
                     </td>
                     <td className="px-5 py-4 hidden lg:table-cell">
-                      <p className="text-xs text-slate-500 max-w-[200px] truncate" title={rule.description || '-'}>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 max-w-[200px] truncate" title={rule.description || '-'}>
                         {rule.description || '-'}
                       </p>
                     </td>
                     <td className="px-5 py-4 text-center hidden md:table-cell">
-                      <span className="text-[10px] font-mono bg-slate-100 px-2 py-1 rounded text-slate-600">
+                      <span className="text-[10px] font-mono bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300">
                         {rule.ad_size || '-'}
                       </span>
                     </td>
                     <td className="px-5 py-4">
-                      <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-600 px-2 py-1 rounded-lg">
+                      <span className="text-[10px] font-bold uppercase bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 px-2 py-1 rounded-lg">
                         {getPricingTypeLabel(rule.pricing_type)}
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-center font-bold text-slate-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-slate-600 dark:text-slate-300 text-sm">
                       {rule.free_limit > 0 ? `${rule.free_limit}x` : '-'}
                     </td>
-                    <td className="px-5 py-4 text-center font-bold text-emerald-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-emerald-600 dark:text-emerald-400 text-sm">
                       {formatPrice(rule.price_per_use)}
                     </td>
-                    <td className="px-5 py-4 text-center font-bold text-blue-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-blue-600 dark:text-blue-400 text-sm">
                       {formatPrice(rule.price_monthly)}
                     </td>
-                    <td className="px-5 py-4 text-center font-bold text-slate-600 text-sm">
+                    <td className="px-5 py-4 text-center font-bold text-slate-600 dark:text-slate-300 text-sm">
                       {rule.duration_days || 30} dias
                     </td>
                     <td className="px-5 py-4 text-center">
                       <button
                         onClick={() => toggleActive(rule)}
-                        className={`w-12 h-6 rounded-full transition-all ${rule.is_active ? 'bg-emerald-500' : 'bg-slate-200'}`}
+                        className={`w-12 h-6 rounded-full transition-all ${rule.is_active ? 'bg-emerald-500' : 'bg-slate-200 dark:bg-slate-600'}`}
                       >
                         <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform ${rule.is_active ? 'translate-x-6' : 'translate-x-0.5'}`} />
                       </button>
                     </td>
                     <td className="px-5 py-4">
                       <div className="flex gap-2 justify-end">
-                        <button onClick={() => handlePreview(rule)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100" title="Preview">
+                        <button onClick={() => handlePreview(rule)} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50" title="Preview">
                           <Eye size={16} />
                         </button>
-                        <button onClick={() => handleDuplicate(rule)} className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100" title="Duplicar">
+                        <button onClick={() => handleDuplicate(rule)} className="p-2 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-900/50" title="Duplicar">
                           <Copy size={16} />
                         </button>
-                        <button onClick={() => handleEdit(rule)} className="p-2 bg-slate-100 text-slate-600 rounded-lg hover:bg-slate-200">
+                        <button onClick={() => handleEdit(rule)} className="p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-600">
                           <Edit3 size={16} />
                         </button>
-                        <button onClick={() => handleDelete(rule.id)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100">
+                        <button onClick={() => handleDelete(rule.id)} className="p-2 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/50">
                           <Trash2 size={16} />
                         </button>
                       </div>
@@ -396,10 +429,37 @@ export default function PricingManager() {
           </table>
         </div>
         
-        {filteredRules.length === 0 && (
+        {paginatedRules.length === 0 && (
           <div className="p-12 text-center">
             <p className="text-slate-400 font-medium">Nenhuma regra de precificação encontrada.</p>
             <p className="text-slate-300 text-sm mt-1">Clique em "Nova Regra" para adicionar.</p>
+          </div>
+        )}
+
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredRules.length)} de {filteredRules.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
           </div>
         )}
       </div>

@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
 import { 
   FileText, Loader2, Package, Truck, 
-  Warehouse, Box, X, Send, Trash2, Edit, Eye, Plus
+  Warehouse, Box, X, Send, Trash2, Edit, Eye, Plus, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
@@ -76,6 +76,12 @@ export default function QuotesManager() {
   });
   const [responseData, setResponseData] = useState({ company_id: '', price: '', delivery_time: '', conditions: '', notes: '' });
   const [companies, setCompanies] = useState<{id: number, name: string}[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filter, pageSize]);
 
   useEffect(() => { loadQuotes(); }, [filter]);
   useEffect(() => { if (selectedQuote) loadResponses(); }, [selectedQuote]);
@@ -238,6 +244,15 @@ export default function QuotesManager() {
     return <Icon size={14} />;
   };
 
+  const paginatedQuotes = useMemo(() => {
+    return quotes.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize
+    );
+  }, [quotes, currentPage, pageSize]);
+
+  const totalPages = Math.ceil(quotes.length / pageSize);
+
   return (
     <PageShell
       title="Gestão de Cotações"
@@ -294,18 +309,34 @@ export default function QuotesManager() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
         {/* List */}
         <div className="lg:col-span-1 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-          <div className="max-h-[600px] overflow-y-auto">
+          <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+            <h3 className="font-bold text-slate-900 dark:text-white text-sm">
+              Cotações ({quotes.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              <select 
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-xs font-medium"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+              </select>
+            </div>
+          </div>
+          <div className="max-h-[500px] overflow-y-auto">
             {loading ? (
               <div className="p-8 flex justify-center">
                 <Loader2 className="animate-spin text-indigo-500" size={32} />
               </div>
-            ) : quotes.length === 0 ? (
+            ) : paginatedQuotes.length === 0 ? (
               <div className="p-8 text-center">
                 <FileText size={40} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
                 <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhuma cotação</p>
               </div>
             ) : (
-              quotes.map(quote => (
+              paginatedQuotes.map(quote => (
                 <button
                   key={quote.id}
                   onClick={() => setSelectedQuote(quote)}
@@ -338,6 +369,27 @@ export default function QuotesManager() {
               ))
             )}
           </div>
+          {totalPages > 1 && (
+            <div className="p-3 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Detail */}

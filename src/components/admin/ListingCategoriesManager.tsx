@@ -37,8 +37,8 @@ export default function ListingCategoriesManager() {
       if (res.data?.success) {
         setCategories(res.data.data);
       }
-    } catch {
-      console.error('Erro ao carregar categorias:', error);
+    } catch (err) {
+      console.error('Erro ao carregar categorias:', err);
     } finally {
       setLoading(false);
     }
@@ -206,36 +206,36 @@ export default function ListingCategoriesManager() {
     >
 
       {/* Lista de Categorias */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mt-6">
         <table className="w-full">
-          <thead className="bg-slate-50 dark:bg-slate-900/50">
+          <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200">
             <tr>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase text-slate-500 dark:text-slate-400">Ordem</th>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase text-slate-500 dark:text-slate-400">Nome</th>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase text-slate-500 dark:text-slate-400">Slug</th>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase text-slate-500 dark:text-slate-400">Ícone</th>
-              <th className="px-6 py-4 text-left text-xs font-black uppercase text-slate-500 dark:text-slate-400">Status</th>
-              <th className="px-6 py-4 text-right text-xs font-black uppercase text-slate-500 dark:text-slate-400">Ações</th>
+              <th className="px-5 py-4 text-left">Ordem</th>
+              <th className="px-5 py-4 text-left">Nome</th>
+              <th className="px-5 py-4 text-left">Slug</th>
+              <th className="px-5 py-4 text-left">Ícone</th>
+              <th className="px-5 py-4 text-left">Status</th>
+              <th className="px-5 py-4 text-right">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+          <tbody className="divide-y divide-slate-100">
             {categories.map((cat) => (
               <tr key={cat.id} className={`${!cat.is_active ? 'opacity-50' : ''}`}>
-                <td className="px-6 py-4">
+                <td className="px-5 py-4">
                   <GripVertical size={16} className="text-slate-300" />
                 </td>
-                <td className="px-6 py-4">
-                  <span className="font-bold text-slate-800 dark:text-slate-100">{cat.name}</span>
+                <td className="px-5 py-4">
+                  <span className="font-bold text-slate-800">{cat.name}</span>
                 </td>
-                <td className="px-6 py-4">
-                  <code className="text-xs bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded text-slate-600 dark:text-slate-300">
+                <td className="px-5 py-4">
+                  <code className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
                     {cat.slug}
                   </code>
                 </td>
-                <td className="px-6 py-4">
-                  <span className="text-xs text-slate-500 dark:text-slate-400">{cat.icon || '-'}</span>
+                <td className="px-5 py-4">
+                  <span className="text-xs text-slate-500">{cat.icon || '-'}</span>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-5 py-4">
                   <button
                     onClick={() => handleToggle(cat)}
                     className={`flex items-center gap-2 text-sm font-bold ${
@@ -255,19 +255,19 @@ export default function ListingCategoriesManager() {
                     )}
                   </button>
                 </td>
-                <td className="px-6 py-4">
+                <td className="px-5 py-4">
                   <div className="flex justify-end gap-2">
                     <button
                       onClick={() => openModal(cat)}
-                      className="p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-all"
+                      className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
                     >
-                      <Edit3 size={18} />
+                      <Edit3 size={16} />
                     </button>
                     <button
                       onClick={() => handleDelete(cat)}
-                      className="p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-all"
+                      className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 </td>
@@ -280,19 +280,19 @@ export default function ListingCategoriesManager() {
       {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md shadow-2xl">
-            <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center">
-              <h3 className="text-xl font-black uppercase italic text-slate-800 dark:text-slate-100">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+              <h3 className="text-xl font-bold text-slate-800">
                 {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
               </h3>
-              <button onClick={closeModal} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">
-                <X size={20} className="text-slate-500" />
+              <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-xl">
+                <X size={20} className="text-slate-400" />
               </button>
             </div>
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2">
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">
                   Nome *
                 </label>
                 <input
@@ -300,46 +300,46 @@ export default function ListingCategoriesManager() {
                   value={formData.name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   required
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-xl outline-none font-bold text-slate-800 dark:text-slate-100 border-2 border-transparent focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="Ex: Veículos"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2">
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">
                   Slug (URL)
                 </label>
                 <input
                   type="text"
                   value={formData.slug}
                   onChange={(e) => setFormData(prev => ({ ...prev, slug: e.target.value }))}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-xl outline-none font-bold text-slate-800 dark:text-slate-100 border-2 border-transparent focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="veiculos"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2">
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">
                   Ícone (lucide-react)
                 </label>
                 <input
                   type="text"
                   value={formData.icon}
                   onChange={(e) => setFormData(prev => ({ ...prev, icon: e.target.value }))}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-xl outline-none font-bold text-slate-800 dark:text-slate-100 border-2 border-transparent focus:border-emerald-500 transition-all"
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
                   placeholder="truck"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-bold uppercase text-slate-500 dark:text-slate-400 mb-2">
+                <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">
                   Descrição
                 </label>
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   rows={3}
-                  className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-xl outline-none font-bold text-slate-800 dark:text-slate-100 border-2 border-transparent focus:border-emerald-500 transition-all resize-none"
+                  className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
                   placeholder="Descrição opcional..."
                 />
               </div>
@@ -356,7 +356,7 @@ export default function ListingCategoriesManager() {
                     formData.is_active ? 'left-6' : 'left-0.5'
                   }`} />
                 </button>
-                <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                <span className="text-sm font-bold text-slate-600">
                   {formData.is_active ? 'Ativo' : 'Inativo'}
                 </span>
               </div>
@@ -365,15 +365,15 @@ export default function ListingCategoriesManager() {
                 <button
                   type="button"
                   onClick={closeModal}
-                  className="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold text-sm uppercase hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
+                  className="flex-1 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold uppercase hover:bg-slate-50 transition-colors"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold text-sm uppercase hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2.5 bg-emerald-600 text-white rounded-xl text-xs font-bold uppercase hover:bg-emerald-700 transition-colors flex items-center justify-center gap-2"
                 >
-                  <Check size={18} />
+                  <Check size={16} />
                   {editingCategory ? 'Salvar' : 'Criar'}
                 </button>
               </div>

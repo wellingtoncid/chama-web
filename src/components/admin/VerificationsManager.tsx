@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
-import { Loader2, Shield, X, Check, Clock, FileText, ExternalLink, Eye, User, Building2, Search } from 'lucide-react';
+import { Loader2, Shield, X, Check, Clock, FileText, ExternalLink, Eye, User, Building2, Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
@@ -83,6 +83,8 @@ export default function VerificationsManager() {
   const [typeFilter, setTypeFilter] = useState<'all' | 'driver' | 'company'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [counts, setCounts] = useState<Record<string, number>>({});
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   async function loadCounts() {
     try {
@@ -119,18 +121,32 @@ export default function VerificationsManager() {
     }
   }
  
-  const filteredVerifications = verifications.filter(v => {
-    if (!searchTerm) return true;
-    const lower = searchTerm.toLowerCase();
-    return v.user_name?.toLowerCase().includes(lower) ||
-           v.user_email?.toLowerCase().includes(lower) ||
-           v.cnpj?.includes(lower) ||
-           v.razao_social?.toLowerCase().includes(lower);
-  });
+  const filteredVerifications = useMemo(() => {
+    return verifications.filter(v => {
+      if (!searchTerm) return true;
+      const lower = searchTerm.toLowerCase();
+      return v.user_name?.toLowerCase().includes(lower) ||
+             v.user_email?.toLowerCase().includes(lower) ||
+             v.cnpj?.includes(lower) ||
+             v.razao_social?.toLowerCase().includes(lower);
+    });
+  }, [verifications, searchTerm]);
+
+  const totalPages = Math.ceil(filteredVerifications.length / pageSize);
+  const paginatedVerifications = useMemo(() => {
+    return filteredVerifications.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize
+    );
+  }, [filteredVerifications, currentPage, pageSize]);
   useEffect(() => {
     loadCounts();
     loadVerifications();
   }, [activeTab, typeFilter]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeTab, typeFilter, searchTerm, pageSize]);
 
   const toggleCard = (id: number) => {
     setExpandedCards(prev => {
@@ -375,8 +391,8 @@ export default function VerificationsManager() {
 
       {/* Lista de Verificações */}
       {filteredVerifications.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center border border-slate-200">
-          <Shield size={48} className="mx-auto text-slate-200 mb-4" />
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700">
+          <Shield size={48} className="mx-auto text-slate-200 dark:text-slate-600 mb-4" />
           <h3 className="text-lg font-bold text-slate-400 mb-2">
             {activeTab === 'pending' ? 'Nenhuma verificação pendente' : 
              activeTab === 'approved' ? 'Nenhuma verificação aprovada ainda' : 
@@ -388,193 +404,241 @@ export default function VerificationsManager() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {filteredVerifications.map((v) => (
-            <div key={`${v.type}-${v.verification_id}`} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-              {/* Header do Card */}
-              <div className="bg-slate-50 p-4 flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                    v.type === 'driver' ? 'bg-blue-100' : 'bg-purple-100'
-                  }`}>
-                    {v.type === 'driver' ? (
-                      <User size={20} className="text-blue-500" />
-                    ) : (
-                      <Building2 size={20} className="text-purple-500" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="font-black text-slate-900">{v.user_name}</h3>
-                    <p className="text-[10px] text-slate-400">
-                      {v.type === 'driver' ? 'Motorista' : 'Empresa'} • ID: {v.user_id}
-                    </p>
-                  </div>
-                </div>
-                <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${STATUS_COLORS[activeTab]}`}>
-                  {STATUS_LABELS[activeTab]}
-                </span>
-              </div>
-
-              {/* Info */}
-              <div className="p-4 space-y-2">
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-slate-400 w-20">Email:</span>
-                  <span className="text-slate-700">{v.user_email}</span>
-                </div>
-                
-                {v.user_whatsapp && (
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-slate-400 w-20">WhatsApp:</span>
-                    <span className="text-slate-700">{v.user_whatsapp}</span>
-                  </div>
-                )}
-                
-                {v.type === 'company' && v.cnpj && (
-                  <>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-slate-400 w-20">CNPJ:</span>
-                      <span className="text-slate-700 font-mono">{v.cnpj}</span>
+        <>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 lg:p-5 mb-4 flex flex-wrap justify-between items-center gap-3">
+            <h3 className="font-bold text-slate-900 dark:text-white">
+              Verificações ({filteredVerifications.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500 dark:text-slate-400">Mostrar</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-xs text-slate-500 dark:text-slate-400">por página</span>
+            </div>
+          </div>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {paginatedVerifications.map((v) => (
+              <div key={`${v.type}-${v.verification_id}`} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+                {/* Header do Card */}
+                <div className="bg-slate-50 dark:bg-slate-900/50 p-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                      v.type === 'driver' ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-purple-100 dark:bg-purple-900/30'
+                    }`}>
+                      {v.type === 'driver' ? (
+                        <User size={20} className="text-blue-500 dark:text-blue-400" />
+                      ) : (
+                        <Building2 size={20} className="text-purple-500 dark:text-purple-400" />
+                      )}
                     </div>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="text-slate-400 w-20">Empresa:</span>
-                      <span className="text-slate-700">{v.razao_social}</span>
+                    <div>
+                      <h3 className="font-black text-slate-900 dark:text-white">{v.user_name}</h3>
+                      <p className="text-[10px] text-slate-400 dark:text-slate-500">
+                        {v.type === 'driver' ? 'Motorista' : 'Empresa'} • ID: {v.user_id}
+                      </p>
                     </div>
-                    {v.nome_fantasia && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-slate-400 w-20">Fantasia:</span>
-                        <span className="text-slate-700">{v.nome_fantasia}</span>
-                      </div>
-                    )}
-                    {v.situacao && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <span className="text-slate-400 w-20">Status:</span>
-                        <span className={`px-2 py-0.5 rounded text-xs font-bold ${
-                          v.situacao.toLowerCase() === 'ativa' 
-                            ? 'bg-emerald-100 text-emerald-700' 
-                            : 'bg-red-100 text-red-700'
-                        }`}>
-                          {v.situacao}
-                        </span>
-                      </div>
-                    )}
-                  </>
-                )}
-
-                <div className="flex items-center gap-2 text-sm">
-                  <span className="text-slate-400 w-20">Solicitado:</span>
-                  <span className="text-slate-700">
-                    {new Date(v.requested_at || v.created_at).toLocaleString('pt-BR')}
+                  </div>
+                  <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${STATUS_COLORS[activeTab]}`}>
+                    {STATUS_LABELS[activeTab]}
                   </span>
                 </div>
 
-                {v.reviewed_by_name && (
+                {/* Info */}
+                <div className="p-4 space-y-2">
                   <div className="flex items-center gap-2 text-sm">
-                    <span className="text-slate-400 w-20">Revisado por:</span>
-                    <span className="text-slate-700">{v.reviewed_by_name}</span>
+                    <span className="text-slate-400 w-20">Email:</span>
+                    <span className="text-slate-700 dark:text-slate-300">{v.user_email}</span>
                   </div>
-                )}
-
-                {v.rejection_reason && (
-                  <div className="mt-2 p-3 bg-red-50 rounded-xl">
-                    <p className="text-xs font-bold text-red-700">Motivo da Rejeição:</p>
-                    <p className="text-xs text-red-600">{v.rejection_reason}</p>
-                  </div>
-                )}
-
-                {/* Documentos para Drivers */}
-                {v.type === 'driver' && v.documents && v.documents.length > 0 && (
-                  <div className="mt-4 pt-3 border-t border-slate-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-[10px] font-black uppercase text-slate-400">
-                        Documentos ({v.documents.length})
-                      </p>
-                      <button
-                        onClick={() => toggleCard(v.verification_id)}
-                        className="text-xs text-orange-500 hover:text-orange-600 font-bold flex items-center gap-1"
-                      >
-                        <Eye size={12} />
-                        {expandedCards.has(v.verification_id) ? 'Ocultar' : 'Ver'}
-                      </button>
+                  
+                  {v.user_whatsapp && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-400 w-20">WhatsApp:</span>
+                      <span className="text-slate-700 dark:text-slate-300">{v.user_whatsapp}</span>
                     </div>
-
-                    {expandedCards.has(v.verification_id) ? (
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-                        {v.documents.map((doc, idx) => {
-                          const isImage = doc.file_path?.match(/\.(jpg|jpeg|png)$/i);
-                          const label = DOCUMENT_LABELS[doc.document_type] || doc.document_type;
-                          
-                          return (
-                            <div 
-                              key={idx}
-                              className="relative group cursor-pointer rounded-xl overflow-hidden border border-slate-200"
-                              onClick={() => doc.file_path && setSelectedDoc({ url: getDocUrl(doc.file_path), label })}
-                            >
-                              {isImage && doc.file_path ? (
-                                <img 
-                                  src={getDocUrl(doc.file_path)} 
-                                  alt={label}
-                                  className="w-full h-24 object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-24 bg-slate-100 flex flex-col items-center justify-center">
-                                  <FileText size={24} className="text-slate-400" />
-                                  <span className="text-[8px] text-slate-400 mt-1">{label}</span>
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                <Eye size={20} className="text-white" />
-                              </div>
-                            </div>
-                          );
-                        })}
+                  )}
+                  
+                  {v.type === 'company' && v.cnpj && (
+                    <>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-slate-400 w-20">CNPJ:</span>
+                        <span className="text-slate-700 dark:text-slate-300 font-mono">{v.cnpj}</span>
                       </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-1">
-                        {v.documents.map((doc, idx) => (
-                          <span key={idx} className="px-2 py-1 rounded text-[9px] bg-slate-100 text-slate-500">
-                            {DOCUMENT_LABELS[doc.document_type] || doc.document_type}
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="text-slate-400 w-20">Empresa:</span>
+                        <span className="text-slate-700 dark:text-slate-300">{v.razao_social}</span>
+                      </div>
+                      {v.nome_fantasia && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-slate-400 w-20">Fantasia:</span>
+                          <span className="text-slate-700 dark:text-slate-300">{v.nome_fantasia}</span>
+                        </div>
+                      )}
+                      {v.situacao && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <span className="text-slate-400 w-20">Status:</span>
+                          <span className={`px-2 py-0.5 rounded text-xs font-bold ${
+                            v.situacao.toLowerCase() === 'ativa' 
+                              ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                              : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                          }`}>
+                            {v.situacao}
                           </span>
-                        ))}
+                        </div>
+                      )}
+                    </>
+                  )}
+
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className="text-slate-400 w-20">Solicitado:</span>
+                    <span className="text-slate-700 dark:text-slate-300">
+                      {new Date(v.requested_at || v.created_at).toLocaleString('pt-BR')}
+                    </span>
+                  </div>
+
+                  {v.reviewed_by_name && (
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="text-slate-400 w-20">Revisado por:</span>
+                      <span className="text-slate-700 dark:text-slate-300">{v.reviewed_by_name}</span>
+                    </div>
+                  )}
+
+                  {v.rejection_reason && (
+                    <div className="mt-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                      <p className="text-xs font-bold text-red-700 dark:text-red-400">Motivo da Rejeição:</p>
+                      <p className="text-xs text-red-600 dark:text-red-300">{v.rejection_reason}</p>
+                    </div>
+                  )}
+
+                  {/* Documentos para Drivers */}
+                  {v.type === 'driver' && v.documents && v.documents.length > 0 && (
+                    <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">
+                          Documentos ({v.documents.length})
+                        </p>
+                        <button
+                          onClick={() => toggleCard(v.verification_id)}
+                          className="text-xs text-orange-500 hover:text-orange-600 dark:text-orange-400 font-bold flex items-center gap-1"
+                        >
+                          <Eye size={12} />
+                          {expandedCards.has(v.verification_id) ? 'Ocultar' : 'Ver'}
+                        </button>
                       </div>
-                    )}
+
+                      {expandedCards.has(v.verification_id) ? (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                          {v.documents.map((doc, idx) => {
+                            const isImage = doc.file_path?.match(/\.(jpg|jpeg|png)$/i);
+                            const label = DOCUMENT_LABELS[doc.document_type] || doc.document_type;
+                            
+                            return (
+                              <div 
+                                key={idx}
+                                className="relative group cursor-pointer rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700"
+                                onClick={() => doc.file_path && setSelectedDoc({ url: getDocUrl(doc.file_path), label })}
+                              >
+                                {isImage && doc.file_path ? (
+                                  <img 
+                                    src={getDocUrl(doc.file_path)} 
+                                    alt={label}
+                                    className="w-full h-24 object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-24 bg-slate-100 dark:bg-slate-900 flex flex-col items-center justify-center">
+                                    <FileText size={24} className="text-slate-400" />
+                                    <span className="text-[8px] text-slate-400 mt-1">{label}</span>
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                  <Eye size={20} className="text-white" />
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-1">
+                          {v.documents.map((doc, idx) => (
+                            <span key={idx} className="px-2 py-1 rounded text-[9px] bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-300">
+                              {DOCUMENT_LABELS[doc.document_type] || doc.document_type}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Ações - apenas para pendentes */}
+                {activeTab === 'pending' && (
+                  <div className="p-4 bg-slate-50 dark:bg-slate-900/50 flex gap-3">
+                    <button
+                      onClick={() => handleApprove(v)}
+                      disabled={processingId === v.verification_id}
+                      className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {processingId === v.verification_id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <>
+                          <Check size={14} /> Aprovar
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleReject(v)}
+                      disabled={processingId === v.verification_id}
+                      className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
+                    >
+                      {processingId === v.verification_id ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : (
+                        <>
+                          <X size={14} /> Rejeitar
+                        </>
+                      )}
+                    </button>
                   </div>
                 )}
               </div>
+            ))}
+          </div>
 
-              {/* Ações - apenas para pendentes */}
-              {activeTab === 'pending' && (
-                <div className="p-4 bg-slate-50 flex gap-3">
-                  <button
-                    onClick={() => handleApprove(v)}
-                    disabled={processingId === v.verification_id}
-                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                  >
-                    {processingId === v.verification_id ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <>
-                        <Check size={14} /> Aprovar
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={() => handleReject(v)}
-                    disabled={processingId === v.verification_id}
-                    className="flex-1 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-bold text-xs uppercase flex items-center justify-center gap-2 transition-colors disabled:opacity-50"
-                  >
-                    {processingId === v.verification_id ? (
-                      <Loader2 size={14} className="animate-spin" />
-                    ) : (
-                      <>
-                        <X size={14} /> Rejeitar
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
+          {totalPages > 1 && (
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 mt-4 flex items-center justify-between">
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredVerifications.length)} de {filteredVerifications.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </PageShell>
    );

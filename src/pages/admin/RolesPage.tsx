@@ -1,25 +1,68 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api } from '@/api/api';
-import { 
-  Shield, Plus, Pencil, Trash2, 
-  Loader2, ChevronDown, ChevronUp,
+import {
+  Shield, Plus, Pencil, Trash2, X, Check, Loader2, ChevronLeft, ChevronRight,
   Truck, ShoppingBag, FileText, Megaphone,
-  MessageCircle, CreditCard, Tag, HelpCircle, Eye, Check
+  MessageCircle, CreditCard, Tag, HelpCircle
 } from 'lucide-react';
 import { MODULE_LIST } from '@/constants/modules';
 import { PERMISSION_LIST } from '@/constants/permissions';
-import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 const MODULE_ICONS: Record<string, React.ReactNode> = {
-  fretes: <Truck size={16} />,
-  marketplace: <ShoppingBag size={16} />,
-  cotacoes: <FileText size={16} />,
-  publicidade: <Megaphone size={16} />,
-  chat: <MessageCircle size={16} />,
-  financeiro: <CreditCard size={16} />,
-  planos: <Tag size={16} />,
-  suporte: <HelpCircle size={16} />,
+  fretes: <Truck size={14} />,
+  marketplace: <ShoppingBag size={14} />,
+  cotacoes: <FileText size={14} />,
+  publicidade: <Megaphone size={14} />,
+  chat: <MessageCircle size={14} />,
+  financeiro: <CreditCard size={14} />,
+  planos: <Tag size={14} />,
+  suporte: <HelpCircle size={14} />,
   grupos: null,
+};
+
+const SYSTEM_ROLES = ['admin', 'driver', 'company'];
+
+const groupedPermissions = PERMISSION_LIST.reduce((acc: Record<string, any[]>, perm) => {
+  const category = perm.category;
+  if (!acc[category]) acc[category] = [];
+  acc[category].push(perm);
+  return acc;
+}, {} as Record<string, any[]>);
+
+const formatSlug = (str: string) => {
+  return str.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
+};
+
+const getRoleModules = (roleSlug: string, rolePerms: any[], modules: any[]) => {
+  const permSlugs = rolePerms.map((p: any) => p.slug);
+  
+  if (roleSlug === 'admin') {
+    return modules.map(mod => ({ ...mod, access: 'full' as const }));
+  }
+  
+  return modules.filter((mod: any) => {
+    const modPerms = PERMISSION_LIST.filter(p => p.slug.startsWith(mod.key + '.'));
+    if (modPerms.length === 0) return false;
+    
+    const hasView = modPerms.some(p => 
+      permSlugs.includes(p.slug) || 
+      permSlugs.includes(`${mod.key}.view`)
+    );
+    const hasFull = modPerms.some(p => 
+      permSlugs.includes(p.slug) && !p.slug.includes('.view')
+    );
+    return hasView || hasFull;
+  }).map((mod: any) => {
+    const modPerms = PERMISSION_LIST.filter(p => p.slug.startsWith(mod.key + '.'));
+    const hasFull = modPerms.some(p => 
+      permSlugs.includes(p.slug) && !p.slug.includes('.view')
+    );
+    return {
+      ...mod,
+      access: hasFull ? 'full' : 'view'
+    };
+  });
 };
 
 export default function RolesPage() {
@@ -35,23 +78,27 @@ export default function RolesPage() {
   const [rolePermissions, setRolePermissions] = useState<Record<number, any[]>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedRole, setExpandedRole] = useState<number | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showModal, setShowModal] = useState(false);
   const [editingRole, setEditingRole] = useState<any>(null);
   const [saving, setSaving] = useState(false);
+  const [filterType, setFilterType] = useState<'all' | 'internal' | 'external'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
-  const [newRole, setNewRole] = useState({
+  const [formData, setFormData] = useState({
     name: '',
     slug: '',
-    description: '',
     type: 'internal' as 'internal' | 'external',
     permission_ids: [] as number[],
   });
-  const [filterType, setFilterType] = useState<'all' | 'internal' | 'external'>('all');
 
   useEffect(() => {
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterType, pageSize]);
 
   const fetchData = async () => {
     try {
@@ -74,88 +121,69 @@ export default function RolesPage() {
     }
   };
 
-  const stats = {
-    total: roles.length,
-    internal: roles.filter(r => r.type === 'internal' || !r.type).length,
-    external: roles.filter(r => r.type === 'external').length,
-    protected: roles.filter(r => r.is_protected || ['admin', 'driver', 'company'].includes(r.slug)).length,
+  const openCreateModal = () => {
+    setEditingRole(null);
+    setFormData({ name: '', slug: '', type: 'internal', permission_ids: [] });
+    setShowModal(true);
   };
 
-  const filteredRoles = roles.filter(role => {
-    if (filterType === 'all') return true;
-    return role.type === filterType || (filterType === 'internal' && !role.type);
-  });
+  const openEditModal = (role: any) => {
+    setEditingRole(role);
+    setFormData({
+      name: role.name,
+      slug: role.slug,
+      type: role.type || 'internal',
+      permission_ids: rolePermissions[role.id]?.map((p: any) => p.id) || [],
+    });
+    setShowModal(true);
+  };
 
-  const handleCreateRole = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newRole.name || !newRole.slug) {
+  const handleSave = async () => {
+    if (!formData.name || !formData.slug) {
       return alert('Nome e slug são obrigatórios');
     }
 
     try {
       setSaving(true);
-      const res = await api.post('/admin-roles', {
-        name: newRole.name,
-        slug: newRole.slug.toLowerCase().replace(/\s+/g, '_'),
-        permission_ids: newRole.permission_ids,
-      });
+      const payload = {
+        ...(editingRole ? { id: editingRole.id } : {}),
+        name: formData.name,
+        slug: formData.slug.toLowerCase().replace(/\s+/g, '_'),
+        type: formData.type,
+        permission_ids: formData.permission_ids,
+      };
+
+      const res = editingRole
+        ? await api.put('/admin-roles', payload)
+        : await api.post('/admin-roles', payload);
 
       if (res.data?.success) {
-        setShowCreateModal(false);
-        setNewRole({ name: '', slug: '', description: '', type: 'internal', permission_ids: [] });
-        fetchData();
-        alert('Cargo criado com sucesso!');
-      } else {
-        alert(res.data?.message || 'Erro ao criar cargo');
-      }
-    } catch (e: any) {
-      alert(e.response?.data?.message || 'Erro ao criar cargo');
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const handleUpdateRole = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingRole || !editingRole.name || !editingRole.slug) {
-      return alert('Nome e slug são obrigatórios');
-    }
-
-    try {
-      setSaving(true);
-      const res = await api.put('/admin-roles', {
-        id: editingRole.id,
-        name: editingRole.name,
-        slug: editingRole.slug.toLowerCase().replace(/\s+/g, '_'),
-        permission_ids: editingRole.permission_ids || [],
-      });
-
-      if (res.data?.success) {
+        setShowModal(false);
         setEditingRole(null);
+        setFormData({ name: '', slug: '', type: 'internal', permission_ids: [] });
         fetchData();
-        alert('Cargo atualizado com sucesso!');
+        alert(editingRole ? 'Cargo atualizado com sucesso!' : 'Cargo criado com sucesso!');
       } else {
-        alert(res.data?.message || 'Erro ao atualizar cargo');
+        alert(res.data?.message || 'Erro ao salvar cargo');
       }
     } catch (e: any) {
-      alert(e.response?.data?.message || 'Erro ao atualizar cargo');
+      alert(e.response?.data?.message || 'Erro ao salvar cargo');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDeleteRole = async (id: number, slug: string) => {
-    if (!confirm('Tem certeza que deseja excluir este cargo?')) return;
-
-    if (['admin', 'driver', 'company'].includes(slug)) {
+  const handleDelete = async (id: number, slug: string) => {
+    if (SYSTEM_ROLES.includes(slug)) {
       return alert('Este cargo não pode ser excluído.');
     }
     
-    // Verificar se há usuários com este cargo
     const roleUsers = roles.find(r => r.id === id)?.user_count || 0;
     if (roleUsers > 0) {
       return alert(`Este cargo possui ${roleUsers} usuário(s). Exclua ou mova os usuários primeiro.`);
     }
+
+    if (!confirm('Tem certeza que deseja excluir este cargo?')) return;
 
     try {
       const res = await api.delete('/admin-roles', { data: { id } });
@@ -171,107 +199,44 @@ export default function RolesPage() {
   };
 
   const togglePermission = (permId: number) => {
-    if (editingRole) {
-      const current = editingRole.permission_ids || [];
-      const updated = current.includes(permId)
-        ? current.filter((id: number) => id !== permId)
-        : [...current, permId];
-      setEditingRole({ ...editingRole, permission_ids: updated });
-    }
+    setFormData(prev => ({
+      ...prev,
+      permission_ids: prev.permission_ids.includes(permId)
+        ? prev.permission_ids.filter(id => id !== permId)
+        : [...prev.permission_ids, permId]
+    }));
   };
 
-  const handleNewPermissionToggle = (permId: number) => {
-    const current = newRole.permission_ids;
-    const updated = current.includes(permId)
-      ? current.filter((id: number) => id !== permId)
-      : [...current, permId];
-    setNewRole({ ...newRole, permission_ids: updated });
+  const stats = {
+    total: roles.length,
+    internal: roles.filter(r => r.type === 'internal' || !r.type).length,
+    external: roles.filter(r => r.type === 'external').length,
+    protected: roles.filter(r => SYSTEM_ROLES.includes(r.slug) || r.is_protected).length,
   };
 
-  const getRoleTypeLabel = (type: string) => {
-    return type === 'internal' ? 'Interno' : 'Externo';
-  };
-
-  const getRoleTypeColor = (type: string) => {
-    return type === 'internal' 
-      ? 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300' 
-      : 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300';
-  };
-
-  const getRoleModules = (roleSlug: string, rolePerms: any[]) => {
-    const permSlugs = rolePerms.map((p: any) => p.slug);
-    
-    if (roleSlug === 'admin') {
-      return modules.map(mod => ({ ...mod, access: 'full' as const }));
-    }
-    
-    return modules.filter((mod: any) => {
-      const modPerms = PERMISSION_LIST.filter(p => p.slug.startsWith(mod.key + '.'));
-      if (modPerms.length === 0) return false;
-      
-      const hasView = modPerms.some(p => 
-        permSlugs.includes(p.slug) || 
-        permSlugs.includes(`${mod.key}.view`)
-      );
-      const hasFull = modPerms.some(p => 
-        permSlugs.includes(p.slug) && !p.slug.includes('.view')
-      );
-      return hasView || hasFull;
-    }).map((mod: any) => {
-      const modPerms = PERMISSION_LIST.filter(p => p.slug.startsWith(mod.key + '.'));
-      const hasFull = modPerms.some(p => 
-        permSlugs.includes(p.slug) && !p.slug.includes('.view')
-      );
-      return {
-        ...mod,
-        access: hasFull ? 'full' : 'view'
-      };
+  const filteredRoles = useMemo(() => {
+    return roles.filter(role => {
+      if (filterType === 'all') return true;
+      return role.type === filterType || (filterType === 'internal' && !role.type);
     });
-  };
+  }, [roles, filterType]);
 
-  const groupedPermissions = PERMISSION_LIST.reduce((acc, perm) => {
-    const category = perm.category;
-    if (!acc[category]) acc[category] = [];
-    acc[category].push(perm);
-    return acc;
-  }, {} as Record<string, any[]>);
-
-  const formatSlug = (str: string) => {
-    return str.toLowerCase().replace(/\s+/g, '_').replace(/[^a-z0-9_]/g, '');
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
-    );
-  }
+  const totalPages = Math.ceil(filteredRoles.length / pageSize);
+  const paginatedRoles = filteredRoles.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   if (error) {
     return (
-      <div className="p-6 max-w-7xl mx-auto">
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
-          <button onClick={fetchData} className="mt-2 text-sm text-red-600 hover:underline">
+      <PageShell title="Cargos e Permissões" description="Gerencie cargos e suas permissões no sistema">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mt-6">
+          <p className="text-red-600 dark:text-red-400 font-bold text-sm">{error}</p>
+          <button onClick={fetchData} className="mt-2 text-sm text-red-600 dark:text-red-400 font-bold hover:underline">
             Tentar novamente
           </button>
         </div>
-      </div>
-    );
-  }
-
-  if (filteredRoles.length === 0 && !loading && !error) {
-    return (
-      <div className="p-6 max-w-7xl mx-auto text-center">
-        <Shield className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-        <h2 className="text-xl font-semibold text-slate-600 dark:text-slate-400">
-          {roles.length === 0 ? 'Nenhum cargo encontrado' : 'Nenhum cargo corresponde ao filtro'}
-        </h2>
-        <p className="text-slate-500 mt-2">
-          {roles.length === 0 ? 'Clique em "Novo Cargo" para criar o primeiro cargo.' : 'Ajuste o filtro para ver mais cargos.'}
-        </p>
-      </div>
+      </PageShell>
     );
   }
 
@@ -280,373 +245,254 @@ export default function RolesPage() {
       title="Cargos e Permissões"
       description="Gerencie cargos e suas permissões no sistema"
       actions={
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+        <button 
+          onClick={openCreateModal}
+          className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition-colors"
         >
-          <Plus size={20} />
-          Novo Cargo
+          <Plus size={16} /> Novo Cargo
         </button>
       }
     >
-      <StatsGrid>
-        <StatCard label="Total" value={stats.total} icon={Shield} />
-        <StatCard label="Internos" value={stats.internal} variant="purple" icon={Shield} />
-        <StatCard label="Externos" value={stats.external} variant="blue" icon={Shield} />
-        <StatCard label="Protegidos" value={stats.protected} variant="green" icon={Check} />
-      </StatsGrid>
-
-      <FilterBar
-        tabs={[
-          { key: 'all', label: 'Todos' },
-          { key: 'internal', label: 'Internos' },
-          { key: 'external', label: 'Externos' },
-        ]}
-        activeTab={filterType}
-        onTabChange={(tab) => setFilterType(tab as 'all' | 'internal' | 'external')}
-      />
-
-      <div className="grid gap-4">
-        {filteredRoles.map((role) => {
-          const isExpanded = expandedRole === role.id;
-          const isEditing = editingRole?.id === role.id;
-          const rolePerms = rolePermissions[role.id] || [];
-          const currentPerms = isEditing ? editingRole.permission_ids : rolePerms.map((p: any) => p.id);
-          const roleModules = getRoleModules(role.slug, rolePerms);
-
-          return (
-            <div
-              key={role.id}
-              className="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 overflow-hidden"
-            >
-              <div
-                className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors"
-                onClick={() => {
-                  if (!isEditing) {
-                    setExpandedRole(isExpanded ? null : role.id);
-                  }
-                }}
-              >
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
-                    <Shield size={20} className="text-blue-600 dark:text-blue-400" />
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-slate-900 dark:text-white">
-                      {role.name}
-                    </h3>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-xs font-mono text-slate-500">{role.slug}</span>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${getRoleTypeColor(role.type || 'internal')}`}>
-                        {getRoleTypeLabel(role.type || 'internal')}
-                      </span>
-                      {role.user_count > 0 && (
-                        <span className="text-xs text-slate-500">
-                          {role.user_count} usuário{role.user_count > 1 ? 's' : ''}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  {(role.slug === 'admin' || role.is_protected) ? (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingRole({ ...role, permission_ids: currentPerms });
-                        }}
-                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                      >
-                        <Pencil size={18} />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditingRole({ ...role, permission_ids: currentPerms });
-                        }}
-                        className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
-                      >
-                        <Pencil size={18} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteRole(role.id, role.slug);
-                        }}
-                        className="p-2 text-slate-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  )}
-                  {isExpanded ? (
-                    <ChevronUp size={20} className="text-slate-400" />
-                  ) : (
-                    <ChevronDown size={20} className="text-slate-400" />
-                  )}
-                </div>
-              </div>
-
-              {isExpanded && (
-                <div className="border-t border-slate-200 dark:border-slate-700 p-4 bg-slate-50 dark:bg-slate-900/50">
-                  {isEditing ? (
-                    <form onSubmit={handleUpdateRole} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Nome
-                          </label>
-                          <input
-                            type="text"
-                            value={editingRole.name}
-                            onChange={(e) => setEditingRole({ ...editingRole, name: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
-                            required
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                            Slug
-                          </label>
-                          <input
-                            type="text"
-                            value={editingRole.slug}
-                            onChange={(e) => setEditingRole({ ...editingRole, slug: e.target.value })}
-                            className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
-                            required
-                          />
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white mb-3">Permissões</h4>
-                        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                          {permissions.map((perm: any) => (
-                            <label
-                              key={perm.id}
-                              className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
-                                (editingRole.permission_ids || []).includes(perm.id)
-                                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                                  : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={(editingRole.permission_ids || []).includes(perm.id)}
-                                onChange={() => togglePermission(perm.id)}
-                                className="rounded"
-                              />
-                              <span className="text-sm">{perm.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-
-                      <div className="flex justify-end gap-2 pt-4">
-                        <button
-                          type="button"
-                          onClick={() => setEditingRole(null)}
-                          className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                        >
-                          Cancelar
-                        </button>
-                        <button
-                          type="submit"
-                          disabled={saving}
-                          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-                        >
-                          {saving && <Loader2 size={16} className="animate-spin" />}
-                          Salvar
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <div className="space-y-4">
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white mb-2">
-                          Módulos Acessíveis
-                        </h4>
-                        <div className="flex flex-wrap gap-2">
-                          {roleModules.length > 0 ? (
-                            roleModules.map((mod: any) => (
-                              <div
-                                key={mod.key}
-                                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg border ${
-                                  mod.access === 'full'
-                                    ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                                    : 'bg-slate-100 dark:bg-slate-700 border-slate-200 dark:border-slate-600'
-                                }`}
-                              >
-                                <span className="text-slate-600 dark:text-slate-300">
-                                  {MODULE_ICONS[mod.key] || <Shield size={16} />}
-                                </span>
-                                <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                                  {mod.label}
-                                </span>
-                                {mod.access === 'full' ? (
-                                  <Check size={14} className="text-green-600" />
-                                ) : (
-                                  <Eye size={14} className="text-slate-400" />
-                                )}
-                              </div>
-                            ))
-                          ) : (
-                            <span className="text-sm text-slate-500">Nenhum módulo configurado</span>
-                          )}
-                        </div>
-                        <div className="flex gap-4 mt-2 text-xs text-slate-500">
-                          <span className="flex items-center gap-1">
-                            <Check size={12} className="text-green-600" /> Acesso completo
-                          </span>
-                          <span className="flex items-center gap-1">
-                            <Eye size={12} /> Apenas visualização
-                          </span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <h4 className="font-medium text-slate-900 dark:text-white mb-2">
-                          Permissões ({rolePerms.length})
-                        </h4>
-                        {rolePerms.length > 0 ? (
-                          <div className="flex flex-wrap gap-2">
-                            {rolePerms.map((perm: any) => (
-                              <span
-                                key={perm.id}
-                                className="px-3 py-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-full text-sm text-slate-700 dark:text-slate-300"
-                              >
-                                {perm.label}
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-slate-500 dark:text-slate-400 text-sm">
-                            Nenhuma permissão específica configurada
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          );
-        })}
+      <div className="mt-6">
+        <StatsGrid>
+          <StatCard label="Total" value={stats.total} icon={Shield} />
+          <StatCard label="Internos" value={stats.internal} variant="purple" icon={Shield} />
+          <StatCard label="Externos" value={stats.external} variant="blue" icon={Shield} />
+          <StatCard label="Protegidos" value={stats.protected} variant="green" icon={Check} />
+        </StatsGrid>
       </div>
 
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-slate-200 dark:border-slate-700">
-              <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-                Novo Cargo
-              </h2>
+      <div className="flex flex-wrap gap-3 mt-4 items-center">
+        <select
+          value={filterType}
+          onChange={e => setFilterType(e.target.value as 'all' | 'internal' | 'external')}
+          className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="all">Todos os Tipos</option>
+          <option value="internal">Internos</option>
+          <option value="external">Externos</option>
+        </select>
+      </div>
+
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden mt-4">
+        <div className="p-4 lg:p-5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+          <h3 className="font-bold text-slate-900 dark:text-white">
+            Cargos ({filteredRoles.length})
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500 dark:text-slate-400">Mostrar</span>
+            <select
+              value={pageSize}
+              onChange={(e) => setPageSize(Number(e.target.value))}
+              className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-xs text-slate-500 dark:text-slate-400">por página</span>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="bg-slate-50 dark:bg-slate-900/50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                <th className="px-5 py-4">Cargo</th>
+                <th className="px-5 py-4">Módulos</th>
+                <th className="px-5 py-4 text-center">Permissões</th>
+                <th className="px-5 py-4 text-center">Usuários</th>
+                <th className="px-5 py-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+              {loading ? (
+                <tr><td colSpan={5} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
+              ) : paginatedRoles.length === 0 ? (
+                <tr><td colSpan={5} className="py-20 text-center"><Shield size={40} className="mx-auto text-slate-200 dark:text-slate-600 mb-4" /><p className="text-slate-400 font-bold text-sm uppercase">Nenhum cargo encontrado</p></td></tr>
+              ) : paginatedRoles.map((role) => {
+                const rolePerms = rolePermissions[role.id] || [];
+                const roleModules = getRoleModules(role.slug, rolePerms, modules);
+                const typeColor = role.type === 'external' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400';
+                const typeLabel = role.type === 'external' ? 'Externo' : 'Interno';
+
+                return (
+                  <tr key={role.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    <td className="px-5 py-4">
+                      <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center border-2 ${SYSTEM_ROLES.includes(role.slug) ? 'bg-slate-900 border-slate-900 text-white' : 'bg-blue-50 dark:bg-blue-900/30 border-blue-200 dark:border-blue-800 text-blue-500 dark:text-blue-400'}`}>
+                          <Shield size={20} />
+                        </div>
+                        <div className="space-y-1">
+                          <p className="font-black text-slate-800 dark:text-white text-sm uppercase italic">{role.name}</p>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono font-bold text-slate-400">{role.slug}</span>
+                            <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold ${typeColor}`}>
+                              {typeLabel}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-5 py-4">
+                      <div className="flex flex-wrap gap-1">
+                        {roleModules.slice(0, 4).map((mod: any) => (
+                          <span key={mod.key} className="text-[9px] px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-500 dark:text-slate-300 flex items-center gap-1">
+                            {MODULE_ICONS[mod.key]} {mod.label}
+                          </span>
+                        ))}
+                        {roleModules.length > 4 && (
+                          <span className="text-[9px] px-2 py-1 bg-slate-100 dark:bg-slate-700 rounded-full text-slate-400 font-bold">+{roleModules.length - 4}</span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400">
+                        {rolePerms.length}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
+                        {role.user_count || 0}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-right">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openEditModal(role)}
+                          className="py-2 px-4 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold uppercase hover:bg-blue-100 dark:hover:bg-blue-900/50"
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        {!SYSTEM_ROLES.includes(role.slug) && (
+                          <button
+                            onClick={() => handleDelete(role.id, role.slug)}
+                            className="py-2 px-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold uppercase hover:bg-red-100 dark:hover:bg-red-900/50"
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+            <div className="text-xs text-slate-500 dark:text-slate-400">
+              Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredRoles.length)} de {filteredRoles.length}
             </div>
-            <form onSubmit={handleCreateRole} className="p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} />
+              </button>
+              <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex items-center justify-center p-6 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-2xl rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-300 my-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-800 dark:text-white">
+                {editingRole ? 'Editar' : 'Novo'} Cargo
+              </h3>
+              <button onClick={() => setShowModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="space-y-4 mb-6">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Nome *
-                  </label>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Nome *</label>
                   <input
                     type="text"
-                    value={newRole.name}
-                    onChange={(e) => setNewRole({ ...newRole, name: e.target.value, slug: formatSlug(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                    value={formData.name}
+                    onChange={e => setFormData({...formData, name: e.target.value, slug: formatSlug(e.target.value)})}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="Ex: Coordenador de Vendas"
-                    required
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                    Slug *
-                  </label>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Slug *</label>
                   <input
                     type="text"
-                    value={newRole.slug}
-                    onChange={(e) => setNewRole({ ...newRole, slug: formatSlug(e.target.value) })}
-                    className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                    value={formData.slug}
+                    onChange={e => setFormData({...formData, slug: formatSlug(e.target.value)})}
+                    className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="coordenador_vendas"
-                    required
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
-                  Tipo de Cargo *
-                </label>
+                <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Tipo *</label>
                 <select
-                  value={newRole.type}
-                  onChange={(e) => setNewRole({ ...newRole, type: e.target.value as 'internal' | 'external' })}
-                  className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-800"
+                  value={formData.type}
+                  onChange={e => setFormData({...formData, type: e.target.value as 'internal' | 'external'})}
+                  className="w-full px-4 py-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="internal">Interno (equipe Chama Frete)</option>
                   <option value="external">Externo (usuários da plataforma)</option>
                 </select>
               </div>
+            </div>
 
-              <div>
-                <h4 className="font-medium text-slate-900 dark:text-white mb-3">Permissões</h4>
-                <div className="space-y-3 max-h-64 overflow-y-auto pr-2">
-                  {Object.entries(groupedPermissions).map(([category, perms]) => (
-                    <div key={category}>
-                      <h5 className="text-sm font-semibold text-slate-700 dark:text-slate-300 uppercase mb-2">
-                        {category}
-                      </h5>
-                      <div className="grid grid-cols-2 gap-2">
-                        {(perms as any[]).map((perm) => (
-                          <label
-                            key={perm.slug}
-                            className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${
-                              newRole.permission_ids.includes(perm.id)
-                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/30'
-                                : 'border-slate-200 dark:border-slate-700 hover:border-slate-300'
-                            }`}
-                          >
-                            <input
-                              type="checkbox"
-                              checked={newRole.permission_ids.includes(perm.id)}
-                              onChange={() => handleNewPermissionToggle(perm.id)}
-                              className="rounded"
-                            />
-                            <span className="text-sm">{perm.label}</span>
-                          </label>
-                        ))}
-                      </div>
+            <div className="mb-6">
+              <label className="text-[10px] font-bold uppercase text-slate-400 mb-3 block">Permissões</label>
+              <div className="max-h-80 overflow-y-auto space-y-3">
+                {(Object.entries(groupedPermissions) as [string, any[]][]).map(([category, perms]) => (
+                  <div key={category} className="border border-slate-200 dark:border-slate-700 rounded-xl p-4">
+                    <p className="text-[10px] font-bold uppercase text-slate-500 dark:text-slate-400 mb-3">{category}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {perms.map((perm: any) => (
+                        <label key={perm.id} className="flex items-center gap-2 p-2 bg-slate-50 dark:bg-slate-900 rounded-lg cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700">
+                          <input
+                            type="checkbox"
+                            checked={formData.permission_ids.includes(perm.id)}
+                            onChange={() => togglePermission(perm.id)}
+                            className="w-4 h-4 accent-blue-500"
+                          />
+                          <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{perm.label}</span>
+                        </label>
+                      ))}
                     </div>
-                  ))}
-                </div>
+                  </div>
+                ))}
               </div>
+            </div>
 
-              <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 dark:border-slate-700">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateModal(false);
-                    setNewRole({ name: '', slug: '', description: '', type: 'internal', permission_ids: [] });
-                  }}
-                  className="px-4 py-2 text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-lg transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center gap-2"
-                >
-                  {saving && <Loader2 size={16} className="animate-spin" />}
-                  Criar Cargo
-                </button>
-              </div>
-            </form>
+            <button
+              onClick={handleSave}
+              disabled={saving || !formData.name || !formData.slug}
+              className="w-full py-2.5 px-4 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition-colors flex justify-center items-center gap-2 disabled:opacity-50"
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />}
+              {editingRole ? 'Atualizar' : 'Criar'} Cargo
+            </button>
           </div>
         </div>
       )}
     </PageShell>
-   );
+  );
 }

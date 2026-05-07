@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
-import { useTheme } from '@/context/ThemeContext';
 import { RefreshCw, RotateCcw, Plus, LayoutGrid, Settings, Truck, BarChart3, Users, DollarSign, FileText, Headphones, ShoppingBag } from 'lucide-react';
 import { WidgetContainer } from './widgets/WidgetContainer';
 import { WidgetSelector } from './widgets/WidgetSelector';
@@ -48,7 +47,6 @@ const periodOptions = [
 ];
 
 export default function DashboardBI({ user }: { user: any }) {
-  const { isDark } = useTheme();
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [period, setPeriod] = useState('this_month');
@@ -224,9 +222,9 @@ export default function DashboardBI({ user }: { user: any }) {
 
   if (loading) {
     return (
-      <div className={`p-6 flex flex-col items-center justify-center ${isDark ? 'bg-slate-950' : 'bg-slate-50'}`}>
-        <div className={`w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4`}></div>
-        <span className={`text-[11px] font-black uppercase tracking-[0.3em] ${isDark ? 'text-slate-500' : 'text-slate-400'}`}>Carregando...</span>
+      <div className="p-6 flex flex-col items-center justify-center bg-slate-50">
+        <div className="w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+        <span className="text-xs font-bold text-slate-400">Carregando...</span>
       </div>
     );
 }
@@ -249,7 +247,7 @@ export default function DashboardBI({ user }: { user: any }) {
     
     if (widget.widget_type === 'ranking') {
       return (
-        <div className={`text-sm ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>
+        <div className="text-sm text-slate-500">
           Widget não disponível no momento
         </div>
       );
@@ -269,60 +267,55 @@ return (
     description="Business Intelligence Dashboard"
     actions={
       <div className="flex items-center gap-3">
-        {/* Period Select (SaaS Standard) */}
         <select
           value={period}
           onChange={(e) => handlePeriodChange(e.target.value)}
-          className={`rounded-xl px-4 py-2.5 text-sm font-medium border-none outline-none transition-all ${
-            isDark ? 'bg-slate-800 text-slate-200' : 'bg-slate-100 text-slate-600'
-          }`}
+          className="bg-white rounded-xl px-4 py-2.5 text-xs font-bold text-slate-700 border border-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
         >
           {periodOptions.map(opt => (
             <option key={opt.value} value={opt.value}>{opt.label}</option>
           ))}
         </select>
 
-        {/* Custom Date Picker (Show only if 'custom' is selected) */}
         {period === 'custom' && (
-          <div className={`flex items-center gap-2 ${isDark ? 'bg-slate-800' : 'bg-slate-100'} rounded-xl px-4 py-2.5`}>
+          <div className="flex items-center gap-2 bg-white rounded-xl border border-slate-200 px-4 py-2.5">
             <input
               type="date"
               value={customStart}
               onChange={(e) => setCustomStart(e.target.value)}
-              className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'} bg-transparent border-none outline-none w-24`}
+              className="text-xs font-bold text-slate-700 bg-transparent border-none outline-none"
             />
-            <span className={isDark ? 'text-slate-500' : 'text-slate-400'}>-</span>
+            <span className="text-slate-400">até</span>
             <input
               type="date"
               value={customEnd}
               onChange={(e) => setCustomEnd(e.target.value)}
-              className={`text-sm font-medium ${isDark ? 'text-slate-300' : 'text-slate-600'} bg-transparent border-none outline-none w-24`}
+              className="text-xs font-bold text-slate-700 bg-transparent border-none outline-none"
             />
             <button
               onClick={handleCustomApply}
               disabled={!customStart || !customEnd}
-              className={`${isDark ? 'bg-slate-600 disabled:bg-slate-700' : 'bg-slate-900 disabled:bg-slate-400'} text-white px-4 py-1 rounded-lg text-sm font-medium`}
+              className="bg-blue-600 disabled:bg-slate-300 text-white px-3 py-1 rounded-lg text-xs font-bold"
             >
               OK
             </button>
           </div>
         )}
 
-        {/* Actions */}
         <button
           onClick={() => setIsEditing(!isEditing)}
-          className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
+          className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           title={isEditing ? 'Fechar' : 'Personalizar'}
         >
-          <LayoutGrid size={18} />
+          <LayoutGrid size={16} />
         </button>
         <button
           onClick={handleRefresh}
           disabled={refreshing}
-          className={`p-2.5 rounded-xl ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300' : 'bg-slate-100 hover:bg-slate-200 text-slate-600'} transition-all`}
+          className="p-2.5 rounded-xl bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors"
           title="Atualizar"
         >
-          <RefreshCw size={18} className={refreshing ? 'animate-spin' : ''} />
+          <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
         </button>
       </div>
     }
@@ -332,19 +325,19 @@ return (
     <div className="mt-4">
       {/* Editing Toolbar */}
       {isEditing && (
-        <div className={`${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-50 border-slate-200'} border rounded-2xl p-4`}>
+        <div className="bg-white border border-slate-200 rounded-2xl p-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowSelector(!showSelector)}
-              className={`${isDark ? 'bg-slate-700 hover:bg-slate-600 text-white' : 'bg-slate-900 hover:bg-slate-800 text-white'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all`}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-colors"
             >
               <Plus size={16} />
               Adicionar
             </button>
             <button
               onClick={handleResetWidgets}
-              className={`${isDark ? 'bg-slate-800 border-slate-700 hover:bg-slate-700 text-slate-300' : 'bg-white border-slate-200 hover:bg-slate-50 text-slate-600'} px-4 py-2 rounded-xl font-medium text-sm flex items-center gap-2 transition-all border`}
+              className="bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 rounded-xl font-bold text-xs flex items-center gap-2 transition-colors"
             >
               <RotateCcw size={16} />
               Resetar
@@ -352,7 +345,7 @@ return (
           </div>
           <button
             onClick={handleSaveWidgets}
-            className="bg-green-600 hover:bg-green-700 px-6 py-2 rounded-xl font-bold text-sm text-white flex items-center gap-2 transition-all"
+            className="bg-emerald-600 hover:bg-emerald-700 px-6 py-2 rounded-xl font-bold text-xs text-white flex items-center gap-2 transition-colors"
           >
             <Settings size={16} />
             Salvar Layout
@@ -393,12 +386,12 @@ return (
     </div>
 
     {userWidgets.length === 0 && !isEditing && (
-      <div className={`text-center py-16 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-100'} rounded-2xl border p-12`}>
-        <LayoutGrid size={48} className={`mx-auto mb-4 ${isDark ? 'text-slate-600' : 'text-slate-300'}`} />
-        <p className={`${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium mb-4`}>Nenhum widget configurado</p>
+      <div className="text-center py-16 bg-white border border-slate-200 rounded-2xl p-12">
+        <LayoutGrid size={48} className="mx-auto mb-4 text-slate-300" />
+        <p className="text-slate-500 font-bold mb-4">Nenhum widget configurado</p>
         <button
           onClick={() => setIsEditing(true)}
-          className="text-indigo-600 font-bold text-sm hover:underline"
+          className="text-blue-600 font-bold text-sm hover:underline"
         >
           Adicionar widgets
         </button>

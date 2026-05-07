@@ -134,9 +134,9 @@ export default function MarketplaceManagerAdmin() {
       description="Gerencie anúncios e afiliados"
       actions={
         <div className="flex items-center gap-3">
-          <div className="flex bg-white p-1 rounded-xl border border-slate-200">
+          <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
             {[ {m: 'table', i: List}, {m: 'cards', i: LayoutGrid} ].map(v => (
-              <button key={v.m} onClick={() => setViewMode(v.m as 'table' | 'cards')} className={`p-2.5 rounded-lg ${viewMode === v.m ? 'bg-purple-600 text-white' : 'text-slate-400'}`}>
+              <button key={v.m} onClick={() => setViewMode(v.m as 'table' | 'cards')} className={`p-2.5 rounded-lg ${viewMode === v.m ? 'bg-purple-600 text-white' : 'text-slate-400 dark:text-slate-500'}`}>
                 <v.i size={16} />
               </button>
             ))}
@@ -162,7 +162,7 @@ export default function MarketplaceManagerAdmin() {
         <select 
           value={filter.status} 
           onChange={e => setFilter({...filter, status: e.target.value})} 
-          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+          className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-purple-500"
         >
           <option value="all">Todos os Status</option>
           <option value="active">Ativos</option>
@@ -177,7 +177,7 @@ export default function MarketplaceManagerAdmin() {
         <select 
           value={filter.category} 
           onChange={e => setFilter({...filter, category: e.target.value})} 
-          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+          className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-purple-500"
         >
           {CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}
         </select>
@@ -185,7 +185,7 @@ export default function MarketplaceManagerAdmin() {
         <select 
           value={datePreset} 
           onChange={e => applyDatePreset(e.target.value)} 
-          className="bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+          className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-purple-500"
         >
           {DATE_PRESETS.map(p => <option key={p.value} value={p.value}>{p.label}</option>)}
         </select>
@@ -196,39 +196,39 @@ export default function MarketplaceManagerAdmin() {
               type="date" 
               value={filter.date_from}
               onChange={e => setFilter({...filter, date_from: e.target.value})}
-              className="bg-white px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+              className="bg-white dark:bg-slate-800 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-purple-500"
             />
-            <span className="text-xs font-bold text-slate-400">até</span>
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">até</span>
             <input 
               type="date" 
               value={filter.date_to}
               onChange={e => setFilter({...filter, date_to: e.target.value})}
-              className="bg-white px-3 py-2.5 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500"
+              className="bg-white dark:bg-slate-800 px-3 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-purple-500"
             />
           </div>
         )}
 
         <div className="relative flex-1 max-w-xs">
           <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input type="text" placeholder="Buscar anúncio..." value={filter.search} onChange={e => setFilter({...filter, search: e.target.value})} className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-purple-500" />
+          <input type="text" placeholder="Buscar anúncio..." value={filter.search} onChange={e => setFilter({...filter, search: e.target.value})} className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-purple-500" />
         </div>
       </div>
 
       {/* Grid ou Tabela */}
       {loading ? (
         <div className="py-20 flex flex-col items-center gap-3">
-          <Loader2 className="animate-spin text-purple-600" size={40} />
-          <p className="text-slate-400 font-bold animate-pulse">CARREGANDO MARKETPLACE...</p>
+          <Loader2 className="animate-spin text-purple-600 dark:text-purple-400" size={40} />
+          <p className="text-slate-400 dark:text-slate-500 font-bold animate-pulse">CARREGANDO MARKETPLACE...</p>
         </div>
       ) : listings.length === 0 ? (
-        <div className="text-center py-20 bg-white rounded-2xl border-2 border-dashed border-slate-200">
-          <ShoppingBag size={48} className="mx-auto text-slate-200 mb-4" />
-          <p className="text-slate-400 font-medium">Nenhum anúncio encontrado com esses filtros.</p>
+        <div className="text-center py-20 bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-700">
+          <ShoppingBag size={48} className="mx-auto text-slate-200 dark:text-slate-600 mb-4" />
+          <p className="text-slate-400 dark:text-slate-500 font-medium">Nenhum anúncio encontrado com esses filtros.</p>
         </div>
       ) : viewMode === 'table' ? (
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
               <table className="w-full text-left">
-                <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200">
+                <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-700">
                   <tr>
                     <th className="px-5 py-4">Produto</th>
                     <th className="px-5 py-4">Preço</th>
@@ -237,37 +237,37 @@ export default function MarketplaceManagerAdmin() {
                     <th className="px-5 py-4 text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                   {listings.map(l => (
-                    <tr key={l.id} className="hover:bg-slate-50 transition-colors group">
+                    <tr key={l.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors group">
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 rounded-xl bg-slate-100 overflow-hidden flex-shrink-0">
+                          <div className="w-12 h-12 rounded-xl bg-slate-100 dark:bg-slate-700 overflow-hidden flex-shrink-0">
                             <AdImage url={l.main_image || l.images?.[0]} className="w-full h-full object-cover" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-slate-700 line-clamp-1">{l.title}</p>
-                            <p className="text-[10px] text-slate-400 font-medium">{l.category} • #{l.id}</p>
+                            <p className="text-sm font-bold text-slate-700 dark:text-slate-200 line-clamp-1">{l.title}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">{l.category} • #{l.id}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-5 py-4 font-bold text-purple-600 text-sm tabular-nums">{formatBRL(l.price)}</td>
+                      <td className="px-5 py-4 font-bold text-purple-600 dark:text-purple-400 text-sm tabular-nums">{formatBRL(l.price)}</td>
                       <td className="px-5 py-4 text-center">
                         <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${STATUS_MAP[l.status]?.color || ''}`}>
                           {STATUS_MAP[l.status]?.label || l.status}
                         </span>
                       </td>
                       <td className="px-5 py-4">
-                        <div className="flex justify-center gap-4 text-slate-400">
+                        <div className="flex justify-center gap-4 text-slate-400 dark:text-slate-500">
                           <div className="flex items-center gap-1"><Eye size={12} /> <span className="text-xs font-bold tabular-nums">{formatNumber(l.views_count)}</span></div>
                           <div className="flex items-center gap-1"><MousePointer size={12} /> <span className="text-xs font-bold tabular-nums">{formatNumber(l.clicks_count)}</span></div>
                         </div>
                       </td>
                       <td className="px-5 py-4 text-right">
                          <div className="flex justify-end gap-2">
-                            <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url, l.slug)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Eye size={16}/></button>
-                            <button onClick={(e) => handleAction(l.id, 'edit', e)} className="p-2 bg-slate-100 text-slate-500 rounded-lg hover:bg-slate-200"><Edit size={16}/></button>
-                            <button onClick={(e) => handleAction(l.id, 'delete', e)} className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"><Trash2 size={16}/></button>
+                            <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url, l.slug)} className="py-2 px-4 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold uppercase hover:bg-blue-100 dark:hover:bg-blue-900/50"><Eye size={14}/></button>
+                            <button onClick={(e) => handleAction(l.id, 'edit', e)} className="py-2 px-4 bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-300 rounded-lg text-xs font-bold uppercase hover:bg-slate-100 dark:hover:bg-slate-600"><Edit size={14}/></button>
+                            <button onClick={(e) => handleAction(l.id, 'delete', e)} className="py-2 px-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold uppercase hover:bg-red-100 dark:hover:bg-red-900/50"><Trash2 size={14}/></button>
                          </div>
                       </td>
                     </tr>
@@ -278,8 +278,8 @@ export default function MarketplaceManagerAdmin() {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
                {listings.map(l => (
-                 <div key={l.id} className="bg-white rounded-2xl border border-slate-200 overflow-hidden hover:shadow-lg transition-shadow group">
-                    <div className="h-44 relative overflow-hidden bg-slate-100">
+                 <div key={l.id} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-lg dark:hover:shadow-slate-900/50 transition-shadow group">
+                    <div className="h-44 relative overflow-hidden bg-slate-100 dark:bg-slate-700">
                       <AdImage url={l.main_image || l.images?.[0]} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                       {l.is_affiliate === 1 && (
                         <div className="absolute top-3 left-3 bg-amber-500 text-white text-xs font-bold px-2.5 py-1 rounded-lg shadow-md flex items-center gap-1">
@@ -294,20 +294,20 @@ export default function MarketplaceManagerAdmin() {
                     </div>
                     <div className="p-4 space-y-3">
                       <div>
-                        <h3 className="font-bold text-sm text-slate-900 line-clamp-1">{l.title}</h3>
-                        <p className="text-xs text-slate-400">{l.category} • #{l.id}</p>
+                        <h3 className="font-bold text-sm text-slate-900 dark:text-white line-clamp-1">{l.title}</h3>
+                        <p className="text-xs text-slate-400 dark:text-slate-500">{l.category} • #{l.id}</p>
                       </div>
-                      <p className="text-purple-600 font-bold text-lg tabular-nums">{formatBRL(l.price)}</p>
-                      <div className="flex items-center justify-between pt-2 border-t border-slate-100">
-                        <div className="flex items-center gap-3 text-xs text-slate-400">
+                      <p className="text-purple-600 dark:text-purple-400 font-bold text-lg tabular-nums">{formatBRL(l.price)}</p>
+                      <div className="flex items-center justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
+                        <div className="flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
                           <span className="flex items-center gap-1"><Eye size={12} /> {formatNumber(l.views_count)}</span>
                           <span className="flex items-center gap-1"><MousePointer size={12} /> {formatNumber(l.clicks_count)}</span>
                         </div>
                       </div>
                       <div className="flex gap-2 pt-1">
-                        <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url, l.slug)} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-blue-600 hover:text-white transition-colors flex-1 flex justify-center"><Eye size={16}/></button>
-                        <button onClick={(e) => handleAction(l.id, 'edit', e)} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-purple-600 hover:text-white transition-colors flex-1 flex justify-center"><Edit size={16}/></button>
-                        <button onClick={(e) => handleAction(l.id, 'delete', e)} className="p-2 bg-slate-50 text-slate-500 rounded-lg hover:bg-red-600 hover:text-white transition-colors flex-1 flex justify-center"><Trash2 size={16}/></button>
+                        <button onClick={(e) => handleAction(l.id, 'view', e, l.external_url, l.slug)} className="p-2 bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg hover:bg-blue-600 hover:text-white transition-colors flex-1 flex justify-center"><Eye size={16}/></button>
+                        <button onClick={(e) => handleAction(l.id, 'edit', e)} className="p-2 bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg hover:bg-purple-600 hover:text-white transition-colors flex-1 flex justify-center"><Edit size={16}/></button>
+                        <button onClick={(e) => handleAction(l.id, 'delete', e)} className="p-2 bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-lg hover:bg-red-600 hover:text-white transition-colors flex-1 flex justify-center"><Trash2 size={16}/></button>
                       </div>
                     </div>
                  </div>

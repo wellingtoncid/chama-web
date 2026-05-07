@@ -4,7 +4,7 @@ import { StatsGrid, StatCard } from '@/components/admin';
 import { 
   Plus, Edit3, Trash2, Star, X, Loader2, BadgeDollarSign, 
   CheckCircle2, Zap, Layout, ShieldCheck, Layers, List, LayoutGrid,
-  Search
+  Search, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { PageShell } from '@/components/admin';
 
@@ -26,6 +26,8 @@ export default function PlansManager() {
   const [typeFilter, setTypeFilter] = useState('all');
   const [search, setSearch] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   
   const [planData, setPlanData] = useState<any>({ 
     id: null, name: '', price: '', duration_days: '', type: 'featured', description: '', active: 1 
@@ -42,6 +44,10 @@ export default function PlansManager() {
 
   useEffect(() => { loadPlans(); }, []);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [typeFilter, search, pageSize]);
+
   const stats = useMemo(() => ({
     total: plans.length,
     active: plans.filter(p => Number(p.active) === 1).length,
@@ -56,6 +62,14 @@ export default function PlansManager() {
       return matchType && matchSearch;
     });
   }, [plans, typeFilter, search]);
+
+  const totalPages = Math.ceil(filteredPlans.length / pageSize);
+  const paginatedPlans = useMemo(() => {
+    return filteredPlans.slice(
+      (currentPage - 1) * pageSize,
+      currentPage * pageSize
+    );
+  }, [filteredPlans, currentPage, pageSize]);
 
   const handleSavePlan = async () => {
     if(!planData.name || !planData.price) return alert("Preencha Nome e Preço");
@@ -141,8 +155,27 @@ export default function PlansManager() {
         {/* TABELA */}
         {viewMode === 'table' && (
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+            <div className="p-4 lg:p-5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+              <h3 className="font-bold text-slate-900 dark:text-white">
+                Planos ({filteredPlans.length})
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Mostrar</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-xs text-slate-500 dark:text-slate-400">por página</span>
+              </div>
+            </div>
             <table className="w-full">
-              <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200">
+              <thead className="bg-slate-50 dark:bg-slate-900/50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-700">
                 <tr>
                   <th className="px-5 py-4">Tipo</th>
                   <th className="px-5 py-4">Plano</th>
@@ -152,25 +185,25 @@ export default function PlansManager() {
                   <th className="px-5 py-4 text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
-                {filteredPlans.map((plan) => (
-                  <tr key={plan.id} className={`hover:bg-slate-50 transition-colors ${Number(plan.active) !== 1 && 'opacity-60'}`}>
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                {paginatedPlans.map((plan) => (
+                  <tr key={plan.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${Number(plan.active) !== 1 && 'opacity-60'}`}>
                     <td className="px-5 py-4">{getPlanIcon(plan.type)}</td>
                     <td className="px-5 py-4">
-                      <div className="font-bold text-slate-800">{plan.name}</div>
+                      <div className="font-bold text-slate-800 dark:text-white">{plan.name}</div>
                       <div className="text-xs text-slate-400">{plan.type}</div>
                     </td>
-                    <td className="px-5 py-4 font-bold text-slate-800">R$ {plan.price}</td>
+                    <td className="px-5 py-4 font-bold text-slate-800 dark:text-white">R$ {plan.price}</td>
                     <td className="px-5 py-4 text-sm text-slate-500">{plan.duration_days} dias</td>
                     <td className="px-5 py-4">
-                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                      <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
                         {Number(plan.active) === 1 ? 'Ativo' : 'Pausado'}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        <button onClick={() => openEdit(plan)} className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"><Edit3 size={16}/></button>
-                        <button onClick={() => togglePlanStatus(plan)} className={`p-2 rounded-lg transition-all ${Number(plan.active) === 1 ? 'bg-red-50 text-red-600 hover:bg-red-100' : 'bg-emerald-50 text-emerald-500 hover:bg-emerald-100'}`}>
+                        <button onClick={() => openEdit(plan)} className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50"><Edit3 size={16}/></button>
+                        <button onClick={() => togglePlanStatus(plan)} className={`p-2 rounded-lg transition-all ${Number(plan.active) === 1 ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50' : 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-500 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50'}`}>
                           {Number(plan.active) === 1 ? <Trash2 size={16}/> : <CheckCircle2 size={16}/>}
                         </button>
                       </div>
@@ -179,38 +212,111 @@ export default function PlansManager() {
                 ))}
               </tbody>
             </table>
-            {filteredPlans.length === 0 && (
+            {paginatedPlans.length === 0 && (
               <div className="p-12 text-center text-slate-400 font-bold">Nenhum plano encontrado</div>
+            )}
+            {totalPages > 1 && (
+              <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredPlans.length)} de {filteredPlans.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
             )}
           </div>
         )}
 
         {/* GRID */}
         {viewMode === 'grid' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredPlans.map((plan) => (
-              <div key={plan.id} className={`bg-white p-6 rounded-2xl border border-slate-200 transition-all group relative ${Number(plan.active) === 1 ? 'hover:border-blue-300' : 'border-dashed border-slate-300 opacity-60'}`}>
-                <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                  <button onClick={() => openEdit(plan)} className="p-2 bg-white shadow-lg rounded-xl text-blue-600 hover:bg-blue-600 hover:text-white transition-colors"><Edit3 size={14}/></button>
-                  <button onClick={() => togglePlanStatus(plan)} className={`p-2 bg-white shadow-lg rounded-xl transition-colors ${Number(plan.active) === 1 ? 'text-red-500 hover:bg-red-600 hover:text-white' : 'text-emerald-500 hover:bg-emerald-600 hover:text-white'}`}>
-                    {Number(plan.active) === 1 ? <Trash2 size={14}/> : <CheckCircle2 size={14}/>}
+          <>
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 lg:p-5 mb-4 flex flex-wrap justify-between items-center gap-3">
+              <h3 className="font-bold text-slate-900 dark:text-white">
+                Planos ({filteredPlans.length})
+              </h3>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500 dark:text-slate-400">Mostrar</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => setPageSize(Number(e.target.value))}
+                  className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-medium"
+                >
+                  <option value={10}>10</option>
+                  <option value={25}>25</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </select>
+                <span className="text-xs text-slate-500 dark:text-slate-400">por página</span>
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {paginatedPlans.map((plan) => (
+                <div key={plan.id} className={`bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 transition-all group relative ${Number(plan.active) === 1 ? 'hover:border-blue-300 dark:hover:border-blue-700' : 'border-dashed border-slate-300 dark:border-slate-600 opacity-60'}`}>
+                  <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                    <button onClick={() => openEdit(plan)} className="p-2 bg-white dark:bg-slate-700 shadow-lg rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"><Edit3 size={14}/></button>
+                    <button onClick={() => togglePlanStatus(plan)} className={`p-2 bg-white dark:bg-slate-700 shadow-lg rounded-xl transition-colors ${Number(plan.active) === 1 ? 'text-red-500 hover:bg-red-600 hover:text-white' : 'text-emerald-500 hover:bg-emerald-600 hover:text-white'}`}>
+                      {Number(plan.active) === 1 ? <Trash2 size={14}/> : <CheckCircle2 size={14}/>}
+                    </button>
+                  </div>
+                  <div className="mb-4">{getPlanIcon(plan.type, 28)}</div>
+                  <h4 className="font-bold text-slate-800 dark:text-white leading-tight mb-2">{plan.name}</h4>
+                  <div className="flex items-baseline gap-1 mb-4">
+                    <span className="text-2xl font-bold text-slate-900 dark:text-white">R$ {plan.price}</span>
+                    <span className="text-xs text-slate-400">/{plan.duration_days}d</span>
+                  </div>
+                  <div className="pt-4 border-t border-slate-100 dark:border-slate-700">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 line-clamp-2 mb-3">{plan.description || 'Sem descrição'}</p>
+                    <span className={`px-2 py-1 rounded-lg text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
+                      {Number(plan.active) === 1 ? 'Ativo' : 'Pausado'}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {totalPages > 1 && (
+              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 mt-4 flex items-center justify-between">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredPlans.length)} de {filteredPlans.length}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+                  <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
+                    {currentPage} / {totalPages}
+                  </span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <ChevronRight size={16} />
                   </button>
                 </div>
-                <div className="mb-4">{getPlanIcon(plan.type, 28)}</div>
-                <h4 className="font-bold text-slate-800 leading-tight mb-2">{plan.name}</h4>
-                <div className="flex items-baseline gap-1 mb-4">
-                  <span className="text-2xl font-bold text-slate-900">R$ {plan.price}</span>
-                  <span className="text-xs text-slate-400">/{plan.duration_days}d</span>
-                </div>
-                <div className="pt-4 border-t border-slate-100">
-                  <p className="text-xs text-slate-400 line-clamp-2 mb-3">{plan.description || 'Sem descrição'}</p>
-                  <span className={`px-2 py-1 rounded-lg text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                    {Number(plan.active) === 1 ? 'Ativo' : 'Pausado'}
-                  </span>
-                </div>
               </div>
-            ))}
-          </div>
+            )}
+          </>
         )}
 
         {/* DRAWER */}

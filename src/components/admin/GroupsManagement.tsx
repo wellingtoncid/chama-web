@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { 
   Plus, Edit, Trash2, Eye, EyeOff, GripVertical, Save, X, 
   Loader2, Palette, MessageCircle, Search, CheckSquare, Square,
-  ShieldAlert, Tag, MousePointer, Eye as EyeIcon, Users, Globe, Star
+  ShieldAlert, Tag, MousePointer, Eye as EyeIcon, Users, Globe, Star, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { api } from "@/api/api";
@@ -377,6 +377,12 @@ function GroupsTab() {
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState<string>('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filterCategory, pageSize]);
 
   const fetchData = async () => {
     try {
@@ -407,11 +413,19 @@ function GroupsTab() {
     fetchCategories();
   }, []);
 
-  const filteredGroups = groups.filter(group => {
-    const matchesSearch = !searchQuery || group.region_name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = !filterCategory || String(group.category_id) === filterCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredGroups = useMemo(() => {
+    return groups.filter(group => {
+      const matchesSearch = !searchQuery || group.region_name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesCategory = !filterCategory || String(group.category_id) === filterCategory;
+      return matchesSearch && matchesCategory;
+    });
+  }, [groups, searchQuery, filterCategory]);
+
+  const totalPages = Math.ceil(filteredGroups.length / pageSize);
+  const paginatedGroups = filteredGroups.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   const handleSave = async (formData: any) => {
     try {
@@ -506,29 +520,82 @@ function GroupsTab() {
       {loading ? (
         <div className="flex justify-center py-12"><Loader2 className="w-8 h-8 animate-spin text-blue-600" /></div>
       ) : (
-        <div className="space-y-2">
-          {filteredGroups.map((group) => (
-            <div key={group.id} className={`flex items-center gap-4 p-4 bg-slate-50 rounded-xl border ${selectedGroups.includes(group.id) ? 'border-blue-400 bg-blue-50/50' : 'border-slate-100'}`}>
-              <button onClick={() => toggleSelect(group.id)}>
-                {selectedGroups.includes(group.id) ? <CheckSquare className="w-5 h-5 text-blue-600" /> : <Square className="w-5 h-5 text-slate-400" />}
-              </button>
-              <div className="flex-1">
-                <p className="font-bold text-slate-800">{group.region_name}</p>
-                <div className="flex gap-2 mt-1">
-                  <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase" style={{ backgroundColor: `${getCategoryColor(group.category_id)}15`, color: getCategoryColor(group.category_id) }}>
-                    {group.category_name || 'Sem categoria'}
-                  </span>
-                  {group.status === 'active' && <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1 rounded font-bold">Ativo</span>}
-                </div>
-              </div>
-              <div className="flex gap-4 text-slate-400 text-xs font-bold">
-                <span className="flex items-center gap-1"><EyeIcon className="w-3 h-3"/> {group.views_count || 0}</span>
-                <span className="flex items-center gap-1"><MousePointer className="w-3 h-3"/> {group.clicks_count || 0}</span>
-              </div>
-              <button onClick={() => { setEditingGroup(group); setIsSlideOverOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 bg-white rounded-lg border"><Edit className="w-4 h-4"/></button>
-              <button onClick={() => handleDelete([group.id])} className="p-2 text-slate-400 hover:text-red-600 bg-white rounded-lg border"><Trash2 className="w-4 h-4"/></button>
+        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden mt-4">
+          <div className="p-4 lg:p-5 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3">
+            <h3 className="font-bold text-slate-900">
+              Grupos ({filteredGroups.length})
+            </h3>
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-slate-500">Mostrar</span>
+              <select 
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-medium"
+              >
+                <option value={10}>10</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+              <span className="text-xs text-slate-500">por página</span>
             </div>
-          ))}
+          </div>
+
+          <div className="divide-y divide-slate-100">
+            {paginatedGroups.length > 0 ? paginatedGroups.map((group) => (
+              <div key={group.id} className={`flex items-center gap-4 p-4 ${selectedGroups.includes(group.id) ? 'border-blue-400 bg-blue-50/50' : ''}`}>
+                <button onClick={() => toggleSelect(group.id)}>
+                  {selectedGroups.includes(group.id) ? <CheckSquare className="w-5 h-5 text-blue-600" /> : <Square className="w-5 h-5 text-slate-400" />}
+                </button>
+                <div className="flex-1">
+                  <p className="font-bold text-slate-800">{group.region_name}</p>
+                  <div className="flex gap-2 mt-1">
+                    <span className="text-[10px] px-2 py-0.5 rounded font-bold uppercase" style={{ backgroundColor: `${getCategoryColor(group.category_id)}15`, color: getCategoryColor(group.category_id) }}>
+                      {group.category_name || 'Sem categoria'}
+                    </span>
+                    {group.status === 'active' && <span className="bg-emerald-100 text-emerald-700 text-[9px] px-1 rounded font-bold">Ativo</span>}
+                  </div>
+                </div>
+                <div className="flex gap-4 text-slate-400 text-xs font-bold">
+                  <span className="flex items-center gap-1"><EyeIcon className="w-3 h-3"/> {group.views_count || 0}</span>
+                  <span className="flex items-center gap-1"><MousePointer className="w-3 h-3"/> {group.clicks_count || 0}</span>
+                </div>
+                <button onClick={() => { setEditingGroup(group); setIsSlideOverOpen(true); }} className="p-2 text-slate-400 hover:text-blue-600 bg-white rounded-lg border"><Edit className="w-4 h-4"/></button>
+                <button onClick={() => handleDelete([group.id])} className="p-2 text-slate-400 hover:text-red-600 bg-white rounded-lg border"><Trash2 className="w-4 h-4"/></button>
+              </div>
+            )) : (
+              <div className="p-12 text-center text-slate-400 font-medium">
+                Nenhum grupo encontrado
+              </div>
+            )}
+          </div>
+
+          {totalPages > 1 && (
+            <div className="p-4 border-t border-slate-100 flex items-center justify-between">
+              <div className="text-xs text-slate-500">
+                Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredGroups.length)} de {filteredGroups.length}
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronLeft size={16} />
+                </button>
+                <span className="text-sm font-medium text-slate-600">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <ChevronRight size={16} />
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
