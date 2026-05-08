@@ -7,9 +7,13 @@ interface StatCardProps {
   variant?: 'default' | 'green' | 'yellow' | 'red' | 'blue' | 'purple';
   icon?: LucideIcon | React.ReactNode;
   prefix?: string;
+  subtext?: string;
+  subtextVariant?: 'default' | 'green' | 'red';
+  onClick?: () => void;
+  className?: string;
 }
 
-export function StatCard({ label, value, variant = 'default', icon, prefix }: StatCardProps) {
+export function StatCard({ label, value, variant = 'default', icon, prefix, subtext, subtextVariant, onClick, className }: StatCardProps) {
   const variantColors = {
     default: 'text-slate-900 dark:text-white',
     green: 'text-emerald-600 dark:text-emerald-400',
@@ -28,8 +32,17 @@ export function StatCard({ label, value, variant = 'default', icon, prefix }: St
     purple: 'bg-purple-100 dark:bg-purple-900/30',
   };
 
+  const subtextColors = {
+    default: 'text-slate-500 dark:text-slate-400',
+    green: 'text-emerald-600 dark:text-emerald-400',
+    red: 'text-red-600 dark:text-red-400',
+  };
+
   return (
-    <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+    <div
+      className={`bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className || ''}`}
+      onClick={onClick}
+    >
       <div className="flex items-center gap-3">
         {icon && (
           <div className={`${bgColors[variant]} p-2 rounded-xl`}>
@@ -40,6 +53,9 @@ export function StatCard({ label, value, variant = 'default', icon, prefix }: St
           <p className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">{label}</p>
           <p className={`text-xl lg:text-2xl font-black ${variantColors[variant]}`}>
             {prefix}{typeof value === 'number' ? value.toLocaleString('pt-BR') : value}
+          </p>
+          <p className={`text-[10px] font-bold mt-0.5 ${subtext ? subtextColors[subtextVariant || 'default'] : 'invisible'}`}>
+            {subtext || '\u00A0'}
           </p>
         </div>
       </div>

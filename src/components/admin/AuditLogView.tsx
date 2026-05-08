@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '@/api/api';
-import { Shield, Clock, User, Search, RefreshCw, ChevronDown, ChevronUp } from 'lucide-react';
+import { Shield, Clock, User, Search, RefreshCw, ChevronDown, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react';
 import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 
 interface AuditLog {
@@ -153,7 +153,7 @@ export default function AuditLogsView() {
       actions={
         <button 
           onClick={() => fetchLogs(pagination.page)}
-          className="p-3 bg-white border border-slate-200 text-slate-400 rounded-2xl hover:text-blue-600 hover:border-blue-200 transition-all"
+          className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-400 rounded-2xl hover:text-blue-600 hover:border-blue-200 dark:hover:text-blue-400 dark:hover:border-blue-700 transition-all"
         >
           <RefreshCw size={20} className={loading ? "animate-spin" : ""} />
         </button>
@@ -179,31 +179,31 @@ export default function AuditLogsView() {
               value={filters.search}
               onChange={(e) => setFilters(prev => ({...prev, search: e.target.value}))}
               placeholder="Buscar por descrição, usuário, IP..."
-              className="w-full pl-11 pr-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-slate-800 dark:text-white dark:placeholder-slate-500 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 transition-all"
             />
           </div>
           <button
             type="submit"
-            className="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-blue-500 transition-all"
+            className="bg-slate-900 dark:bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-blue-500 transition-all"
           >
             Buscar
           </button>
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-2.5 border border-slate-200 rounded-xl hover:bg-slate-50 transition-all"
+            className="px-4 py-2.5 border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-slate-600 dark:text-slate-300"
           >
             {showFilters ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
           </button>
         </form>
 
         {showFilters && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
             <div>
               <select
                 value={filters.target_type}
                 onChange={(e) => setFilters(prev => ({...prev, target_type: e.target.value}))}
-                className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full py-2.5 px-4 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todos os Tipos</option>
                 {targetTypes.map(opt => (
@@ -215,7 +215,7 @@ export default function AuditLogsView() {
               <select
                 value={filters.action_type}
                 onChange={(e) => setFilters(prev => ({...prev, action_type: e.target.value}))}
-                className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full py-2.5 px-4 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Todas as Ações</option>
                 {actionTypes.map(opt => (
@@ -229,7 +229,7 @@ export default function AuditLogsView() {
                   type="date"
                   value={filters.date_from}
                   onChange={(e) => setFilters(prev => ({...prev, date_from: e.target.value}))}
-                  className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full py-2.5 px-4 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
               <div className="flex-1">
@@ -237,7 +237,7 @@ export default function AuditLogsView() {
                   type="date"
                   value={filters.date_to}
                   onChange={(e) => setFilters(prev => ({...prev, date_to: e.target.value}))}
-                  className="w-full py-2.5 px-4 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full py-2.5 px-4 bg-white dark:bg-slate-800 dark:text-white dark:border-slate-700 rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
             </div>
@@ -251,20 +251,20 @@ export default function AuditLogsView() {
           <RefreshCw className="animate-spin text-blue-500" size={40} />
         </div>
       ) : (
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
           <table className="w-full text-left">
             <thead>
-              <tr className="bg-slate-50 border-b border-slate-200">
-                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400">Usuário</th>
-                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400">Ação</th>
-                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400">Entidade</th>
-                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 text-right">Data/Hora</th>
+              <tr className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-200 dark:border-slate-700">
+                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Usuário</th>
+                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Ação</th>
+                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500">Entidade</th>
+                <th className="px-5 py-4 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 text-right">Data/Hora</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {logs.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="p-12 text-center text-slate-400 font-medium">
+                  <td colSpan={4} className="p-12 text-center text-slate-400 dark:text-slate-500 font-medium">
                     Nenhum registro encontrado
                   </td>
                 </tr>
@@ -272,15 +272,15 @@ export default function AuditLogsView() {
                 logs.map((log) => (
                   <React.Fragment key={log.id}>
                     <tr 
-                      className="hover:bg-slate-50 transition-colors cursor-pointer"
+                      className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
                       onClick={() => setExpandedLog(expandedLog === log.id ? null : log.id)}
                     >
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                           {getTargetIcon(log.target_type || '')}
                           <div>
-                            <p className="font-bold text-sm text-slate-900">{log.user_name || 'Sistema'}</p>
-                            <p className="text-xs text-slate-400">ID: {log.user_id}</p>
+                            <p className="font-bold text-sm text-slate-900 dark:text-white">{log.user_name || 'Sistema'}</p>
+                            <p className="text-xs text-slate-400 dark:text-slate-500">ID: {log.user_id}</p>
                           </div>
                         </div>
                       </td>
@@ -288,43 +288,43 @@ export default function AuditLogsView() {
                         <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${getActionColor(log.action_type)}`}>
                           {log.action_type || 'N/A'}
                         </span>
-                        <p className="text-xs text-slate-500 mt-1 line-clamp-1">{log.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-1">{log.description}</p>
                       </td>
                       <td className="px-5 py-4">
                         {log.target_type ? (
-                          <span className="text-xs font-medium text-slate-600 bg-slate-100 px-2 py-1 rounded">
+                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded">
                             {log.target_type} #{log.target_id}
                           </span>
                         ) : (
-                          <span className="text-xs text-slate-400">-</span>
+                          <span className="text-xs text-slate-400 dark:text-slate-500">-</span>
                         )}
                       </td>
                       <td className="px-5 py-4 text-right">
-                        <div className="flex items-center justify-end gap-2 text-slate-500 text-xs">
+                        <div className="flex items-center justify-end gap-2 text-slate-500 dark:text-slate-400 text-xs">
                           <Clock size={12} />
                           {new Date(log.created_at).toLocaleString('pt-BR')}
                         </div>
                       </td>
                     </tr>
                     {expandedLog === log.id && (
-                      <tr className="bg-slate-50">
+                      <tr className="bg-slate-50 dark:bg-slate-900/30">
                         <td colSpan={4} className="px-5 py-4">
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs">
                             <div>
-                              <p className="font-bold text-slate-400 uppercase">IP</p>
-                              <p className="text-slate-600 font-medium">{log.ip_address || 'N/A'}</p>
+                              <p className="font-bold text-slate-400 dark:text-slate-500 uppercase">IP</p>
+                              <p className="text-slate-600 dark:text-slate-300 font-medium">{log.ip_address || 'N/A'}</p>
                             </div>
                             <div>
-                              <p className="font-bold text-slate-400 uppercase">URL</p>
-                              <p className="text-slate-600 font-medium truncate">{log.action_url || 'N/A'}</p>
+                              <p className="font-bold text-slate-400 dark:text-slate-500 uppercase">URL</p>
+                              <p className="text-slate-600 dark:text-slate-300 font-medium truncate">{log.action_url || 'N/A'}</p>
                             </div>
                             <div>
-                              <p className="font-bold text-slate-400 uppercase">User Agent</p>
-                              <p className="text-slate-600 font-medium truncate">{log.user_agent || 'N/A'}</p>
+                              <p className="font-bold text-slate-400 dark:text-slate-500 uppercase">User Agent</p>
+                              <p className="text-slate-600 dark:text-slate-300 font-medium truncate">{log.user_agent || 'N/A'}</p>
                             </div>
                             <div>
-                              <p className="font-bold text-slate-400 uppercase">Dados Antigos</p>
-                              <p className="text-slate-600 font-medium truncate">{log.old_values ? JSON.parse(log.old_values) : 'Nenhum'}</p>
+                              <p className="font-bold text-slate-400 dark:text-slate-500 uppercase">Dados Antigos</p>
+                              <p className="text-slate-600 dark:text-slate-300 font-medium truncate">{log.old_values ? JSON.parse(log.old_values) : 'Nenhum'}</p>
                             </div>
                           </div>
                         </td>
@@ -340,27 +340,27 @@ export default function AuditLogsView() {
 
       {/* PAGINATION */}
       {pagination.total_pages > 1 && (
-        <div className="flex items-center justify-between px-5 py-4 border-t border-slate-200">
-          <p className="text-xs text-slate-500">
+        <div className="flex items-center justify-between p-5 border-t border-slate-100 dark:border-slate-700">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
             Mostrando {(pagination.page - 1) * pagination.per_page + 1} - {Math.min(pagination.page * pagination.per_page, pagination.total)} de {pagination.total}
           </p>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             <button
               onClick={() => handlePageChange(pagination.page - 1)}
               disabled={pagination.page === 1}
-              className="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200 transition-all disabled:opacity-50"
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Anterior
+              <ChevronLeft size={16} className="text-slate-600 dark:text-slate-300" />
             </button>
-            <span className="px-3 py-1 text-xs font-bold text-slate-600">
+            <span className="text-sm font-medium text-slate-600 dark:text-slate-300">
               {pagination.page} / {pagination.total_pages}
             </span>
             <button
               onClick={() => handlePageChange(pagination.page + 1)}
               disabled={pagination.page >= pagination.total_pages}
-              className="px-3 py-1 text-xs font-bold bg-slate-100 rounded-lg hover:bg-slate-200 transition-all disabled:opacity-50"
+              className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Próximo
+              <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />
             </button>
           </div>
         </div>

@@ -1,10 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { 
-  Users, Flame, Download, Search, Filter, ChevronLeft, ChevronRight,
-  Trash2, X, Clock, Check, Phone, Mail, Calendar,
-    Send, User, Edit3, DollarSign,
-  TrendingUp, TrendingDown, Target, Kanban, List,
-  Edit
+  Users, Download, Search, ChevronLeft, ChevronRight,
+  X, Send, User, DollarSign, GripVertical,
+  TrendingUp, TrendingDown, Target, Edit
 } from 'lucide-react';
 import { PageShell, StatsGrid, StatCard } from '@/components/admin';
 import { api } from '../../api/api';
@@ -50,6 +48,7 @@ export default function AdminPortalRequests() {
   const [loadingNotes, setLoadingNotes] = useState(false);
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [draggedLeadId, setDraggedLeadId] = useState<number | null>(null);
 
   // Helper to find seller name safely
   const getSellerName = (id: number) => {
@@ -179,10 +178,14 @@ export default function AdminPortalRequests() {
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gestão de leads e negociações</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-            <button onClick={() => setViewMode('kanban')} className={`p-2 rounded-lg ${viewMode === 'kanban' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}><Kanban size={18} /></button>
-            <button onClick={() => setViewMode('list')} className={`p-2 rounded-lg ${viewMode === 'list' ? 'bg-indigo-600 text-white' : 'text-slate-500'}`}><List size={18} /></button>
-          </div>
+          <select
+            value={viewMode}
+            onChange={(e) => setViewMode(e.target.value as 'kanban' | 'list')}
+            className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="list">Lista</option>
+            <option value="kanban">Kanban</option>
+          </select>
           <button onClick={exportCSV} className="flex items-center gap-2 text-xs font-bold uppercase bg-indigo-600 text-white px-4 py-2.5 rounded-xl hover:bg-indigo-700"><Download size={16} /> Exportar</button>
         </div>
       </div>
@@ -223,30 +226,38 @@ export default function AdminPortalRequests() {
 
       {/* FILTERS */}
       <div className="flex flex-wrap items-center gap-3">
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
+        <select
+          value={stageFilter}
+          onChange={(e) => setStageFilter(e.target.value)}
+          className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="all">Todos os Estágios ({filteredLeads.length})</option>
           {PIPELINE_STAGES.map(s => (
-            <button key={s.id} onClick={() => setStageFilter(s.id)} className={`px-3 py-2 rounded-lg font-bold text-xs uppercase transition-all ${stageFilter === s.id ? 'bg-indigo-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'}`}>
-              {s.label} ({pipelineLeads[s.id]?.length || 0})
-            </button>
+            <option key={s.id} value={s.id}>{s.label} ({pipelineLeads[s.id]?.length || 0})</option>
           ))}
-        </div>
-        <div className="flex items-center gap-1 bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700">
-          {[{k:'all',l:'Todos'},{k:'today',l:'Hoje'},{k:'week',l:'7D'},{k:'month',l:'30D'},{k:'custom',l:'Custom'}].map(p => (
-            <button key={p.k} onClick={() => { setDateFilter(p.k); setShowCustomDate(p.k === 'custom'); }} className={`px-3 py-2 rounded-lg font-bold text-xs uppercase transition-all flex items-center gap-1.5 ${dateFilter === p.k ? 'bg-slate-800 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50'}`}>
-              <Filter size={12} /> {p.l}
-            </button>
-          ))}
-        </div>
+        </select>
+        <select
+          value={dateFilter}
+          onChange={(e) => { setDateFilter(e.target.value); setShowCustomDate(e.target.value === 'custom'); }}
+          className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-indigo-500"
+        >
+          <option value="all">Todos os Períodos</option>
+          <option value="today">Hoje</option>
+          <option value="week">Últimos 7 dias</option>
+          <option value="month">Últimos 30 dias</option>
+          <option value="lastmonth">Mês Passado</option>
+          <option value="custom">Personalizado</option>
+        </select>
         {showCustomDate && (
           <div className="flex items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
-            <input type="date" value={customDateStart} onChange={e => setCustomDateStart(e.target.value)} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700 border rounded-lg text-sm"/>
+            <input type="date" value={customDateStart} onChange={e => setCustomDateStart(e.target.value)} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg text-sm"/>
             <span className="text-slate-400">até</span>
-            <input type="date" value={customDateEnd} onChange={e => setCustomDateEnd(e.target.value)} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700 border rounded-lg text-sm"/>
+            <input type="date" value={customDateEnd} onChange={e => setCustomDateEnd(e.target.value)} className="px-3 py-1.5 bg-slate-50 dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-lg text-sm"/>
           </div>
         )}
         <div className="relative flex-1 min-w-[200px] max-w-md">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"/>
-          <input type="text" placeholder="Buscar lead..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm"/>
+          <input type="text" placeholder="Buscar lead..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-slate-800 dark:text-white dark:placeholder-slate-500 border border-slate-200 dark:border-slate-700 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500"/>
         </div>
       </div>
 
@@ -254,42 +265,55 @@ export default function AdminPortalRequests() {
       {viewMode === 'kanban' && (
         <div className="flex gap-3 overflow-x-auto pb-4">
           {PIPELINE_STAGES.filter(s => stageFilter === 'all' || s.id === stageFilter).map(stage => (
-            <div key={stage.id} className="flex-shrink-0 w-64">
-              <div className={`p-3 rounded-t-2xl border-b-2 ${stage.color.replace('bg-','border-')}`}>
+            <div key={stage.id} className="flex-shrink-0 w-56"
+              onDragOver={(e) => { e.preventDefault(); e.currentTarget.classList.add('bg-indigo-50/50', 'dark:bg-indigo-900/10'); }}
+              onDragLeave={(e) => { e.currentTarget.classList.remove('bg-indigo-50/50', 'dark:bg-indigo-900/10'); }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.currentTarget.classList.remove('bg-indigo-50/50', 'dark:bg-indigo-900/10');
+                if (draggedLeadId) { updateLeadStage(draggedLeadId, stage.id); setDraggedLeadId(null); }
+              }}
+            >
+              <div className={`p-2.5 rounded-t-2xl border-b-2 ${stage.color.replace('bg-','border-')}`}>
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm uppercase text-slate-700">{stage.label}</span>
-                  <span className="text-xs font-black bg-slate-200 px-2 py-0.5 rounded-full text-slate-600">{pipelineLeads[stage.id]?.length || 0}</span>
+                  <span className="font-bold text-xs uppercase text-slate-700 dark:text-slate-300">{stage.label}</span>
+                  <span className="text-xs font-black bg-slate-200 dark:bg-slate-600 px-2 py-0.5 rounded-full text-slate-600 dark:text-slate-300">{pipelineLeads[stage.id]?.length || 0}</span>
                 </div>
               </div>
-              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl p-2 space-y-2 max-h-[500px] overflow-y-auto">
+              <div className="bg-slate-50 dark:bg-slate-800/50 rounded-b-2xl p-2 space-y-2 min-h-[200px] max-h-[500px] overflow-y-auto">
                 {pipelineLeads[stage.id]?.map(l => (
-                  <div key={l.id} onClick={() => openLeadDetail(l)} className="bg-white dark:bg-slate-700 p-3 rounded-xl border border-slate-100 dark:border-slate-600 shadow-sm hover:shadow-lg hover:border-indigo-200 dark:hover:border-indigo-500 transition-all cursor-pointer group">
-                    <div className="flex items-center justify-between mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-slate-400">#{l.id}</span>
-                        {(l.score || 0) >= 80 && <span className="w-1.5 h-1.5 rounded-full bg-red-500" title="Quente" />}
-                        {(l.score || 0) >= 50 && (l.score || 0) < 80 && <span className="w-1.5 h-1.5 rounded-full bg-orange-500" title="Morno" />}
-                      </div>
-                      <div className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${l.pipeline_stage === 'won' ? 'bg-emerald-100 text-emerald-600' : l.pipeline_stage === 'lost' ? 'bg-red-100 text-red-600' : l.pipeline_stage === 'proposal' ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
-                        {l.pipeline_stage || 'Novo'}
+                  <div key={l.id}
+                    className={`bg-white dark:bg-slate-700 rounded-xl border border-slate-100 dark:border-slate-600 shadow-sm transition-all ${draggedLeadId === l.id ? 'opacity-50' : 'hover:shadow-md hover:border-indigo-200 dark:hover:border-indigo-500'}`}
+                  >
+                    <div className="flex items-start gap-1.5 p-2.5">
+                      <button
+                        draggable
+                        onDragStart={(e) => { setDraggedLeadId(l.id); e.dataTransfer.effectAllowed = 'move'; }}
+                        onDragEnd={() => setDraggedLeadId(null)}
+                        className="mt-0.5 p-0.5 rounded cursor-grab active:cursor-grabbing text-slate-300 hover:text-slate-500 dark:hover:text-slate-300"
+                      >
+                        <GripVertical size={14} />
+                      </button>
+                      <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openLeadDetail(l)}>
+                        <div className="flex items-center gap-1.5">
+                          <h4 className="font-bold text-sm text-slate-800 dark:text-white truncate">
+                            <span className="text-slate-400 font-mono">#{l.id}</span> {l.title || '-'}
+                          </h4>
+                          {(l.score || 0) >= 80 && <span className="w-1.5 h-1.5 rounded-full bg-red-500 flex-shrink-0" title="Quente" />}
+                          {(l.score || 0) >= 50 && (l.score || 0) < 80 && <span className="w-1.5 h-1.5 rounded-full bg-orange-500 flex-shrink-0" title="Morno" />}
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{l.contact_info || '-'}</p>
+                        <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                          {l.deal_value > 0 && <span className="text-xs font-bold text-emerald-600">{formatCurrency(l.deal_value)}</span>}
+                          {l.score > 0 && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getScoreInfo(l.score).color} ${getScoreInfo(l.score).text}`}>{l.score}</span>}
+                          {l.assigned_to && (
+                            <span className="text-[10px] text-slate-400 flex items-center gap-0.5 ml-auto">
+                              <User size={10} /> {getSellerName(l.assigned_to)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <h4 className="font-bold text-sm text-slate-800 dark:text-white line-clamp-1 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{l.title || '-'}</h4>
-                    <p className="text-xs text-slate-500 mt-1 line-clamp-1">{l.contact_info || '-'}</p>
-                    {(l.deal_value > 0 || l.score > 0) && (
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-600">
-                        {l.deal_value > 0 && <span className="text-xs font-bold text-emerald-600">{formatCurrency(l.deal_value)}</span>}
-                        {l.score > 0 && <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${getScoreInfo(l.score).color} ${getScoreInfo(l.score).text}`}>{l.score}</span>}
-                      </div>
-                    )}
-                    {l.assigned_to && (
-                      <div className="flex items-center gap-1 mt-2">
-                        <div className="w-4 h-4 rounded-full bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center">
-                          <User size={10} className="text-indigo-500" />
-                        </div>
-                        <span className="text-[10px] text-slate-400">{getSellerName(l.assigned_to)}</span>
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
@@ -354,10 +378,13 @@ export default function AdminPortalRequests() {
           </div>
           {totalPages > 1 && (
             <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
-              <div className="text-xs text-slate-500">Página {currentPage} de {totalPages}</div>
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredLeads.length)} de {filteredLeads.length}
+              </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50"><ChevronLeft size={16} /></button>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50"><ChevronRight size={16} /></button>
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50"><ChevronLeft size={16} /></button>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-300">{currentPage} / {totalPages}</span>
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50"><ChevronRight size={16} /></button>
               </div>
             </div>
           )}

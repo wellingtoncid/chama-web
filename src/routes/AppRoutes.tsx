@@ -48,7 +48,7 @@ import PaymentFailure from '../pages/checkout/PaymentFailure';
 
 // ADMIN - USUÁRIOS
 import UsersManager from '../components/admin/UsersManagerView';
-import UserCreate from '../components/admin/UserCreate';
+import UserEditorPage from '../pages/admin/UserEditorPage';
 
 // ADMIN - ARTIGOS
 import ArticlesAdminPage from '../pages/admin/ArticlesAdminPage';
@@ -102,7 +102,8 @@ export default function AppRoutes() {
           <Route path="/dashboard/*" element={<DashboardPage />} />
 
           <Route path="/dashboard/admin/usuarios" element={<UsersManager />} />
-          <Route path="/dashboard/admin/usuarios/novo" element={<UserCreate />} />
+          <Route path="/dashboard/admin/usuarios/novo" element={<UserEditorPage />} />
+          <Route path="/dashboard/admin/usuarios/:id" element={<UserEditorPage />} />
 
           {/* CHAT: Dentro do Layout para manter a Sidebar */}
           <Route path="/chat" element={<ChatList />} />

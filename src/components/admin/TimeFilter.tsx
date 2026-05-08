@@ -26,7 +26,7 @@ export default function TimeFilter({ value, onChange, className = '' }: TimeFilt
     if (value === 'custom' && customStart && customEnd) {
       onChange('custom', { start: customStart, end: customEnd });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [customStart, customEnd, value, onChange]);
 
   return (

@@ -36,7 +36,7 @@ import DashboardHome from '../components/admin/DashboardHome';
 import DashboardBI from '../components/admin/DashboardBI';
 import ProfileView from '../components/admin/ProfileView';
 import AccessManager from '../components/admin/AccessManager';
-import UserCreate from '../components/admin/UserCreate';
+import UserEditorPage from './admin/UserEditorPage';
 import RolesPage from './admin/RolesPage';
 import ModulesPage from './admin/ModulesPage';
 import ArticlesAdminPage from './admin/ArticlesAdminPage';
@@ -169,7 +169,8 @@ export default function DashboardPage() {
               <Route path="admin/auditoria" element={<AuditLogsView />} />
               <Route path="admin/cargas" element={<FreightsManagerView />} />
               <Route path="admin/usuarios" element={<UsersManager />} />
-              {isSuperAdmin && <Route path="admin/usuarios/novo" element={<UserCreate />} />}
+              {isSuperAdmin && <Route path="admin/usuarios/novo" element={<UserEditorPage />} />}
+              {isSuperAdmin && <Route path="admin/usuarios/:id" element={<UserEditorPage />} />}
               <Route path="admin/comunidades" element={<GroupsManager />} />
               <Route path="admin/financeiro" element={<AdminFinancial />} />
               <Route path="admin/publicidade" element={<AdsManager />} />
