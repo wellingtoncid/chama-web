@@ -9,6 +9,7 @@ import FreightManager from '../components/company/FreightManager';
 import AdvertiserPortal from '../pages/advertiser/AdvertiserPortal';
 import MyProfile from '../pages/profile/MyProfile';
 import ChatList from './chat/ChatList';
+import ChatRoom from './chat/ChatRoom';
 import WelcomeOnboarding from '../components/profile/WelcomeOnboarding';
 
 import PlansPage from './plans/PlansPage';
@@ -222,6 +223,7 @@ export default function DashboardPage() {
 
           <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
           <Route path="chat" element={<ChatList />} />
+          <Route path="chat/:roomId" element={<ChatRoom />} />
           <Route path="vendas" element={<MarketplaceManager user={user} />} />
           <Route path="marketplace" element={<MarketplaceManager user={user} />} />
           <Route path="*" element={<Navigate to="" replace />} />

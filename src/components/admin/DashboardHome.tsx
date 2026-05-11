@@ -10,7 +10,7 @@ import {
 import { AdminHeader, StatsGrid, StatCard } from '@/components/admin';
 
 interface HomeStats {
-  users: { total: number; new_30d: number };
+  users: { total: number; new_30d: number; pending: number };
   companies: { total: number };
   freights: { total: number; new_7d: number };
   listings: { total: number };
@@ -254,7 +254,7 @@ export default function DashboardHome({ user }: { user: any }) {
             <div className="flex-1">
               <p className="font-bold text-sm text-slate-800 dark:text-white">Usuários Pendentes</p>
               <p className="text-xs text-slate-500 mt-0.5">
-                {stats?.users?.new_30d || 0} novos este mês
+                {stats?.users?.pending || 0} pendentes
               </p>
             </div>
             <ArrowRight size={16} className="text-slate-300" />
