@@ -1,5 +1,6 @@
 import React from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { cn } from '../../lib/utils';
 
 interface StatCardProps {
   label: string;
@@ -40,7 +41,7 @@ export function StatCard({ label, value, variant = 'default', icon, prefix, subt
 
   return (
     <div
-      className={`bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 ${onClick ? 'cursor-pointer hover:shadow-md transition-shadow' : ''} ${className || ''}`}
+      className={cn('bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700', onClick && 'cursor-pointer hover:shadow-md transition-shadow', className)}
       onClick={onClick}
     >
       <div className="flex items-center gap-3">
@@ -70,7 +71,7 @@ interface StatsGridProps {
 
 export default function StatsGrid({ children, className = '' }: StatsGridProps) {
   return (
-    <div className={`grid grid-cols-2 lg:grid-cols-4 gap-4 ${className}`}>
+    <div className={cn('grid grid-cols-2 lg:grid-cols-4 gap-4', className)}>
       {children}
     </div>
   );

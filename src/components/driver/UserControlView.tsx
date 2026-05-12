@@ -4,7 +4,7 @@ import {
   User, Shield, Mail, Edit2, Check, X, 
   Search, Filter, ArrowUpDown, UserCog 
 } from 'lucide-react';
-import { Button } from "../../components/ui/button";
+import { Button } from "../../components/ui/Button";
 
 export default function UsersControlView() {
   const [users, setUsers] = useState<any[]>([]);

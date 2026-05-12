@@ -1,5 +1,5 @@
 import { DollarSign, Route, Bell, Star, CheckCircle2, ArrowRight, Zap, MapPin } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../components/ui/Button";
 
 const benefits = [
   { 

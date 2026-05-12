@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Lock, Mail, User, Loader2, ArrowRight, AlertCircle, Phone } from 'lucide-react';
 import { api } from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const { login: authLogin } = useAuth();
 
   // Estados dos formulários
   const [emailOrWhatsapp, setEmailOrWhatsapp] = useState(''); // Login flexível
@@ -47,8 +49,7 @@ export default function AuthModal({ isOpen, onClose, onSuccess }: AuthModalProps
       const res = await api.post(endpoint, payload);
 
       if (res.data?.success || res.data?.token) {
-        localStorage.setItem('@ChamaFrete:token', res.data.token);
-        localStorage.setItem('@ChamaFrete:user', JSON.stringify(res.data.user));
+        authLogin(res.data.user, res.data.token);
         onSuccess(); 
       } else {
         setError(res.data?.message || 'Dados incorretos. Verifique e tente novamente.');

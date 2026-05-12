@@ -1,5 +1,5 @@
 import { MessageCircle, Users, ArrowRight, Loader2 } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "../ui/Button";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../../api/api";

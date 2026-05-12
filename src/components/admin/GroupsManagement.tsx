@@ -4,7 +4,7 @@ import {
   Loader2, Palette, MessageCircle, Search, CheckSquare, Square,
   ShieldAlert, Tag, MousePointer, Eye as EyeIcon, Users, Globe, Star, ChevronLeft, ChevronRight
 } from "lucide-react";
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 import { api } from "@/api/api";
 import GroupForm from '@/components/groups/GroupForm';
 import Swal from "sweetalert2";

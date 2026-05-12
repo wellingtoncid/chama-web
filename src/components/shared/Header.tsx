@@ -1,7 +1,8 @@
 import { Menu, X, Sun, Moon, ChevronDown, Building2, User, Megaphone } from "lucide-react";
-import { Button } from "../ui/button";
+import { Button } from "../ui/Button";
 import React, { useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { useTheme } from "../../context/ThemeContext";
 import { useNavigate } from "react-router-dom";
 import AdCard from "../shared/AdCard";
 import MenuDrawer from "./MenuDrawer";
@@ -10,24 +11,7 @@ import logoImg from '../../assets/chama-thumb-blue-rbg.png';
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
-  const [isDark, setIsDark] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return document.documentElement.classList.contains('dark');
-    }
-    return false;
-  });
-
-  const toggleTheme = () => {
-    const newDark = !isDark;
-    setIsDark(newDark);
-    if (newDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('@ChamaFrete:theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('@ChamaFrete:theme', 'light');
-    }
-  };
+  const { isDark, toggleTheme } = useTheme();
 
   const navLinks = [
     { name: "Fretes", href: "/fretes" },

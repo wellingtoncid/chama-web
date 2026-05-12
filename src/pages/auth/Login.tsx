@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
+import { isStaff as isStaffRole } from '../../constants/roleUtils';
 import { Phone, Mail, Lock, LogIn, AlertCircle, Loader2 } from 'lucide-react';
 
 export default function Login() {
@@ -9,11 +11,12 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const navigate = useNavigate();
+  const { login: authLogin, logout: authLogout } = useAuth();
 
   // Limpa resíduos de sessões anteriores ao abrir a tela
   useEffect(() => {
-    localStorage.removeItem('@ChamaFrete:token');
-    localStorage.removeItem('@ChamaFrete:user');
+    authLogout();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -36,9 +39,8 @@ export default function Login() {
         const userData = res.data.user;
         const userToken = res.data.token;
 
-        // 1. Salva os dados no Storage
-        localStorage.setItem('@ChamaFrete:user', JSON.stringify(userData));
-        localStorage.setItem('@ChamaFrete:token', userToken);
+        // 1. Salva via AuthContext (token + user)
+        authLogin(userData, userToken);
         
         // 2. Configura o Token no Axios imediatamente para as próximas chamadas
         api.defaults.headers.common['Authorization'] = `Bearer ${userToken}`;
@@ -47,7 +49,7 @@ export default function Login() {
         try {
           const profileRes = await api.get('/get-my-profile');
           if (profileRes.data?.success && profileRes.data?.user) {
-            localStorage.setItem('@ChamaFrete:user', JSON.stringify(profileRes.data.user));
+            authLogin(profileRes.data.user, userToken);
           }
         } catch (err) {
           console.error('Erro ao buscar perfil:', err);
@@ -57,7 +59,7 @@ export default function Login() {
         const role = String(userData.role || '').toLowerCase();
         
         // Redirecionamento baseado na hierarquia do AppRoutes
-        const isStaff = ['admin', 'manager', 'analyst', 'assistant'].includes(role);
+        const isStaff = isStaffRole(role);
 
         if (isStaff) {
           navigate('/admin', { replace: true });

@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import MenuDrawer from '../shared/MenuDrawer';
 import NotificationBell from '../ui/NotificationBell';
+import { useTheme } from '../../context/ThemeContext';
 import { Menu, Sun, Moon, ChevronDown, LayoutDashboard, MessageSquare } from 'lucide-react';
 import logoImg from '../../assets/chama-thumb-blue-rbg.png';
 
@@ -10,9 +11,7 @@ interface DashboardLayoutProps {
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
-  const [isDark, setIsDark] = useState(() => {
-    return localStorage.getItem('@ChamaFrete:theme') === 'dark';
-  });
+  const { isDark, toggleTheme } = useTheme();
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
 
   const navLinks = [
@@ -20,18 +19,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
     { name: "Marketplace", href: "/marketplace" },
     { name: "Comunidades", href: "/comunidade" }
   ];
-
-  useEffect(() => {
-    if (isDark) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('@ChamaFrete:theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('@ChamaFrete:theme', 'light');
-    }
-  }, [isDark]);
-
-  const toggleTheme = () => setIsDark(!isDark);
   const displayName = user?.name ?? user?.email ?? 'Usuário';
 
   return (

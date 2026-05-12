@@ -1,4 +1,5 @@
 import React from 'react';
+import { cn } from '../../lib/utils';
 
 type StatusType = 'pending' | 'published' | 'rejected' | 'draft' | 'active' | 'inactive' | 'approved' | 'cancelled' | 'processing' | 'completed' | 'failed';
 
@@ -38,7 +39,7 @@ const statusStyles: Record<StatusType, string> = {
 
 export default function StatusBadge({ status, labels = defaultLabels, className = '' }: StatusBadgeProps) {
   return (
-    <span className={`px-2 py-1 rounded-full text-xs font-bold ${statusStyles[status]} ${className}`}>
+    <span className={cn('px-2 py-1 rounded-full text-xs font-bold', statusStyles[status], className)}>
       {labels[status] || status}
     </span>
   );

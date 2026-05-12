@@ -3,7 +3,7 @@ import {
   ArrowRight, Building2, CheckCircle2, X, Zap, 
   ShoppingBag, BarChart3, Users, ChevronRight, Target
 } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../components/ui/Button";
 import { api } from '../../api/api';
 
 const CTA = () => {

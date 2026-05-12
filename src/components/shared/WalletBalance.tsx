@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Wallet, Plus, ChevronDown, X, Eye, EyeOff } from 'lucide-react';
 import { api } from '../../api/api';
-import { Button } from '../ui/button';
+import { Button } from '../ui/Button';
 
 interface WalletBalanceProps {
   onRecargeClick?: () => void;

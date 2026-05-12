@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bell, Search, LogOut, User, ShieldCheck, Sun, Moon } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import WalletBalance from '../shared/WalletBalance';
 import NotificationBell from '../ui/NotificationBell';
 
@@ -13,6 +14,7 @@ interface TopbarProps {
 // 1. Desestruturamos as props corretamente aqui
 const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
 
   // Verificação defensiva para evitar crash quando user é null
   if (!user) {
@@ -22,8 +24,7 @@ const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem('@ChamaFrete:token');
-    localStorage.removeItem('@ChamaFrete:user');
+    authLogout();
     window.location.href = '/login';
   };
 
@@ -31,13 +32,6 @@ const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
   const isAdmin = role === 'admin';
   const isDriver = role === 'driver';
   const isCompany = role === 'company';
-  const isManager = role === 'manager';
-  const isSupport = role === 'support';
-  const isFinance = role === 'finance';
-  const isMarketing = role === 'marketing';
-  const isCoordinator = role === 'coordinator';
-  const isSupervisor = role === 'supervisor';
-  const isDirector = role === 'director';
   
   // Verificação ativa: is_verified = 1 E verified_until > agora
   const isVerified = user.is_verified == 1 && (!user.verified_until || new Date(user.verified_until) > new Date());

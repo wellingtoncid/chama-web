@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { X, Building2, Zap, CheckCircle2, Send, Clock } from 'lucide-react';
-import { Button } from '../../components/ui/button';
+import { Button } from '../../components/ui/Button';
 import { api } from '../../api/api';
 
 interface RequestModalProps {

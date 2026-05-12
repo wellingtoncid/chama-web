@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
-import { Button } from '../../components/ui/button';
+import { Button } from '../../components/ui/Button';
 import { 
   Wallet, Loader2, 
   Download, ArrowUpRight, ArrowDownLeft,

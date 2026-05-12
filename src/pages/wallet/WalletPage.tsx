@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Wallet, ArrowUpRight, ArrowDownLeft, QrCode, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '@/api/api';
-import { Button } from '@/components/ui/button';
+import { Button } from '@/components/ui/Button';
 
 // Definição de interface para melhorar a estabilidade do código
 interface Transaction {

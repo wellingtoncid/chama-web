@@ -2,13 +2,13 @@ import React, { useEffect, useState } from "react";
 import { ChevronDown, ArrowRight, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom"; 
 import FreightCard from "../../components/shared/FreightCard";
-import { Button } from "../ui/button";
+import { Button } from "../ui/Button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "../ui/dropdown-menu";
+} from "../ui/DropdownMenu";
 import { api } from "../../api/api";
 import AdCard from "../shared/AdCard"; 
 

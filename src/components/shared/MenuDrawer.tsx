@@ -8,6 +8,8 @@ import {
   X, ChevronRight, BookOpen, UserPlus
 } from 'lucide-react';
 import { api } from '@/api/api';
+import { useAuth } from '@/context/AuthContext';
+import { isInternal as isInternalRole, isExternal as isExternalRole, isSuperAdmin as isSuperAdminRole, isDriver as isDriverRole, isCompany as isCompanyRole } from '@/constants/roleUtils';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -18,6 +20,7 @@ interface MenuDrawerProps {
 const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout: authLogout } = useAuth();
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [isAvailable, setIsAvailable] = useState(user?.is_available ?? 1);
   const [isAuthor, setIsAuthor] = useState(false);
@@ -62,9 +65,11 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   }, [user?.is_available]);
 
   const role = String(user?.role || '').toLowerCase();
-  const isInternal = ['admin', 'manager', 'support', 'finance', 'marketing', 'director', 'coordinator', 'supervisor'].includes(role);
-  const isSuperAdmin = role === 'admin';
-  const isExternal = ['driver', 'company'].includes(role);
+  const isInternal = isInternalRole(role);
+  const isSuperAdmin = isSuperAdminRole(role);
+  const isExternal = isExternalRole(role);
+  const isDriver = isDriverRole(role);
+  const isCompany = isCompanyRole(role);
   
   const hasModule = (key: string) => activeModules.includes(key);
   const hasFreights = hasModule('freights') || isSuperAdmin;
@@ -76,9 +81,6 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   const hasSupport = hasModule('support') || isSuperAdmin;
   const hasArticles = hasModule('articles') || isSuperAdmin;
   const hasAdvertiser = hasModule('advertiser') || isSuperAdmin;
-
-  const isDriver = role === 'driver';
-  const isCompany = role === 'company';
 
   const menuSections = [
     {
@@ -146,8 +148,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('@ChamaFrete:token');
-    localStorage.removeItem('@ChamaFrete:user');
+    authLogout();
     onClose();
     window.location.href = '/';
   };

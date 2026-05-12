@@ -2,6 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../api/api';
+import { useAuth } from '../context/AuthContext';
+import { isInternal as isInternalRole, isCompany as isCompanyRole, isDriver as isDriverRole, isSuperAdmin as isSuperAdminRole } from '../constants/roleUtils';
 
 import CompanyCommandCenter from '../components/company/CompanyCommandCenter';
 import DriverView from '../components/driver/DriverView';
@@ -19,40 +21,13 @@ import SupportPage from './support/SupportPage';
 import QuotesPage from './quotes/QuotesPage';
 import MarketplaceManager from '../modules/marketplace/MarketplaceManager';
 
-import FreightsManagerView from '../components/admin/FreightManagerView';
-import UsersManager from '../components/admin/UsersManagerView';
-import GroupsManager from '../components/admin/GroupsManagement'; 
-import AdsManager from '../components/admin/AdsManager'; 
-import SettingsView from '../components/admin/SettingsView'; 
-import AdminPortalRequests from '../components/admin/AdminPortalRequests';
-import AdminFinancial from '../components/admin/AdminFinancial'; 
-import PlansManager from '../components/admin/PlansManager';
-import AdminDashboardActivity from '../components/admin/AdminDashboardActivity';
-import PricingManager from '../components/admin/PricingManager';
-import SupportTicketsManager from '../components/admin/SupportTicketsManager';
-import QuotesManager from '../components/admin/QuotesManager';
-import MarketplaceManagerAdmin from '../components/admin/MarketplaceManagerAdmin';
-import ListingCategoriesManager from '../components/admin/ListingCategoriesManager';
 import DashboardHome from '../components/admin/DashboardHome';
-import DashboardBI from '../components/admin/DashboardBI';
-import ProfileView from '../components/admin/ProfileView';
-import AccessManager from '../components/admin/AccessManager';
-import UserEditorPage from './admin/UserEditorPage';
-import RolesPage from './admin/RolesPage';
-import ModulesPage from './admin/ModulesPage';
-import ArticlesAdminPage from './admin/ArticlesAdminPage';
-import AuthorRequestsAdminPage from './admin/AuthorRequestsAdminPage';
+import { getAdminRouteElements } from '../components/admin/AdminRoutes';
 import MyArticlesPage from './MyArticlesPage';
-import VerificationsManager from '../components/admin/VerificationsManager';
-import ReviewsManager from '../components/admin/ReviewsManager';
-import ReportsManager from '../components/admin/ReportsManager';
-import AffiliateManager from '../components/admin/AffiliateManager';
-import AuditLogsView from '../components/admin/AuditLogView';
-
-import CommunityPlatform from './community/CommunityPlatform';
 import TeamPage from './team/TeamPage';
 
 interface User {
+  id: number;
   role?: string;
   company_name?: string;
   document?: string;
@@ -62,12 +37,10 @@ interface User {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
+  const { user: authUser, login: authLogin, logout: authLogout } = useAuth();
   const [hasDismissedOnboarding, setHasDismissedOnboarding] = useState(false);
-  const [user, setUser] = useState<User | null>(() => {
-    const saved = localStorage.getItem('@ChamaFrete:user');
-    return saved ? JSON.parse(saved) : null;
-  });
-  const [loading, setLoading] = useState(!user);
+  const [user, setUser] = useState<User | null>(authUser as User | null);
+  const [loading, setLoading] = useState(false);
 
   const fetchUserData = useCallback(async () => {
     try {
@@ -75,19 +48,18 @@ export default function DashboardPage() {
       if (response.data.success) {
         const userData = response.data.user || response.data.data;
         setUser(userData);
-        localStorage.setItem('@ChamaFrete:user', JSON.stringify(userData));
+        authLogin(userData);
       }
     } catch (err: unknown) {
       const error = err as { response?: { status?: number } };
       if (error.response?.status === 401 || error.response?.status === 403) {
-        localStorage.removeItem('@ChamaFrete:token');
-        localStorage.removeItem('@ChamaFrete:user');
+        authLogout();
         navigate('/login');
       }
     } finally {
       setLoading(false);
     }
-  }, [navigate]);
+  }, [navigate, authLogin, authLogout]);
 
   useEffect(() => { fetchUserData(); }, [fetchUserData]);
 
@@ -102,16 +74,10 @@ export default function DashboardPage() {
 
   // --- LÓGICA DE PERMISSÕES (RBAC) ---
   const role = String(user.role || '').toLowerCase();
-  
-  // Internos (Staff)
-  const isSuperAdmin = role === 'admin';
-  const isInternal = ['admin', 'manager', 'support', 'finance', 'marketing', 'director', 'coordinator', 'supervisor'].includes(role);
-  
-  // Externos (Clientes)
-  const isCompany = role === 'company';
-  const isDriver = role === 'driver';
-  
-  // Módulos Contratados
+  const isInternal = isInternalRole(role);
+  const isCompany = isCompanyRole(role);
+  const isDriver = isDriverRole(role);
+  const isSuperAdmin = isSuperAdminRole(role);
   const hasAdsModule = isInternal || isCompany;
 
   // LÓGICA DE BLOQUEIO / ONBOARDING
@@ -129,7 +95,7 @@ export default function DashboardPage() {
           onComplete={(updatedData: Partial<User>) => {
             const newUser = { ...user, ...updatedData };
             setUser(newUser);
-            localStorage.setItem('@ChamaFrete:user', JSON.stringify(newUser));
+            authLogin(newUser);
           }} 
         />
       )}
@@ -163,39 +129,7 @@ export default function DashboardPage() {
             <Navigate to="profile" replace />
           } />
 
-          {isInternal && (
-            <>
-              <Route path="admin/bi" element={<DashboardBI user={user} />} />
-              <Route path="admin/inicio" element={<DashboardHome user={user} />} />
-              <Route path="admin/auditoria" element={<AuditLogsView />} />
-              <Route path="admin/cargas" element={<FreightsManagerView />} />
-              <Route path="admin/usuarios" element={<UsersManager />} />
-              {isSuperAdmin && <Route path="admin/usuarios/novo" element={<UserEditorPage />} />}
-              {isSuperAdmin && <Route path="admin/usuarios/:id" element={<UserEditorPage />} />}
-              <Route path="admin/comunidades" element={<GroupsManager />} />
-              <Route path="admin/financeiro" element={<AdminFinancial />} />
-              <Route path="admin/publicidade" element={<AdsManager />} />
-              <Route path="admin/leads" element={<AdminPortalRequests />} />
-              <Route path="admin/artigos" element={<ArticlesAdminPage />} />
-              <Route path="admin/autores" element={<AuthorRequestsAdminPage />} />
-              <Route path="admin/cotacoes" element={<QuotesManager />} />
-              <Route path="admin/marketplace" element={<MarketplaceManagerAdmin />} />
-              <Route path="admin/marketplace-categorias" element={<ListingCategoriesManager />} />
-              <Route path="admin/configuracoes" element={<SettingsView />} />
-              
-              <Route path="admin/suporte" element={<SupportTicketsManager />} />
-              {isSuperAdmin && <Route path="admin/planos" element={<PlansManager />} />}
-              {isSuperAdmin && <Route path="admin/precificacao" element={<PricingManager />} />}
-              {isSuperAdmin && <Route path="admin/acessos" element={<AccessManager />} />}
-              {isSuperAdmin && <Route path="admin/cargos" element={<RolesPage />} />}
-              {isSuperAdmin && <Route path="admin/modulos" element={<ModulesPage />} />}
-              <Route path="admin/verificacoes" element={<VerificationsManager />} />
-              <Route path="admin/avaliacoes" element={<ReviewsManager />} />
-              <Route path="admin/denuncias" element={<ReportsManager />} />
-              {isSuperAdmin && <Route path="admin/afiliados" element={<AffiliateManager />} />}
-              <Route path="perfil" element={<ProfileView />} />
-            </>
-          )}
+          {isInternal && getAdminRouteElements(user, isSuperAdmin)}
 
           {(isCompany || isInternal) && (
             <Route path="logistica" element={<FreightManager user={user} />} />

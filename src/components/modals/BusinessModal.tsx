@@ -1,7 +1,7 @@
 import { X, Building2, Zap, BarChart3, CheckCircle2 } from "lucide-react";
 import { useState } from "react";
 import { api } from "../../api/api";
-import { Button } from "../ui/button";
+import { Button } from "../ui/Button";
 
 interface BusinessModalProps {
   isOpen: boolean;

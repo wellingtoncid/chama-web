@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { X, Save, Loader2, MapPin, Link2, User, ShieldCheck, Plus, XCircle, Upload, Image as ImageIcon, Check, AlertCircle } from "lucide-react";
-import { Button } from "../../components/ui/button";
+import { Button } from "../../components/ui/Button";
 import { api } from "@/api/api";
 import { AdImage } from "../AdImage";
 

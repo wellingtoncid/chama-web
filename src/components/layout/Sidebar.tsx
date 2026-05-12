@@ -8,11 +8,14 @@ import {
 import logoImg from '../../assets/chama-thumb-blue-rbg.png';
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api/api';
+import { useAuth } from '../../context/AuthContext';
+import { isInternal as isInternalRole, isExternal as isExternalRole, isSuperAdmin as isSuperAdminRole, isDriver as isDriverRole, isCompany as isCompanyRole } from '../../constants/roleUtils';
 import Swal from 'sweetalert2';
 
 const Sidebar = ({ user }: { user: any }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { logout: authLogout, login: authLogin } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [isAvailable, setIsAvailable] = useState(user?.is_available ?? 1);
@@ -52,6 +55,7 @@ const Sidebar = ({ user }: { user: any }) => {
         setIsAvailable(newStatus);
         const updatedUser = { ...user, is_available: newStatus };
         localStorage.setItem('@ChamaFrete:user', JSON.stringify(updatedUser));
+        authLogin(updatedUser);
         Swal.fire({
           icon: 'success',
           title: newStatus === 1 ? 'Você está disponível!' : 'Você está indisponível',
@@ -74,16 +78,17 @@ const Sidebar = ({ user }: { user: any }) => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('@ChamaFrete:token');
-    localStorage.removeItem('@ChamaFrete:user');
+    authLogout();
     navigate('/login');
   };
 
   // --- LÓGICA DE PERMISSÕES ---
   const role = String(user?.role || '').toLowerCase();
-  const isInternal = ['admin', 'manager', 'support', 'finance', 'marketing', 'director', 'coordinator', 'supervisor'].includes(role);
-  const isSuperAdmin = role === 'admin';
-  const isExternal = ['driver', 'company'].includes(role);
+  const isInternal = isInternalRole(role);
+  const isExternal = isExternalRole(role);
+  const isSuperAdmin = isSuperAdminRole(role);
+  const isDriver = isDriverRole(role);
+  const isCompany = isCompanyRole(role);
   
   // Módulos ativos
   const hasModule = (key: string) => activeModules.includes(key);
@@ -95,10 +100,6 @@ const Sidebar = ({ user }: { user: any }) => {
   const hasPlans = hasModule('plans') || isSuperAdmin;
   const hasSupport = hasModule('support') || isSuperAdmin;
   const hasAdvertiser = hasModule('advertiser') || isSuperAdmin;
-
-  // Driver specific
-  const isDriver = role === 'driver';
-  const isCompany = role === 'company';
 
   // --- DEFINIÇÃO DO MENU POR SEÇÕES ---
   const menuSections = [
