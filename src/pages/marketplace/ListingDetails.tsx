@@ -11,6 +11,7 @@ import AdCard from '../../components/shared/AdCard';
 import { AdImage } from '../../components/AdImage';
 import AuthModal from '../../components/modals/AuthModal';
 import { useTracker } from '../../services/useTracker';
+import { usePageMeta } from '../../hooks/usePageMeta';
 
 interface ListingData {
   id: number;
@@ -30,6 +31,7 @@ interface ListingData {
   seller_slug: string;
   seller_avatar?: string;
   seller_phone?: string;
+  user_id?: number;
   seller_verified: number;
   seller_since: string;
   total_listings: number;
@@ -152,6 +154,18 @@ export default function ListingDetails() {
     : listing?.main_image 
       ? [listing.main_image] 
       : [];
+
+  const listingTitle = listing ? `${listing.title} | ${listing.location_city}-${listing.location_state}` : undefined;
+  const listingDesc = listing ? `Anúncio: ${listing.title} por ${new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(listing.price))} em ${listing.location_city}-${listing.location_state}.` : undefined;
+  const listingImage = listing?.main_image || listing?.gallery?.[0] || undefined;
+
+  usePageMeta(listing ? {
+    title: listingTitle,
+    description: listingDesc,
+    image: listingImage,
+    url: window.location.href,
+    type: 'article',
+  } : {});
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -316,7 +330,7 @@ export default function ListingDetails() {
                         {item.title}
                       </h4>
                       <p className="text-emerald-600 font-black text-sm">
-                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(item.price)}
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(item.price))}
                       </p>
                     </Link>
                   ))}
@@ -355,7 +369,7 @@ export default function ListingDetails() {
                 <div className="text-center">
                   <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.3em]">Preço</p>
                   <p className="text-3xl md:text-5xl font-[1000] mb-10 tracking-tighter italic text-emerald-600">
-                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(listing.price)}
+                    {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(Number(listing.price))}
                   </p>
                   
                   <div className="space-y-4">

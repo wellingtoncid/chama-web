@@ -5,6 +5,7 @@ import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import AdCard from '@/components/shared/AdCard';
 import { Clock, Eye, User, ArrowLeft, Share2, Calendar } from 'lucide-react';
+import { usePageMeta } from '@/hooks/usePageMeta';
 
 interface Article {
   id: number;
@@ -92,6 +93,16 @@ const ArticleDetailPage = () => {
       alert('Link copiado para a área de transferência!');
     }
   };
+
+  const articleTitle = article?.title;
+  const articleDesc = article?.excerpt || `Leia o artigo: ${article?.title}`;
+
+  usePageMeta(article ? {
+    title: articleTitle,
+    description: articleDesc,
+    url: window.location.href,
+    type: 'article',
+  } : {});
 
   if (loading) {
     return (

@@ -65,7 +65,7 @@ const Topbar = ({ user, isDark, toggleTheme }: TopbarProps) => {
           <h2 className="text-[11px] font-black uppercase text-slate-900 dark:text-white tracking-tighter flex items-center gap-1">
             Eixo <span className="text-orange-500 italic">{roleLabel}</span>
             {isVerified && (
-              <ShieldCheck size={13} className="text-blue-600 dark:text-blue-400 ml-0.5" fill="currentColor" fillOpacity={0.1} title="Usuário Verificado" />
+              <ShieldCheck size={13} className="text-blue-600 dark:text-blue-400 ml-0.5 fill-blue-600/10" />
             )}
           </h2>
         </div>

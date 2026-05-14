@@ -1,8 +1,39 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { Component, useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+
+class ProfileErrorBoundary extends Component<
+  { children: React.ReactNode },
+  { hasError: boolean; error: Error | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    console.error('ProfileView crash:', error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950 p-8">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl p-8 max-w-lg border border-red-200 dark:border-red-900/50 shadow-xl">
+            <h2 className="text-xl font-black text-red-600 mb-4 uppercase italic">Erro ao carregar perfil</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 font-mono bg-slate-100 dark:bg-slate-800 p-4 rounded-xl overflow-auto">
+              {this.state.error?.message || 'Erro desconhecido'}
+            </p>
+            <p className="text-xs text-slate-400">Verifique o console para mais detalhes.</p>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import {
   MessageCircle,
-  Truck,
   Building2,
   ShieldCheck,
   ArrowLeft,
@@ -15,9 +46,11 @@ import {
   ExternalLink,
   Flag,
   X,
+  Megaphone,
 } from 'lucide-react';
 import { api } from '../../api/api';
 import { useTracker } from '../../services/useTracker';
+import { usePageMeta } from '../../hooks/usePageMeta';
 import Swal from 'sweetalert2';
 
 import Header from '../../components/shared/Header';
@@ -27,6 +60,17 @@ import { ReviewsExpandable } from '../../components/reviews';
 
 import FreightRow from '../../components/shared/FreightRow';
 import ListingCard from '../../components/shared/ListingCard';
+import { useProfileTheme } from '../../components/profile/ProfileTheme';
+import {
+  StatCard,
+  ProfileInfoItem,
+  VehicleProfileBadge,
+  ProfileLoadingState,
+  ProfileNotFoundState,
+  IdentityBadge,
+  GradientAvatar,
+  ShareProfileButton,
+} from '../../components/profile/ProfileComponents';
 
 interface ProfileData {
   id: number;
@@ -51,12 +95,26 @@ interface ProfileData {
   verified_until?: string;
   instagram?: string;
   linkedin?: string;
+  website?: string;
   vehicle_type?: string;
   body_type?: string;
   is_available?: number;
   availability_status?: string;
   member_since?: string;
   identity_confirmed?: number;
+  views_count?: number;
+  clicks_count?: number;
+  experience_years?: number;
+  total_active_freights?: number;
+  total_active_listings?: number;
+  total_active_ads?: number;
+  advertiser_category?: string;
+  advertiser_target?: string;
+  certifications?: string[];
+  available_equipment?: string[];
+  industry_sector?: string;
+  fleet_size?: number;
+  preferred_regions?: string[];
   extras?: Record<string, unknown>;
   [key: string]: unknown;
 }
@@ -73,15 +131,23 @@ export default function ProfileView() {
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [freights, setFreights] = useState<PostItem[]>([]);
   const [marketplaceItems, setMarketplaceItems] = useState<PostItem[]>([]);
+  const [adItems, setAdItems] = useState<PostItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState('');
   const [reportDescription, setReportDescription] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
-  const loggedUser = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('@ChamaFrete:user') || 'null') : null;
+  const loggedUser = typeof window !== 'undefined' ? (() => {
+    try {
+      return JSON.parse(localStorage.getItem('@ChamaFrete:user') || 'null');
+    } catch { return null; }
+  })() : null;
   const isLoggedIn = !!loggedUser?.id;
   const isOwnProfile = loggedUser?.id === profile?.id;
+
+  const asArray = (v: unknown): string[] =>
+    Array.isArray(v) ? v.filter((x): x is string => typeof x === 'string') : [];
 
   const handleReportProfile = async () => {
     if (!reportReason) return;
@@ -131,6 +197,8 @@ export default function ProfileView() {
     navigate(`/anuncio/${slug}`);
   }, [trackEvent, navigate]);
 
+  const [seoMeta, setSeoMeta] = useState<Record<string, string>>({});
+
   const fetchFullData = useCallback(async () => {
     try {
       setLoading(true);
@@ -139,6 +207,7 @@ export default function ProfileView() {
       if (res.data?.success) {
         const data = res.data.data;
         setProfile(data);
+        if (res.data.seo) setSeoMeta(res.data.seo);
 
         try {
           const postsRes = await api.get('/get-user-posts', {
@@ -146,20 +215,20 @@ export default function ProfileView() {
           });
           const items = Array.isArray(postsRes.data?.data) ? postsRes.data.data : [];
 
-          const roleType = (data.role || data.user_type || '').toLowerCase();
-          const isDriverRole = roleType === 'driver' || roleType === 'motorista';
-          const isShipperRole =
-            !!data.is_shipper ||
-            ['shipper', 'company', 'transportadora', 'logistics'].includes(roleType);
+          const userType = (data.user_type || '').toUpperCase();
+          const isDriverType = userType === 'DRIVER';
+          const isAdvertiserType = userType === 'ADVERTISER';
 
-          if (isDriverRole) {
+          if (isAdvertiserType) {
+            setMarketplaceItems(items.filter((p: PostItem) => p.type === 'marketplace'));
+            setAdItems(items.filter((p: PostItem) => p.type === 'ad'));
+            setFreights([]);
+          } else if (isDriverType) {
             setMarketplaceItems(items);
             setFreights([]);
           } else {
-            const freightList = items.filter((p: PostItem) => p.type !== 'marketplace');
-            const marketList = items.filter((p: PostItem) => p.type === 'marketplace');
-            setFreights(isShipperRole ? freightList : []);
-            setMarketplaceItems(marketList);
+            setFreights(items.filter((p: PostItem) => p.type !== 'marketplace'));
+            setMarketplaceItems(items.filter((p: PostItem) => p.type === 'marketplace'));
           }
         } catch (postError) {
           console.error('Erro ao buscar posts:', postError);
@@ -203,54 +272,46 @@ export default function ProfileView() {
     return score;
   };
 
-  if (loading) return <LoadingState />;
-  if (!profile) return <NotFoundState />;
+  usePageMeta(seoMeta.title ? {
+    title: seoMeta.title,
+    description: seoMeta.description,
+    image: seoMeta.og_image,
+    url: window.location.href,
+    type: seoMeta.type || 'profile',
+  } : {});
 
-  const type = (profile.role || profile.user_type || '').toLowerCase();
-  const isDriver =
-    type === 'driver' ||
-    type === 'motorista' ||
-    (!!profile.vehicle_type && !['company', 'shipper', 'transportadora', 'logistics'].includes(type));
-  const isShipper =
-    !!profile.is_shipper ||
-    ['shipper', 'company', 'transportadora', 'logistics'].includes(type);
-  const isSeller =
-    !!profile.is_seller ||
-    (typeof profile.user_type === 'string' && profile.user_type.toUpperCase() === 'ADVERTISER');
+  if (loading) return <ProfileLoadingState />;
+  if (!profile) return <ProfileNotFoundState />;
+
+  const userType = (profile.user_type || '').toUpperCase();
+  const isDriver = userType === 'DRIVER';
+  const isAdvertiser = userType === 'ADVERTISER';
+  const isShipper = userType === 'COMPANY' || userType === 'SHIPPER';
+  const isSeller = isDriver || isAdvertiser || isShipper;
 
   const profileScore = calculateProfileScore(profile, isDriver);
   
   // Badge Identidade Confirmada: SÓ para motoristas, não para empresas
   // Verifica se tem algum tipo de verificação ativa (identity_confirmed, verified_until válido, is_verified = 1)
-  const hasIdentityConfirmed = isDriver && (
+  const canBeVerified = isDriver || isAdvertiser;
+  const hasIdentityConfirmed = canBeVerified && (
     profile.is_verified === true || 
     (profile.verified_until && new Date(profile.verified_until) > new Date()) ||
     profile.identity_confirmed == 1
   );
 
-  const theme = isDriver
-    ? {
-        primary: 'orange',
-        bg: 'bg-orange-600',
-        text: 'text-orange-600',
-        light: 'bg-orange-50 dark:bg-orange-500/5',
-        border: 'border-orange-100 dark:border-orange-900/30',
-        shadow: 'shadow-orange-100',
-      }
-    : {
-        primary: 'blue',
-        bg: 'bg-blue-600',
-        text: 'text-blue-600',
-        light: 'bg-blue-50 dark:bg-blue-500/5',
-        border: 'border-blue-100 dark:border-blue-900/30',
-        shadow: 'shadow-blue-100',
-      };
+  const theme = useProfileTheme(profile.user_type);
 
   const displayName = profile.trade_name || profile.corporate_name || profile.name || 'Usuário Chama Frete';
-  const displayRole = isDriver ? 'Motorista' : 'Empresa';
+  const roleLabel: Record<string, string> = {
+    DRIVER: 'Motorista',
+    ADVERTISER: 'Parceiro Anunciante',
+    COMPANY: 'Transportadora',
+    SHIPPER: 'Embarcador',
+  };
+  const displayRole = roleLabel[userType] || 'Empresa';
   
-  // Garantia de Banner e Avatar (Usa banner_url ou cover_url se disponível)
-  const bannerImg = profile.banner_url || profile.cover_url;
+  const bannerImg = profile.cover_url;
   const avatarImg = profile.avatar_url;
 
   const isAvailable = (profile.is_available === 1) || profile.availability_status === 'available';
@@ -268,6 +329,12 @@ export default function ProfileView() {
         : `https://linkedin.com/in/${profile.linkedin.replace('@', '')}`
       : null;
 
+  const websiteUrl = profile.website
+    ? typeof profile.website === 'string' && profile.website.startsWith('http')
+      ? profile.website
+      : `https://${profile.website}`
+    : null;
+
   const handleWhatsAppClick = async () => {
     if (!isLoggedIn || !profile.whatsapp_clean) return;
     try {
@@ -279,20 +346,24 @@ export default function ProfileView() {
   };
 
   const hasFreights = isShipper && freights.length > 0;
-  const hasMarketplace = (isDriver || isSeller || isShipper) && marketplaceItems.length > 0;
-  const hasAnyPosts = hasFreights || hasMarketplace;
+  const hasMarketplace = isSeller && marketplaceItems.length > 0;
+  const hasAnyPosts = hasFreights || hasMarketplace || adItems.length > 0;
 
   return (
+    <ProfileErrorBoundary>
     <div className="flex flex-col min-h-screen">
       <Header />
 
       <main className="flex-grow pt-16 md:pt-20">
         {/* HEADER BANNER */}
-        <div className={`h-64 md:h-120 w-full relative ${theme.bg}`}>
+        <div className={`h-64 md:h-120 w-full relative overflow-hidden ${theme.bg}`}>
           {bannerImg ? (
-            <img src={bannerImg} alt="Banner" className="absolute inset-0 w-full h-full object-cover opacity-80" />
+            <>
+              <img src={bannerImg} alt="Banner" loading="lazy" className="absolute inset-0 w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/60" />
+            </>
           ) : (
-            <div className="absolute inset-0 bg-gradient-to-br from-black/20 to-black/60" />
+            <div className="absolute inset-0 bg-gradient-to-br from-black/20 via-transparent to-black/40" />
           )}
           <button
             onClick={() => {
@@ -311,7 +382,7 @@ export default function ProfileView() {
 
         <div className="max-w-6xl mx-auto px-4 -mt-24 relative z-10 pb-20">
           {/* CARD PRINCIPAL DE IDENTIDADE */}
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] shadow-2xl border border-slate-100 dark:border-slate-800 p-8 md:p-12">
+          <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[3rem] shadow-2xl border border-white/20 dark:border-slate-700/50 p-8 md:p-12">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
               {/* AVATAR OU VEÍCULO PADRÃO */}
               <div className="relative shrink-0">
@@ -324,20 +395,20 @@ export default function ProfileView() {
                   />
                 ) : (
                   <div className={`w-44 h-44 md:w-52 md:h-52 ${theme.bg} rounded-[3rem] p-1.5 shadow-2xl`}>
-                    <div className="w-full h-full bg-white dark:bg-slate-800 rounded-[2.8rem] overflow-hidden flex items-center justify-center">
+                    <div className="w-full h-full bg-white dark:bg-slate-800 rounded-[2.8rem] overflow-hidden">
                       {avatarImg ? (
-                        <img src={avatarImg} alt={displayName} className="w-full h-full object-cover" />
+                        <img src={avatarImg} alt={displayName} loading="lazy" className="w-full h-full object-cover" />
                       ) : (
-                        <Building2 size={72} className="text-slate-200 dark:text-slate-600" />
+                        <div className="w-full h-full bg-gradient-to-br from-blue-400 via-blue-500 to-indigo-600 flex items-center justify-center">
+                          <span className="text-5xl md:text-6xl font-black text-white/90 tracking-tight">
+                            {(displayName || 'U').split(' ').map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || 'U'}
+                          </span>
+                        </div>
                       )}
                     </div>
                   </div>
                 )}
-                {hasIdentityConfirmed && (
-                  <div className="absolute -bottom-2 -right-2 bg-gradient-to-br from-amber-400 to-yellow-500 text-white p-3 rounded-2xl shadow-lg border-4 border-white dark:border-slate-900">
-                    <ShieldCheck size={24} />
-                  </div>
-                )}
+                {hasIdentityConfirmed && <IdentityBadge />}
               </div>
 
               {/* INFO TEXTO */}
@@ -417,7 +488,7 @@ export default function ProfileView() {
             <div className="mt-12 pt-10 border-t border-slate-100 dark:border-slate-800">
               <h3 className="text-slate-900 dark:text-white font-black uppercase italic text-sm tracking-widest flex items-center gap-3 mb-6">
                 <div className={`w-10 h-1.5 ${theme.bg} rounded-full`} />
-                {isDriver ? 'Sobre mim' : 'Sobre a Empresa'}
+                {isDriver ? 'Sobre mim' : isAdvertiser ? 'Sobre o Anunciante' : 'Sobre a Empresa'}
               </h3>
               <div className={`grid ${isDriver ? 'lg:grid-cols-3' : ''} gap-10`}>
                 <div className={isDriver ? 'lg:col-span-2' : ''}>
@@ -431,22 +502,90 @@ export default function ProfileView() {
                     <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
                       Ficha Técnica
                     </p>
-                    <InfoItem
+                    <ProfileInfoItem
                       label="Veículo"
                       value={profile.vehicle_type || (profile.extras?.vehicle_type as string) || 'Não informado'}
                     />
-                    <InfoItem
+                    <ProfileInfoItem
                       label="Implemento"
                       value={profile.body_type || (profile.extras?.body_type as string) || '---'}
                     />
-                    <InfoItem
+                    <ProfileInfoItem
                       label="Status"
                       value={isAvailable ? 'Disponível' : 'Indisponível'}
                     />
+                    {asArray(profile.certifications).length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Certificações</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {asArray(profile.certifications).map((cert) => (
+                            <span key={cert} className="bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-lg text-[10px] font-bold">{cert}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {asArray(profile.available_equipment).length > 0 && (
+                      <div>
+                        <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Equipamentos</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {asArray(profile.available_equipment).map((eq) => (
+                            <span key={eq} className="bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2.5 py-1 rounded-lg text-[10px] font-bold">{eq}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {asArray(profile.preferred_regions).length > 0 && (
+                      <ProfileInfoItem label="Regiões" value={asArray(profile.preferred_regions).join(', ')} />
+                    )}
+                  </div>
+                )}
+                {!isDriver && !isAdvertiser && asArray(profile.preferred_regions).length > 0 && (
+                  <div className={`${theme.light} p-6 rounded-[2.5rem] border ${theme.border} space-y-4`}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                      Regiões de Atuação
+                    </p>
+                    <ProfileInfoItem label="Regiões" value={asArray(profile.preferred_regions).join(', ')} />
+                  </div>
+                )}
+                {isAdvertiser && (profile.advertiser_category || profile.advertiser_target) && (
+                  <div className={`${theme.light} p-6 rounded-[2.5rem] border ${theme.border} space-y-4`}>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">
+                      Segmento
+                    </p>
+                    {profile.advertiser_category && (
+                      <ProfileInfoItem label="Categoria" value={profile.advertiser_category} />
+                    )}
+                    {profile.advertiser_target && (
+                      <ProfileInfoItem label="Público-alvo" value={profile.advertiser_target} />
+                    )}
                   </div>
                 )}
               </div>
             </div>
+
+            {/* ESTATÍSTICAS PÚBLICAS */}
+            {(profile.total_active_freights > 0 || profile.total_active_listings > 0 || profile.total_active_ads > 0 || profile.experience_years > 0) && (
+              <div className="mt-12 pt-10 border-t border-slate-100 dark:border-slate-800">
+                <h3 className="text-slate-900 dark:text-white font-black uppercase italic text-sm tracking-widest flex items-center gap-3 mb-6">
+                  <div className={`w-10 h-1.5 ${theme.bg} rounded-full`} />
+                  Estatísticas
+                </h3>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  {profile.total_active_freights > 0 && (
+                    <StatCard label="Fretes Ativos" value={profile.total_active_freights} icon="Truck" />
+                  )}
+                  {profile.total_active_listings > 0 && (
+                    <StatCard label="Anúncios no Marketpl." value={profile.total_active_listings} icon="Building2" />
+                  )}
+                  {profile.total_active_ads > 0 && (
+                    <StatCard label="Anúncios Publicit." value={profile.total_active_ads} icon="Megaphone" />
+                  )}
+                  {profile.experience_years > 0 && (
+                    <StatCard label="Anos de Experiência" value={profile.experience_years} icon="Calendar" />
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* AVALIAÇÕES EXPANSÍVEL */}
             <div className="mt-8">
@@ -458,14 +597,24 @@ export default function ProfileView() {
             </div>
 
             {/* REDES SOCIAIS */}
-            {(instagramUrl || linkedinUrl) && (
+            {(instagramUrl || linkedinUrl || websiteUrl) && (
               <div className="mt-8 flex flex-wrap items-center gap-4">
+                {websiteUrl && (
+                  <a
+                    href={websiteUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-sky-50 text-sky-600 border border-sky-100 hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20"
+                  >
+                    Site
+                  </a>
+                )}
                 {instagramUrl && (
                   <a
                     href={instagramUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20"
                   >
                     Instagram
                   </a>
@@ -475,7 +624,7 @@ export default function ProfileView() {
                     href={linkedinUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-slate-900 text-white border border-slate-800 hover:bg-black"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-slate-900 text-white border border-slate-800 hover:bg-black dark:bg-slate-700 dark:border-slate-600"
                   >
                     LinkedIn
                   </a>
@@ -489,9 +638,9 @@ export default function ProfileView() {
             <AdCard position="spotlight" variant="ecommerce" state={profile.state} city={profile.city} />
           </div>
 
-          {/* LISTAGEM DE POSTS */}
+            {/* LISTAGEM DE POSTS */}
           {hasFreights && (
-            <section className="mt-12">
+            <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
                 <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
                   Fretes Disponíveis
@@ -539,6 +688,46 @@ export default function ProfileView() {
             </section>
           )}
 
+          {/* ANÚNCIOS PUBLICITÁRIOS (advertiser) */}
+          {adItems.length > 0 && (
+            <section className="mt-12">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter flex items-center gap-3">
+                  <Megaphone className="text-purple-600" size={24} /> Anúncios Publicitários
+                </h2>
+                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
+                  {adItems.length} {adItems.length === 1 ? 'anúncio' : 'anúncios'}
+                </span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {adItems.map((item) => {
+                  const ad = item as Record<string, unknown>;
+                  return (
+                    <div key={item.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden hover:shadow-lg transition-shadow">
+                      {ad.image_url && (
+                        <img src={ad.image_url as string} alt={ad.title as string} loading="lazy" className="w-full h-40 object-cover" />
+                      )}
+                      <div className="p-4">
+                        <h4 className="font-bold text-sm text-slate-900 dark:text-white uppercase line-clamp-2">{ad.title as string}</h4>
+                        <p className="text-xs text-slate-500 mt-1 line-clamp-2">{ad.description as string}</p>
+                        {(ad.destination_url || ad.link_whatsapp) && (
+                          <a
+                            href={(ad.destination_url || ad.link_whatsapp) as string}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="mt-3 inline-flex items-center gap-1 text-xs font-bold text-purple-600 hover:text-purple-700"
+                          >
+                            Saiba mais →
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
           {!hasAnyPosts && (
             <div className="mt-12 bg-white dark:bg-slate-900 p-16 rounded-[3rem] text-center border-2 border-dashed border-slate-200 dark:border-slate-800">
               <LayoutGrid size={48} className="text-slate-200 dark:text-slate-700 mx-auto mb-6" />
@@ -549,6 +738,11 @@ export default function ProfileView() {
           )}
         </div>
       </main>
+
+      <ShareProfileButton
+        url={typeof window !== 'undefined' ? window.location.href : `https://www.chamafrete.com.br/perfil/${slug}`}
+        title={displayName}
+      />
 
       <Footer />
 
@@ -614,91 +808,7 @@ export default function ProfileView() {
         </div>
       )}
     </div>
+    </ProfileErrorBoundary>
   );
 }
 
-interface ThemeConfig {
-  bg: string;
-}
-
-function VehicleProfileBadge({
-  vehicleType,
-  bodyType,
-  avatarUrl,
-  theme,
-}: {
-  vehicleType?: string;
-  bodyType?: string;
-  avatarUrl?: string;
-  theme: ThemeConfig;
-}) {
-  const vType = vehicleType || 'Não informado';
-
-  return (
-    <div className={`w-44 h-44 md:w-52 md:h-52 ${theme.bg} rounded-[3rem] p-1.5 shadow-2xl`}>
-      <div className="w-full h-full bg-white dark:bg-slate-800 rounded-[2.8rem] overflow-hidden flex flex-col items-center justify-center p-4">
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="w-full h-full object-cover rounded-2xl" />
-        ) : (
-          <>
-            <div className="w-16 h-16 rounded-2xl bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 mb-2">
-              <Truck size={32} />
-            </div>
-            <p className="text-[10px] font-black text-slate-600 dark:text-slate-300 uppercase text-center leading-tight line-clamp-2">
-              {vType}
-            </p>
-            {bodyType && (
-              <p className="text-[9px] font-bold text-slate-400 mt-1 truncate max-w-full">{bodyType}</p>
-            )}
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function InfoItem({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
-      <span className="text-[10px] font-black text-slate-400 uppercase">{label}</span>
-      <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase italic truncate max-w-[60%]">
-        {value}
-      </span>
-    </div>
-  );
-}
-
-function LoadingState() {
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950">
-      <div className="relative">
-        <div className="w-20 h-20 border-4 border-slate-200 dark:border-slate-800 border-t-orange-500 rounded-full animate-spin" />
-        <Truck className="absolute inset-0 m-auto text-slate-300 dark:text-slate-600" size={30} />
-      </div>
-      <p className="text-[10px] font-black uppercase tracking-[0.4em] text-slate-400 mt-8">Carregando perfil...</p>
-    </div>
-  );
-}
-
-function NotFoundState() {
-  return (
-    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
-      <Header />
-      <div className="flex-grow flex items-center justify-center p-10">
-        <div className="bg-white dark:bg-slate-900 p-16 rounded-[3rem] text-center shadow-2xl max-w-md border border-slate-200 dark:border-slate-800">
-          <AlertCircle size={80} className="text-red-100 dark:text-red-900/30 mx-auto mb-6" />
-          <h1 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white">Perfil Indisponível</h1>
-          <p className="text-slate-500 dark:text-slate-400 text-sm mt-4 font-medium italic">
-            Este perfil não existe ou foi removido da plataforma.
-          </p>
-            <button
-            onClick={() => {}}
-            className="mt-10 bg-slate-900 dark:bg-white text-white dark:text-slate-900 w-full py-5 rounded-[2rem] font-black uppercase italic text-sm hover:scale-[1.02] transition-all shadow-lg"
-          >
-            Voltar ao Início
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}

@@ -7,7 +7,7 @@ export default function ProfilePermissionsModal({ user, onClose, onSave }: any) 
 
   // Verificar se é usuário do sistema (pode ter permissões extras)
   const systemRoles = ['admin', 'manager', 'support', 'coordinator', 'supervisor', 'finance', 'marketing', 'director', 'analyst', 'assistant', 'operator'];
-  const isSystemUser = isNew ? userType === 'system' : systemRoles.includes(user?.role);
+  const isSystemUser = isNew ? false : systemRoles.includes(user?.role);
 
   // Determinar userType inicial baseado no user_type do banco
   const getInitialUserType = () => {

@@ -1,7 +1,27 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 interface User {
   id: number;
+  name?: string;
+  email?: string;
+  role?: string;
+  slug?: string;
+  avatar_url?: string;
+  banner_url?: string;
+  phone?: string;
+  whatsapp?: string;
+  document?: string;
+  company_name?: string;
+  cnpj?: string;
+  city?: string;
+  bio?: string;
+  is_available?: number;
+  is_verified?: number;
+  account_id?: number;
+  user_type?: string;
+  permissions?: string;
+  instagram?: string;
+  website?: string;
   [key: string]: unknown;
 }
 
@@ -34,21 +54,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(false);
   }, []);
 
-  const login = (userData: User, newToken?: string) => {
+  const login = useCallback((userData: User, newToken?: string) => {
     localStorage.setItem('@ChamaFrete:user', JSON.stringify(userData));
     setUser(userData);
     if (newToken) {
       localStorage.setItem('@ChamaFrete:token', newToken);
       setToken(newToken);
     }
-  };
+  }, []);
 
-  const logout = () => {
+  const logout = useCallback(() => {
     localStorage.removeItem('@ChamaFrete:user');
     localStorage.removeItem('@ChamaFrete:token');
     setUser(null);
     setToken(null);
-  };
+  }, []);
 
   return (
     <AuthContext.Provider value={{ user, token, login, logout, loading }}>

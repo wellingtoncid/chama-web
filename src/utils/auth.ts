@@ -1,20 +1,28 @@
+interface AuthUser {
+  role?: string;
+  permissions?: string | Record<string, boolean>;
+  [key: string]: unknown;
+}
+
 /**
  * Verifica se o usuário logado tem uma permissão específica
  */
 export const hasPermission = (user: unknown, permissionKey: string): boolean => {
   if (!user) return false;
+
+  const u = user as AuthUser;
   
   // Se o usuário for ADMIN e não tiver o campo permissions definido,
   // damos acesso total por segurança/padrão.
-  if (user.role === 'admin' && (!user.permissions || user.permissions === "{}")) {
+  if (u.role === 'admin' && (!u.permissions || u.permissions === "{}")) {
     return true;
   }
 
   try {
     // Caso as permissões venham como string do banco, tentamos o parse
-    const perms = typeof user.permissions === 'string' 
-      ? JSON.parse(user.permissions) 
-      : user.permissions;
+    const perms = typeof u.permissions === 'string' 
+      ? JSON.parse(u.permissions) 
+      : u.permissions;
       
     return !!perms?.[permissionKey];
   } catch (e) {

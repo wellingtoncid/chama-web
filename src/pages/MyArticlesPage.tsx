@@ -38,6 +38,23 @@ export default function MyArticlesPage() {
   const [authorStatus, setAuthorStatus] = useState<{is_author: boolean; has_pending_request: boolean} | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
 
+  const checkAuthorStatus = async () => {
+    try {
+      const res = await api.get('/article-author-status');
+      if (res.data?.success) {
+        const status = res.data.data;
+        setAuthorStatus(status);
+        if (status.is_author) {
+          fetchArticles();
+        }
+      }
+    } catch (err) {
+      console.error('Error checking author status:', err);
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login?redirect=/dashboard/meus-artigos');
@@ -50,25 +67,7 @@ export default function MyArticlesPage() {
     if (authorStatus?.is_author) {
       fetchArticles();
     }
-  }, [filter, authorStatus?.is_author, fetchArticles]);
-
-  const checkAuthorStatus = async () => {
-    try {
-      const res = await api.get('/article-author-status');
-      if (res.data?.success) {
-        const status = res.data.data;
-        setAuthorStatus(status);
-        
-        if (status.is_author) {
-          fetchArticles();
-        }
-      }
-    } catch (err) {
-      console.error('Error checking author status:', err);
-    } finally {
-      setCheckingAuth(false);
-    }
-  };
+  }, [filter, authorStatus?.is_author]);
 
   const fetchArticles = async () => {
     try {
@@ -151,6 +150,8 @@ export default function MyArticlesPage() {
       </span>
     );
   };
+
+  const filteredArticles = filter === 'all' ? articles : articles.filter(a => a.status === filter);
 
   if (authLoading || checkingAuth) {
     return (

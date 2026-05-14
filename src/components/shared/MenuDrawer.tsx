@@ -11,6 +11,21 @@ import { api } from '@/api/api';
 import { useAuth } from '@/context/AuthContext';
 import { isInternal as isInternalRole, isExternal as isExternalRole, isSuperAdmin as isSuperAdminRole, isDriver as isDriverRole, isCompany as isCompanyRole } from '@/constants/roleUtils';
 
+interface MenuItem {
+  label: string;
+  icon: React.ReactNode;
+  path: string;
+  visible: boolean;
+  highlight?: boolean;
+  special?: boolean;
+}
+
+interface MenuSection {
+  title: string;
+  visible?: boolean;
+  items: MenuItem[];
+}
+
 interface MenuDrawerProps {
   isOpen: boolean;
   onClose: () => void;
@@ -82,7 +97,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   const hasArticles = hasModule('articles') || isSuperAdmin;
   const hasAdvertiser = hasModule('advertiser') || isSuperAdmin;
 
-  const menuSections = [
+  const menuSections: MenuSection[] = [
     {
       title: "Administração",
       visible: isInternal,
@@ -124,7 +139,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
       items: [
         { label: 'Anunciar Carga', icon: <PlusCircle size={20}/>, path: '/novo-frete', visible: isCompany && hasFreights, highlight: true },
         { label: 'Meus Fretes', icon: <Truck size={20}/>, path: '/dashboard/logistica', visible: isCompany && hasFreights },
-        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: isCompany && hasAdvertiser },
+        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: (isCompany || role === 'advertiser') && hasAdvertiser },
         { label: 'Equipe', icon: <Users size={20}/>, path: '/dashboard/equipe', visible: isCompany },
       ]
     },

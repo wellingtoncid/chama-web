@@ -94,7 +94,7 @@ export default function NewListingModal({ isOpen, onClose, user, onRefresh, edit
     
     setLoading(true);
     const formData = new FormData(e.currentTarget);
-    formData.append('user_id', user.id);
+    formData.append('user_id', String(user.id));
     
     images.forEach((img, index) => {
       formData.append(`images[${index}]`, img);
@@ -102,7 +102,7 @@ export default function NewListingModal({ isOpen, onClose, user, onRefresh, edit
 
     try {
       if (isEditing) {
-        formData.append('id', editingItem.id);
+        formData.append('id', String(editingItem.id));
         await api.post('/update-listing', formData, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });

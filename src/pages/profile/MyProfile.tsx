@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  ShieldCheck, Save, Loader2, Camera, AlertCircle, 
+import { useState, useEffect } from 'react';
+import {
+  ShieldCheck, Save, Loader2, Camera, AlertCircle,
   Globe, MapPin, MessageCircle, Copy, ExternalLink, ImageIcon,
-  LayoutDashboard, User, Building2, Briefcase, Lock, Eye, EyeOff
+  LayoutDashboard, User, Building2, Briefcase, Lock, Eye, EyeOff,
+  Search, CheckCircle2, XCircle, AtSign, Hash, Smartphone,
+  UserCircle, FileText, Instagram, Link2, ChevronRight
 } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2';
@@ -12,14 +14,24 @@ import CompanyFields from '../../components/company/CompanyFields';
 
 interface MyProfileProps {
   user: any;
-  refreshUser: () => Promise<void>; 
+  refreshUser: () => Promise<void>;
 }
+
+const SECTIONS = [
+  { id: 'profile', label: 'Perfil', icon: UserCircle },
+  { id: 'bio', label: 'Bio', icon: FileText },
+  { id: 'security', label: 'Segurança', icon: Lock },
+  { id: 'location', label: 'Localização', icon: MapPin },
+  { id: 'social', label: 'Redes', icon: Globe },
+] as const;
+
+type SectionId = typeof SECTIONS[number]['id'];
 
 const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState<any>({});
+  const [activeSection, setActiveSection] = useState<SectionId>('profile');
 
-  // Estados para mudança de senha
   const [showPasswordSection, setShowPasswordSection] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -28,37 +40,77 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const [changingPassword, setChangingPassword] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
-  
+
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
-  
+
   const [marketplaceEnabled, setMarketplaceEnabled] = useState(false);
   const [identityConfirmed, setIdentityConfirmed] = useState(false);
-  
+
   const [cnpjData, setCnpjData] = useState<any>(null);
   const [cnpjInput, setCnpjInput] = useState('');
   const [verifyingCnpj, setVerifyingCnpj] = useState(false);
+
+  const [cepInput, setCepInput] = useState('');
+  const [cepLoading, setCepLoading] = useState(false);
+  const [cepStatus, setCepStatus] = useState<'idle' | 'success' | 'error'>('idle');
+
+  const handleCepLookup = async (cep: string) => {
+    const cleaned = cep.replace(/\D/g, '');
+    if (cleaned.length !== 8) return;
+    setCepLoading(true);
+    setCepStatus('idle');
+    try {
+      const res = await api.get('/geocode/cep', { params: { cep: cleaned } });
+      if (res.data?.success && res.data.data) {
+        const city = res.data.data.city;
+        const state = res.data.data.state;
+        if (city && state) {
+          setFormData({ ...formData, city, state: state.toUpperCase() });
+          setCepStatus('success');
+          Swal.fire({ icon: 'success', title: `${city} - ${state} preenchido!`, timer: 1200, showConfirmButton: false, toast: true, position: 'top-end' });
+        } else {
+          setCepStatus('error');
+          Swal.fire({ icon: 'warning', title: 'CEP não contém cidade/UF', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' });
+        }
+      } else {
+        setCepStatus('error');
+        Swal.fire({ icon: 'error', title: 'CEP não encontrado', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' });
+      }
+    } catch (err) {
+      console.error('Erro ao buscar CEP:', err);
+      setCepStatus('error');
+      Swal.fire({ icon: 'error', title: 'Erro ao buscar CEP', text: 'Tente novamente', timer: 2000, showConfirmButton: false, toast: true, position: 'top-end' });
+    } finally {
+      setCepLoading(false);
+    }
+  };
 
   const role = (user?.role || '').toLowerCase();
   const isDriver = role === 'driver';
   const isCompany = role === 'company';
 
-  // Cores dinâmicas baseadas no tipo de usuário
-  const themeClasses = isDriver ? {
-    bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-100', 
-    light: 'bg-orange-50 dark:bg-orange-500/5', hover: 'hover:bg-orange-700', shadow: 'shadow-orange-500/20'
+  const theme = isDriver ? {
+    bg: 'bg-orange-600', text: 'text-orange-600', border: 'border-orange-200',
+    light: 'bg-orange-50 dark:bg-orange-500/10', hover: 'hover:bg-orange-700',
+    shadow: 'shadow-orange-500/20', ring: 'ring-orange-500/20',
+    gradient: 'from-orange-500 to-amber-500',
+    subtle: 'text-orange-600 dark:text-orange-400',
+    muted: 'text-orange-400 dark:text-orange-500',
   } : {
-    bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-100', 
-    light: 'bg-blue-50 dark:bg-blue-500/5', hover: 'hover:bg-blue-700', shadow: 'shadow-blue-500/20'
+    bg: 'bg-blue-600', text: 'text-blue-600', border: 'border-blue-200',
+    light: 'bg-blue-50 dark:bg-blue-500/10', hover: 'hover:bg-blue-700',
+    shadow: 'shadow-blue-500/20', ring: 'ring-blue-500/20',
+    gradient: 'from-blue-500 to-indigo-500',
+    subtle: 'text-blue-600 dark:text-blue-400',
+    muted: 'text-blue-400 dark:text-blue-500',
   };
 
   useEffect(() => {
     loadModules();
-    if (isCompany) {
-      loadCnpjData();
-    }
+    if (isCompany) loadCnpjData();
   }, [isCompany]);
 
   const loadModules = async () => {
@@ -66,15 +118,10 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
       const res = await api.get('/user/modules');
       if (res.data?.success) {
         const modules = res.data.data?.modules || [];
-        const marketplace = modules.find((m: any) => m.key === 'marketplace');
-        const identity = modules.find((m: any) => m.key === 'identity_verification');
-        
-        setMarketplaceEnabled(marketplace?.is_active || false);
-        setIdentityConfirmed(identity?.is_active || false);
+        setMarketplaceEnabled(!!modules.find((m: any) => m.key === 'marketplace')?.is_active);
+        setIdentityConfirmed(!!modules.find((m: any) => m.key === 'identity_verification')?.is_active);
       }
-    } catch (e) {
-      console.error("Erro ao carregar módulos:", e);
-    }
+    } catch (e) { console.error("Erro ao carregar módulos:", e); }
   };
 
   const loadCnpjData = async () => {
@@ -84,140 +131,90 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         setCnpjData(res.data.data);
         setCnpjInput(res.data.data.cnpj || '');
       }
-    } catch (e) {
-      console.error("Erro ao carregar dados do CNPJ:", e);
-    }
+    } catch (e) { console.error("Erro ao carregar dados do CNPJ:", e); }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError(null);
     setPasswordSuccess(null);
-
-    if (newPassword !== confirmPassword) {
-      setPasswordError('A nova senha e a confirmação não coincidem');
-      return;
-    }
-
-    if (newPassword.length < 6) {
-      setPasswordError('A nova senha deve ter no mínimo 6 caracteres');
-      return;
-    }
-
+    if (newPassword !== confirmPassword) { setPasswordError('As senhas não coincidem'); return; }
+    if (newPassword.length < 6) { setPasswordError('Mínimo 6 caracteres'); return; }
     try {
       setChangingPassword(true);
-      const res = await api.put('/change-password', {
-        current_password: currentPassword,
-        new_password: newPassword,
-        confirm_password: confirmPassword
-      });
-
+      const res = await api.put('/change-password', { current_password: currentPassword, new_password: newPassword, confirm_password: confirmPassword });
       if (res.data?.success) {
         setPasswordSuccess('Senha alterada com sucesso!');
-        setCurrentPassword('');
-        setNewPassword('');
-        setConfirmPassword('');
-        setTimeout(() => {
-          setShowPasswordSection(false);
-          setPasswordSuccess(null);
-        }, 2000);
-      } else {
-        setPasswordError(res.data?.message || 'Erro ao alterar senha');
-      }
+        setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+        setTimeout(() => { setShowPasswordSection(false); setPasswordSuccess(null); }, 2000);
+      } else setPasswordError(res.data?.message || 'Erro ao alterar senha');
     } catch (err: unknown) {
-      if (err && typeof err === 'object' && 'response' in err) {
-        const axiosErr = err as { response?: { data?: { message?: string } } };
-        setPasswordError(axiosErr.response?.data?.message || 'Erro ao alterar senha');
-      } else {
-        setPasswordError('Erro ao alterar senha');
-      }
-    } finally {
-      setChangingPassword(false);
-    }
+      if (err && typeof err === 'object' && 'response' in err)
+        setPasswordError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Erro ao alterar senha');
+      else setPasswordError('Erro ao alterar senha');
+    } finally { setChangingPassword(false); }
   };
 
   const verifyCnpj = async () => {
     const cleanCnpj = cnpjInput.replace(/\D/g, '');
-    if (cleanCnpj.length !== 14) {
-      Swal.fire({ icon: 'warning', title: 'CNPJ inválido', text: 'O CNPJ deve ter 14 dígitos.' });
-      return;
-    }
-
+    if (cleanCnpj.length !== 14) { Swal.fire({ icon: 'warning', title: 'CNPJ inválido', text: 'O CNPJ deve ter 14 dígitos.' }); return; }
     setVerifyingCnpj(true);
     try {
       const res = await api.post('/verify-cnpj', { cnpj: cleanCnpj });
       if (res.data.success) {
         setCnpjData(res.data.data);
-        Swal.fire({
-          icon: 'success',
-          title: 'CNPJ verificado!',
-          text: res.data.is_active ? 'Sua empresa está ativa.' : 'Atenção: Empresa inativa.'
-        });
+        Swal.fire({ icon: 'success', title: 'CNPJ verificado!', text: res.data.is_active ? 'Sua empresa está ativa.' : 'Atenção: Empresa inativa.' });
       }
-    } catch (e: any) {
-      Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || 'Erro ao verificar CNPJ.' });
-    } finally {
-      setVerifyingCnpj(false);
-    }
+    } catch (e: any) { Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || 'Erro ao verificar CNPJ.' }); }
+    finally { setVerifyingCnpj(false); }
   };
 
   useEffect(() => {
     if (user) {
-      const extras = user.extended_attributes ? 
-        (typeof user.extended_attributes === 'string' ? JSON.parse(user.extended_attributes) : user.extended_attributes) 
+      const extras = user.extended_attributes
+        ? (typeof user.extended_attributes === 'string' ? JSON.parse(user.extended_attributes) : user.extended_attributes)
         : {};
-
       setFormData({
-        ...user,
-        ...extras,
+        ...user, ...extras,
         bio: user.bio || '',
         instagram: extras.instagram || user.instagram || '',
+        linkedin: extras.linkedin || user.linkedin || '',
         website: extras.website || user.website || '',
         whatsapp: user.whatsapp || extras.whatsapp || user.phone || '',
-        city: user.city || '',
-        state: user.state || '',
-        slug: user.slug || '',
-        document: user.document || user.document_number || '',
+        city: user.city || '', state: user.state || '',
+        slug: user.slug || '', document: user.document || user.document_number || '',
         vehicle_type: user.vehicle_type || extras.vehicle_type || '',
         body_type: user.body_type || extras.body_type || '',
         trade_name: user.trade_name || user.name || '',
-        is_available: user.is_available ?? 0
+        is_available: user.is_available ?? 0,
       });
-      
       if (user.avatar_url) setAvatarPreview(user.avatar_url);
       if (user.cover_url) setCoverPreview(user.cover_url);
     }
   }, [user]);
 
   const calculateLiveScore = () => {
-    let score = 0;
-    if (formData.trade_name) score += 20;
-    if (formData.whatsapp) score += 20;
-    if (avatarPreview) score += 20;
-    if (formData.city) score += 20;
-    if (formData.bio && formData.bio.length > 10) score += 20;
-    return score;
+    let s = 0;
+    if (formData.trade_name) s += 20;
+    if (formData.whatsapp) s += 20;
+    if (avatarPreview) s += 20;
+    if (formData.city) s += 20;
+    if (formData.bio && formData.bio.length > 10) s += 20;
+    return s;
   };
 
-  const generateSlug = (text: string) => {
-    return text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").trim();
-  };
+  const generateSlug = (text: string) =>
+    text.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^\w\s-]/g, "").replace(/\s+/g, "-").trim();
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, type: 'avatar' | 'cover') => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        if (type === 'avatar') {
-          setAvatarPreview(reader.result as string);
-          setAvatarFile(file);
-        } else {
-          setCoverPreview(reader.result as string);
-          setCoverFile(file);
-        }
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      if (type === 'avatar') { setAvatarPreview(reader.result as string); setAvatarFile(file); }
+      else { setCoverPreview(reader.result as string); setCoverFile(file); }
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleSave = async () => {
@@ -225,372 +222,455 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     try {
       const data = new FormData();
       const extendedKeys = [
-        'instagram', 'website', 'website_url', 'business_type', 'commercial_email',
-        'special_courses', 'intl_license', 'fleet_size', 'preferred_regions', 
-        'specific_regions', 'load_volume'
+        'instagram', 'linkedin', 'website', 'website_url', 'business_type', 'commercial_email',
+        'special_courses', 'intl_license', 'preferred_regions', 'specific_regions', 'load_volume',
       ];
-
       const integerFields = ['is_available'];
       const extras: any = {};
-      
       Object.keys(formData).forEach(key => {
-        if (extendedKeys.includes(key)) {
-          extras[key] = formData[key];
-        } else if (integerFields.includes(key)) {
-          data.append(key, String(formData[key]));
-        } else {
-          if (Array.isArray(formData[key])) {
-            data.append(key, JSON.stringify(formData[key]));
-          } else if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') {
-            data.append(key, formData[key]);
-          }
-        }
+        if (extendedKeys.includes(key)) extras[key] = formData[key];
+        else if (integerFields.includes(key)) data.append(key, String(formData[key]));
+        else if (Array.isArray(formData[key])) data.append(key, JSON.stringify(formData[key]));
+        else if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') data.append(key, formData[key]);
       });
-
       data.append('extended_attributes', JSON.stringify(extras));
       if (avatarFile) data.append('avatar_file', avatarFile);
       if (coverFile) data.append('cover_file', coverFile);
-
-      const response = await api.post('/update-profile', data);
-
-      if (response.data.success) {
-        localStorage.setItem('@ChamaFrete:user', JSON.stringify(response.data.user));
+      const res = await api.post('/update-profile', data);
+      if (res.data.success) {
+        localStorage.setItem('@ChamaFrete:user', JSON.stringify(res.data.user));
         await refreshUser();
         Swal.fire({ icon: 'success', title: 'Perfil Atualizado!', timer: 2000, showConfirmButton: false });
       }
     } catch (error: any) {
       Swal.fire({ icon: 'error', title: 'Erro ao salvar', text: error.response?.data?.message || 'Erro interno' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   const score = calculateLiveScore();
 
-  const determineProfileStatus = () => {
-    if (user?.is_verified) {
-      return { 
-        text: 'Verificado', 
-        Icon: ShieldCheck,
-        className: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border border-emerald-100 dark:border-emerald-500/20' 
-      };
-    }
-    if (score === 100) return { text: 'Perfil Concluído', Icon: ShieldCheck, className: 'bg-green-50 dark:bg-green-500/10 text-green-600 border border-green-100 dark:border-green-500/20' };
-    if (score >= 80) return { text: 'Em Análise', Icon: AlertCircle, className: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border border-amber-100 dark:border-amber-500/20' };
-    return { text: isCompany ? 'Dados Incompletos' : 'Perfil Incompleto', Icon: AlertCircle, className: 'bg-red-50 dark:bg-red-500/10 text-red-600 border border-red-100 dark:border-red-500/20' };
-  };
-
-  const profileStatus = determineProfileStatus();
+  const profileStatus = (() => {
+    if (user?.is_verified) return { text: 'Verificado', Icon: ShieldCheck, className: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200' };
+    if (score === 100) return { text: 'Perfil Concluído', Icon: ShieldCheck, className: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 border-emerald-200' };
+    if (score >= 80) return { text: 'Em Análise', Icon: AlertCircle, className: 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 border-amber-200' };
+    return { text: isCompany ? 'Dados Incompletos' : 'Perfil Incompleto', Icon: AlertCircle, className: 'bg-red-50 dark:bg-red-500/10 text-red-600 border-red-200' };
+  })();
   const StatusIcon = profileStatus.Icon;
 
+  const formatCep = (value: string) => {
+    const d = value.replace(/\D/g, '').slice(0, 8);
+    return d.length <= 5 ? d : `${d.slice(0, 5)}-${d.slice(5)}`;
+  };
+
+  const scrollToSection = (id: SectionId) => {
+    setActiveSection(id);
+    const el = document.getElementById(`section-${id}`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
+  const showPasswordField = showPasswordSection;
+
   return (
-    <div className="max-w-6xl mx-auto space-y-8 pb-24 px-4 md:px-6">
-      
-      {/* BARRA DE PROGRESSO */}
-      <div className="bg-white dark:bg-slate-900 p-6 rounded-[2.5rem] shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col md:flex-row items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-              <div className="relative w-16 h-16">
-                  <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-                      <circle cx="18" cy="18" r="16" className="text-slate-100 dark:text-slate-800" strokeWidth="3" fill="none" />
-                      <circle cx="18" cy="18" r="16" className={`${themeClasses.text} transition-all duration-1000`} strokeWidth="3" strokeDasharray={`${score}, 100`} strokeLinecap="round" fill="none" />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center font-black text-xs text-slate-700 dark:text-slate-300">{score}%</div>
+    <div className="min-h-screen bg-slate-50/80 dark:bg-slate-950 pb-32">
+
+      {/* TOP HEADER */}
+      <div className="bg-white dark:bg-slate-900">
+        <div className="max-w-6xl mx-auto px-4 md:px-6">
+          <div className="flex items-center justify-between h-16 md:h-20">
+            <div className="flex items-center gap-4">
+              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center shadow-lg`}>
+                {isDriver ? <User size={20} className="text-white" /> : <Building2 size={20} className="text-white" />}
               </div>
               <div>
-                  <h4 className="font-black uppercase italic text-slate-800 dark:text-white leading-tight">Força do Perfil</h4>
-                  <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">
-                    {isCompany ? 'Preencha seus dados para habilitar módulos' : 'Complete para ser encontrado no Radar'}
-                  </p>
+                <h1 className="text-sm md:text-base font-black uppercase italic text-slate-900 dark:text-white leading-tight">Editar Perfil</h1>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isDriver ? 'Motorista' : 'Empresa'}</p>
               </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className={`${profileStatus.className} px-6 py-3 rounded-2xl flex items-center gap-2 font-black uppercase italic text-[10px] border`}>
-                <StatusIcon size={16} /> {profileStatus.text}
+            </div>
+            <div className="flex items-center gap-3">
+              <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border ${profileStatus.className} hidden sm:inline-flex items-center gap-1.5`}>
+                <StatusIcon size={12} /> {profileStatus.text}
+              </span>
+              <a href={`/perfil/${formData.slug}`} target="_blank" rel="noreferrer"
+                className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1 transition-colors">
+                Ver <ExternalLink size={12} />
+              </a>
             </div>
           </div>
-      </div>
-      
-      {/* CAPA E AVATAR */}
-      <div className="relative">
-        <div className={`h-64 md:h-80 w-full rounded-[3.5rem] overflow-hidden relative ${themeClasses.light} border-2 border-dashed border-slate-200 dark:border-slate-700 shadow-inner`}>
-          {coverPreview ? <img src={coverPreview} className="w-full h-full object-cover" alt="Banner" /> : (
-            <div className="flex flex-col items-center justify-center h-full text-slate-300 opacity-40">
-               <ImageIcon size={48} />
-               <p className="text-[10px] font-black uppercase mt-2">Capa do Perfil (1200x400)</p>
-            </div>
-          )}
-          <label className="absolute top-6 right-6 bg-white dark:bg-slate-900 shadow-xl p-4 rounded-2xl cursor-pointer hover:scale-105 transition-all">
-            <Camera size={20} className={themeClasses.text} />
-            <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'cover')} />
-          </label>
         </div>
 
-        <div className="absolute -bottom-16 left-8 md:left-14 flex flex-col md:flex-row items-end gap-6">
-          <div className="relative group/avatar">
-            <div className="w-40 h-40 md:w-48 md:h-48 rounded-[3.5rem] bg-white dark:bg-slate-900 p-2 shadow-2xl">
-              <div className="w-full h-full rounded-[2.8rem] overflow-hidden bg-slate-100 dark:bg-slate-800">
-                {avatarPreview ? <img src={avatarPreview} className="w-full h-full object-cover" alt="Avatar" /> : (
-                   <div className="w-full h-full flex items-center justify-center text-slate-300">
-                      {isDriver ? <User size={48} /> : <Building2 size={48} />}
-                   </div>
-                )}
+        {/* SECTION TABS */}
+        <nav className="border-b border-slate-200 dark:border-slate-800">
+          <div className="max-w-6xl mx-auto px-4 md:px-6 flex gap-1 overflow-x-auto scrollbar-none">
+            {SECTIONS.map(s => {
+              const Icon = s.icon;
+              const isActive = activeSection === s.id;
+              return (
+                <button key={s.id} onClick={() => scrollToSection(s.id)}
+                  className={`flex items-center gap-2 px-4 py-3 text-[10px] font-black uppercase tracking-wider whitespace-nowrap border-b-2 transition-all shrink-0 ${
+                    isActive
+                      ? `${theme.text} border-current`
+                      : 'text-slate-400 dark:text-slate-500 border-transparent hover:text-slate-600 dark:hover:text-slate-300'
+                  }`}>
+                  <Icon size={14} />
+                  {s.label}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
+      </div>
+
+      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-8 space-y-8">
+
+        {/* PROGRESS CARD */}
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="relative w-14 h-14 shrink-0">
+                <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                  <circle cx="18" cy="18" r="16" className="text-slate-100 dark:text-slate-800" strokeWidth="3" fill="none" />
+                  <circle cx="18" cy="18" r="16" className={`${theme.text} transition-all duration-1000 ease-out`} strokeWidth="3" strokeDasharray={`${score}, 100`} strokeLinecap="round" fill="none" />
+                </svg>
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span className="font-black text-xs text-slate-700 dark:text-slate-300">{score}%</span>
+                </div>
               </div>
-              <label className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer rounded-[3.5rem]">
-                <Camera size={28} className="text-white" />
-                <input type="file" className="hidden" accept="image/*" onChange={(e) => handleFileChange(e, 'avatar')} />
-              </label>
+              <div className="min-w-0">
+                <p className="font-black uppercase italic text-slate-800 dark:text-white text-sm leading-tight">Força do Perfil</p>
+                <p className="text-[10px] font-bold text-slate-400 truncate">
+                  {isCompany ? 'Preencha seus dados para habilitar módulos' : 'Complete para ser encontrado no Radar'}
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="mb-4 pb-2">
-            <h2 className="text-3xl md:text-5xl font-black uppercase italic tracking-tighter text-slate-900 dark:text-white leading-none">
-              {formData.trade_name || 'Nome não definido'}
-            </h2>
-            <div className="flex items-center gap-2 mt-4">
-               <span className={`${themeClasses.bg} text-white text-[9px] font-black uppercase px-4 py-1.5 rounded-full tracking-widest`}>
-                 {isDriver ? 'Motorista Autônomo' : 'Empresa / Embarcador'}
-               </span>
-               <span className="text-slate-400 text-[10px] font-bold uppercase flex items-center gap-1 ml-2">
-                 <MapPin size={12} /> {formData.city || 'Cidade...'}, {formData.state || 'UF'}
-               </span>
+            <div className="hidden sm:flex items-center gap-2">
+              {[['trade_name', 'Nome'], ['whatsapp', 'WhatsApp'], ['avatarPreview', 'Foto'], ['city', 'Cidade'], ['bio', 'Bio']].map(([key, label]) => (
+                <div key={key} className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all ${
+                  key === 'avatarPreview' ? (avatarPreview ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-300')
+                  : (formData[key] || (key === 'bio' && formData[key]?.length > 10) ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600' : 'bg-slate-100 dark:bg-slate-800 text-slate-300')
+                }`} title={label}>
+                  <CheckCircle2 size={14} />
+                </div>
+              ))}
             </div>
           </div>
         </div>
-      </div>
 
-      <div className="h-20" />
-
-      {/* LINK DA VITRINE */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 p-6 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 ${themeClasses.bg} rounded-2xl flex items-center justify-center text-white shadow-lg`}><Globe size={24} /></div>
-          <div>
-            <p className="text-[10px] font-black uppercase text-slate-400">Sua vitrine pública:</p>
-            <p className="font-bold text-slate-700 dark:text-slate-300 italic">chamafrete.com.br/perfil/{formData.slug}</p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-            <button onClick={() => { navigator.clipboard.writeText(`https://chamafrete.com.br/perfil/${formData.slug}`); Swal.fire({ title: 'Copiado!', timer: 800, showConfirmButton: false, toast: true, position: 'top-end' }); }} className="bg-white dark:bg-slate-900 px-6 py-4 rounded-2xl text-slate-600 font-black text-[10px] uppercase border border-slate-200 flex items-center gap-2 transition-all hover:bg-slate-50"><Copy size={16} /> COPIAR</button>
-            <a href={`/perfil/${formData.slug}`} target="_blank" rel="noreferrer" className={`${themeClasses.bg} px-6 py-4 rounded-2xl text-white font-black text-[10px] uppercase flex items-center gap-2 shadow-lg ${themeClasses.shadow}`}><ExternalLink size={16} /> VER VITRINE</a>
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-3 gap-8">
-        <div className="lg:col-span-2 space-y-8">
-          
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
-            <h3 className="text-xl font-black uppercase italic text-slate-800 dark:text-white mb-10 flex items-center gap-3">
-               <Briefcase size={24} className={themeClasses.text} /> Informações Profissionais
-            </h3>
-            
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-               <Input label={isCompany ? "Nome Fantasia" : "Nome Completo"} value={formData.trade_name} onChange={(v: string) => setFormData({...formData, trade_name: v, name: v, slug: generateSlug(v)})} />
-               <Input label={isCompany ? "CNPJ" : "CPF"} value={formData.document} onChange={(v: string) => setFormData({...formData, document: v})} />
-            </div>
-
-            {isDriver ? (
-              <DriverFields formData={formData} setFormData={setFormData} />
+        {/* COVER + AVATAR */}
+        <div id="section-profile" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+          <div className={`relative h-48 md:h-64 ${theme.light} group/cover`}>
+            {coverPreview ? (
+              <img src={coverPreview} className="w-full h-full object-cover transition-transform duration-700 group-hover/cover:scale-105" alt="" />
             ) : (
-              <CompanyFields formData={formData} setFormData={setFormData} />
-            )}
-          </div>
-
-          {/* BIO */}
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
-            <h3 className="text-xl font-black uppercase italic mb-8 text-slate-800 dark:text-white flex items-center gap-3"><MessageCircle size={24} className={themeClasses.text} /> Apresentação / Bio</h3>
-            <textarea value={formData.bio} onChange={(e) => setFormData({...formData, bio: e.target.value})} className="w-full p-8 bg-slate-50 dark:bg-slate-800 rounded-[2.5rem] border-2 border-transparent focus:border-slate-200 outline-none font-medium text-slate-700 dark:text-slate-300 min-h-[200px]" placeholder="Conte sua experiência..." />
-            {(formData.bio?.length ?? 0) <= 20 && (
-              <p className="text-xs text-amber-600 dark:text-amber-400 mt-3 px-2">
-                Para melhor pontuação do perfil, preencha mais de 20 caracteres.
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* COLUNA LATERAL */}
-        <div className="space-y-8">
-          {/* Alterar Senha */}
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-black uppercase italic mb-6 text-slate-400 tracking-widest flex items-center gap-2">
-              <Lock size={18} /> Segurança
-            </h3>
-            
-            {!showPasswordSection ? (
-              <button
-                onClick={() => setShowPasswordSection(true)}
-                className="w-full py-3 px-4 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-2"
-              >
-                <Lock size={16} />
-                Alterar Senha
-              </button>
-            ) : (
-              <form onSubmit={handleChangePassword} className="space-y-4">
-                <div>
-                  <Input 
-                    label="Senha Atual" 
-                    type={showPasswords.current ? "text" : "password"}
-                    value={currentPassword} 
-                    onChange={(v: string) => setCurrentPassword(v)}
-                    placeholder="Digite sua senha atual"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(p => ({ ...p, current: !p.current }))}
-                    className="text-xs text-slate-500 mt-1"
-                  >
-                    {showPasswords.current ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-                <div>
-                  <Input 
-                    label="Nova Senha" 
-                    type={showPasswords.new ? "text" : "password"}
-                    value={newPassword} 
-                    onChange={(v: string) => setNewPassword(v)}
-                    placeholder="Mínimo 6 caracteres"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(p => ({ ...p, new: !p.new }))}
-                    className="text-xs text-slate-500 mt-1"
-                  >
-                    {showPasswords.new ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-                <div>
-                  <Input 
-                    label="Confirmar Nova Senha" 
-                    type={showPasswords.confirm ? "text" : "password"}
-                    value={confirmPassword} 
-                    onChange={(v: string) => setConfirmPassword(v)}
-                    placeholder="Repita a nova senha"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))}
-                    className="text-xs text-slate-500 mt-1"
-                  >
-                    {showPasswords.confirm ? <EyeOff size={14} /> : <Eye size={14} />}
-                  </button>
-                </div>
-
-                {passwordError && (
-                  <p className="text-red-500 text-sm font-bold">{passwordError}</p>
-                )}
-                {passwordSuccess && (
-                  <p className="text-green-600 text-sm font-bold">{passwordSuccess}</p>
-                )}
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPasswordSection(false);
-                      setPasswordError(null);
-                      setCurrentPassword('');
-                      setNewPassword('');
-                      setConfirmPassword('');
-                    }}
-                    className="flex-1 py-2 px-4 border border-slate-300 dark:border-slate-600 rounded-xl font-bold text-sm text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={changingPassword}
-                    className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                  >
-                    {changingPassword ? <Loader2 size={16} className="animate-spin" /> : <Lock size={16} />}
-                    Salvar
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 rounded-[3rem] p-8 md:p-10 shadow-sm border border-slate-100 dark:border-slate-800">
-            <h3 className="text-sm font-black uppercase italic mb-8 text-slate-400 tracking-widest">Localização e Contato</h3>
-            <div className="space-y-6">
-              <Input label="Slug da URL" value={formData.slug} onChange={(v: string) => setFormData({...formData, slug: generateSlug(v)})} />
-              <div className="grid grid-cols-2 gap-4">
-                <Input label="Cidade" value={formData.city} onChange={(v: string) => setFormData({...formData, city: v})} />
-                <Input label="UF" value={formData.state} onChange={(v: string) => setFormData({...formData, state: v.toUpperCase()})} />
+              <div className="flex flex-col items-center justify-center h-full text-slate-300 dark:text-slate-600">
+                <ImageIcon size={40} className="opacity-40" />
+                <p className="text-[9px] font-black uppercase mt-2 opacity-40">Capa (1200×400)</p>
               </div>
+            )}
+            <label className="absolute top-4 right-4 bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm shadow-lg p-3 rounded-xl cursor-pointer hover:scale-105 transition-all border border-white/20">
+              <Camera size={16} className={theme.text} />
+              <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'cover')} />
+            </label>
+
+            <div className="absolute -bottom-12 left-6 md:left-8 flex items-end gap-5">
+              <div className="relative group/avatar shrink-0">
+                <div className="w-24 h-24 md:w-28 md:h-28 rounded-2xl bg-white dark:bg-slate-900 p-1 shadow-xl">
+                  <div className="w-full h-full rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    {avatarPreview ? (
+                      <img src={avatarPreview} className="w-full h-full object-cover" alt="" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-slate-300">
+                        {isDriver ? <User size={28} /> : <Building2 size={28} />}
+                      </div>
+                    )}
+                  </div>
+                  <label className="absolute inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover/avatar:opacity-100 transition-all cursor-pointer rounded-2xl">
+                    <Camera size={20} className="text-white" />
+                    <input type="file" className="hidden" accept="image/*" onChange={e => handleFileChange(e, 'avatar')} />
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="pt-16 pb-6 md:pb-8 px-6 md:px-8">
+            <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
               <div>
-                <Input label="WhatsApp" value={formData.whatsapp} onChange={(v: string) => setFormData({...formData, whatsapp: v})} />
+                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white leading-tight tracking-tight">
+                  {formData.trade_name || 'Nome não definido'}
+                </h2>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className={`${theme.bg} text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider`}>
+                    {isDriver ? 'Motorista Autônomo' : 'Empresa / Embarcador'}
+                  </span>
+                  <span className="text-slate-400 text-[10px] font-bold uppercase flex items-center gap-1">
+                    <MapPin size={11} /> {formData.city || '---'}, {formData.state || 'UF'}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-
-          <div className="bg-slate-950 p-10 rounded-[3rem] shadow-2xl relative overflow-hidden group">
-             <div className="relative z-10">
-               <h3 className="text-white font-black uppercase italic mb-6">Presença Digital</h3>
-               <div className="space-y-4">
-                 <Input dark label="Instagram" placeholder="@seu_perfil" value={formData.instagram} onChange={(v:string) => setFormData({...formData, instagram: v})} />
-                 <Input dark label="Site Oficial" placeholder="www.site.com" value={formData.website} onChange={(v:string) => setFormData({...formData, website: v})} />
-               </div>
-             </div>
-              <LayoutDashboard className="absolute -right-10 -bottom-10 text-white/5 w-40 h-40 group-hover:scale-110 transition-transform duration-700" />
-           </div>
-        </div>
-      </div>
-
-      {!identityConfirmed && (
-        <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-500/10 dark:to-yellow-500/10 border border-amber-200 dark:border-amber-500/20 rounded-[2rem] p-6">
-          <div className="flex items-start gap-4">
-            <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl flex items-center justify-center shrink-0">
-              <ShieldCheck size={24} className="text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-black uppercase italic text-lg text-slate-900 dark:text-white mb-1">
-                Aumente a confiança dos clientes
-              </h3>
-              <p className="text-sm text-slate-600 dark:text-slate-300 mb-3">
-                Contrate "Identidade Confirmada" e destaque seu perfil.
-              </p>
-              <button
-                onClick={() => window.location.href = '/dashboard/plans'}
-                className="bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-6 py-3 rounded-xl font-black uppercase text-sm transition-all shadow-lg"
-              >
-                Ver planos →
+              <button onClick={() => { navigator.clipboard.writeText(`https://chamafrete.com.br/perfil/${formData.slug}`); Swal.fire({ title: 'Copiado!', timer: 800, showConfirmButton: false, toast: true, position: 'top-end' }); }}
+                className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-100 dark:bg-slate-800 px-4 py-2 rounded-xl flex items-center gap-2 transition-colors shrink-0">
+                <Copy size={12} /> Copiar Link
               </button>
             </div>
           </div>
         </div>
-      )}
 
-      {/* FOOTER SAVE BAR */}
-      <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-[3rem] p-6 shadow-2xl flex flex-col md:flex-row items-center justify-between gap-6 border border-white/20 sticky bottom-6 z-40">
-          <div className="flex items-center gap-4 text-slate-400 px-4">
-              <div className="p-3 bg-emerald-500/10 rounded-2xl text-emerald-500"><ShieldCheck size={24} /></div>
-              <div>
-                <p className="text-[10px] font-black uppercase text-slate-800 dark:text-white">Dados Criptografados</p>
-                <p className="text-[9px] uppercase font-bold tracking-tighter">Seu perfil está alinhado com a LGPD.</p>
+        {/* MAIN GRID */}
+        <div className="grid lg:grid-cols-5 gap-8">
+
+          {/* LEFT — 3/5 */}
+          <div className="lg:col-span-3 space-y-8">
+
+            {/* SECTION: INFOS PROFISSIONAIS */}
+            <div id="section-bio" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
+              <div className="flex items-center gap-3 mb-8">
+                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
+                <Briefcase size={18} className={theme.subtle} />
+                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Informações Profissionais</h3>
               </div>
+
+              <div className="grid md:grid-cols-2 gap-5">
+                <Field icon={Building2} label={isCompany ? "Nome Fantasia" : "Nome Completo"} value={formData.trade_name} disabled />
+                <Field icon={Hash} label={isCompany ? "CNPJ" : "CPF"} value={formData.document} disabled />
+              </div>
+
+              <div className="mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                {isDriver ? <DriverFields formData={formData} setFormData={setFormData} /> : <CompanyFields formData={formData} setFormData={setFormData} />}
+              </div>
+            </div>
+
+            {/* SECTION: BIO */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
+              <div className="flex items-center gap-3 mb-8">
+                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
+                <MessageCircle size={18} className={theme.subtle} />
+                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Apresentação</h3>
+              </div>
+              <textarea value={formData.bio} onChange={e => setFormData({ ...formData, bio: e.target.value })}
+                className={`w-full p-5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 outline-none font-medium text-sm text-slate-700 dark:text-slate-300 min-h-[160px] transition-all resize-none focus:border-slate-300 dark:focus:border-slate-600 focus:ring-2 ${theme.ring}`}
+                placeholder="Conte sua experiência profissional, áreas de atuação, diferenciais..." />
+              <div className="flex items-center justify-between mt-3">
+                <span className="text-[10px] font-bold text-slate-400">{(formData.bio?.length || 0)} caracteres</span>
+                {(formData.bio?.length ?? 0) <= 20 && (
+                  <span className="text-[10px] font-bold text-amber-500 flex items-center gap-1"><AlertCircle size={10} /> Mínimo 20 caracteres</span>
+                )}
+              </div>
+            </div>
+
+            {/* SECTION: SECURITY */}
+            <div id="section-security" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
+              <div className="flex items-center gap-3 mb-8">
+                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
+                <Lock size={18} className="text-slate-400" />
+                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Segurança</h3>
+              </div>
+
+              {!showPasswordSection ? (
+                <button onClick={() => setShowPasswordSection(true)}
+                  className="w-full py-4 px-5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-2">
+                  <Lock size={16} /> Alterar Senha
+                </button>
+              ) : (
+                <form onSubmit={handleChangePassword} className="space-y-5">
+                  <div className="grid sm:grid-cols-3 gap-4">
+                    <PasswordField label="Senha Atual" value={currentPassword} onChange={setCurrentPassword} visible={showPasswords.current} onToggle={() => setShowPasswords(p => ({ ...p, current: !p.current }))} />
+                    <PasswordField label="Nova Senha" value={newPassword} onChange={setNewPassword} visible={showPasswords.new} onToggle={() => setShowPasswords(p => ({ ...p, new: !p.new }))} placeholder="Mínimo 6 caracteres" />
+                    <PasswordField label="Confirmar" value={confirmPassword} onChange={setConfirmPassword} visible={showPasswords.confirm} onToggle={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} />
+                  </div>
+                  {passwordError && <p className="text-red-500 text-xs font-bold flex items-center gap-1"><XCircle size={12} /> {passwordError}</p>}
+                  {passwordSuccess && <p className="text-green-600 text-xs font-bold flex items-center gap-1"><CheckCircle2 size={12} /> {passwordSuccess}</p>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => { setShowPasswordSection(false); setPasswordError(null); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
+                      className="flex-1 py-3 border border-slate-300 dark:border-slate-600 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancelar</button>
+                    <button type="submit" disabled={changingPassword}
+                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95">
+                      {changingPassword ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} Salvar
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+
+            {/* SECTION: LOCATION */}
+            <div id="section-location" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
+              <div className="flex items-center gap-3 mb-8">
+                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
+                <MapPin size={18} className="text-slate-400" />
+                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Localização</h3>
+              </div>
+
+              <div className="space-y-5">
+                <Field icon={AtSign} label="Slug da URL" value={formData.slug} onChange={v => setFormData({ ...formData, slug: generateSlug(v) })} />
+
+                {/* CEP */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3 ml-1">
+                    <MapPin size={12} className="text-slate-400" />
+                    <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">CEP (preenche cidade/UF)</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input type="text" value={formatCep(cepInput)} onChange={e => { setCepInput(e.target.value.replace(/\D/g, '').slice(0, 8)); setCepStatus('idle'); }}
+                        placeholder="00000-000" maxLength={9}
+                        className={`w-full py-4 px-5 rounded-xl border-2 outline-none font-bold text-xs transition-all bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 ${
+                          cepStatus === 'success' ? 'border-emerald-300 dark:border-emerald-600 bg-emerald-50/50' :
+                          cepStatus === 'error' ? 'border-red-300 dark:border-red-600 bg-red-50/50' :
+                          'border-slate-200 dark:border-slate-700 focus:border-slate-300 dark:focus:border-slate-600'
+                        } ${theme.ring} pr-12`} />
+                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        {cepLoading ? <Loader2 size={16} className="animate-spin text-blue-500" /> :
+                         cepStatus === 'success' ? <CheckCircle2 size={16} className="text-emerald-500" /> :
+                         cepStatus === 'error' ? <XCircle size={16} className="text-red-500" /> :
+                         <Search size={16} className="text-slate-300" />}
+                      </div>
+                    </div>
+                    <button type="button" onClick={() => handleCepLookup(cepInput)} disabled={cepInput.length !== 8 || cepLoading}
+                      className={`shrink-0 px-5 rounded-xl font-black uppercase text-[10px] tracking-wider transition-all ${theme.bg} text-white shadow-sm hover:scale-[1.02] active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2`}>
+                      {cepLoading ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
+                      <span className="hidden sm:inline">Buscar</span>
+                    </button>
+                  </div>
+                  <div className="mt-2 ml-1">
+                    {cepStatus === 'success' && <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">Cidade e UF preenchidos!</span>}
+                    {cepStatus === 'error' && <span className="text-[10px] font-bold text-red-500">CEP não encontrado. Preencha manualmente.</span>}
+                    {cepStatus === 'idle' && !cepInput && <span className="text-[10px] text-slate-400">Digite o CEP para buscar automaticamente</span>}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <Field icon={MapPin} label="Cidade" value={formData.city} onChange={v => setFormData({ ...formData, city: v })} />
+                  <Field icon={MapPin} label="UF" value={formData.state} onChange={v => setFormData({ ...formData, state: v.toUpperCase() })} />
+                </div>
+
+                <Field icon={Smartphone} label="WhatsApp" value={formData.whatsapp} onChange={v => setFormData({ ...formData, whatsapp: v })} />
+              </div>
+            </div>
           </div>
-          <button onClick={handleSave} disabled={loading} className={`${themeClasses.bg} text-white px-16 py-6 rounded-[2.5rem] font-black uppercase italic text-sm flex items-center gap-4 ${themeClasses.hover} transition-all shadow-xl ${themeClasses.shadow} disabled:opacity-50 active:scale-95`}>
-            {loading ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
-            {loading ? "SALVANDO..." : "ATUALIZAR MEU PERFIL"}
+
+          {/* RIGHT — 2/5 */}
+          <div className="lg:col-span-2 space-y-8">
+
+            {/* SECTION: DIGITAL PRESENCE */}
+            <div id="section-social" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
+              <div className="flex items-center gap-3 mb-8">
+                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
+                <Globe size={18} className="text-slate-400" />
+                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Presença Digital</h3>
+              </div>
+
+              <div className="space-y-5">
+                <Field icon={Instagram} label="Instagram" placeholder="@seu_perfil" value={formData.instagram} onChange={v => setFormData({ ...formData, instagram: v })} />
+                <Field icon={Link2} label="LinkedIn" placeholder="linkedin.com/in/seu-perfil" value={formData.linkedin} onChange={v => setFormData({ ...formData, linkedin: v })} />
+                <Field icon={Globe} label="Site Oficial" placeholder="www.site.com" value={formData.website} onChange={v => setFormData({ ...formData, website: v })} />
+              </div>
+            </div>
+
+            {/* IDENTITY CARD */}
+            {!identityConfirmed && (
+              <div className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-500/5 dark:to-yellow-500/5 rounded-2xl border border-amber-200 dark:border-amber-500/20 p-6">
+                <div className="flex flex-col gap-4">
+                  <div className="w-12 h-12 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-xl flex items-center justify-center shadow-md shrink-0">
+                    <ShieldCheck size={22} className="text-white" />
+                  </div>
+                  <div>
+                    <h4 className="font-black uppercase italic text-sm text-slate-900 dark:text-white mb-1">Identidade Confirmada</h4>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mb-4">Destaque seu perfil com o selo de verificação e aumente a confiança.</p>
+                    <button onClick={() => window.location.href = '/dashboard/planos'}
+                      className="w-full bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-600 hover:to-yellow-600 text-white px-5 py-3 rounded-xl font-black uppercase text-[10px] transition-all shadow-md active:scale-95 flex items-center justify-center gap-2">
+                      Ver planos <ChevronRight size={14} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MARKETPLACE STATUS */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm">
+              <div className="flex items-center gap-3 mb-6">
+                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
+                <LayoutDashboard size={18} className="text-slate-400" />
+                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Módulos</h3>
+              </div>
+              <div className="space-y-4">
+                {!marketplaceEnabled && (
+                  <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
+                      <LayoutDashboard size={18} className="text-slate-400" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-black uppercase text-slate-500">Marketplace</p>
+                      <p className="text-[9px] text-slate-400 truncate">Ative para vender produtos</p>
+                    </div>
+                    <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-lg">Inativo</span>
+                  </div>
+                )}
+                {marketplaceEnabled && (
+                  <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl">
+                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-800/30 rounded-xl flex items-center justify-center shrink-0">
+                      <LayoutDashboard size={18} className="text-emerald-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Marketplace</p>
+                      <p className="text-[9px] text-emerald-500 truncate">Você pode anunciar produtos</p>
+                    </div>
+                    <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-100 dark:bg-emerald-800/30 px-2.5 py-1 rounded-lg">Ativo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* STICKY SAVE BAR */}
+      <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 shadow-2xl">
+        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4">
+          <div className="hidden md:flex items-center gap-3 text-slate-400">
+            <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500"><ShieldCheck size={18} /></div>
+            <div>
+              <p className="text-[9px] font-black uppercase text-slate-800 dark:text-white">Dados Criptografados</p>
+              <p className="text-[8px] uppercase font-bold text-slate-400">Alinhado com a LGPD</p>
+            </div>
+          </div>
+          <button onClick={handleSave} disabled={loading}
+            className={`w-full md:w-auto ${theme.bg} text-white px-10 py-4 rounded-xl font-black uppercase italic text-xs flex items-center justify-center gap-3 ${theme.hover} transition-all shadow-lg disabled:opacity-50 active:scale-95`}>
+            {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+            {loading ? "SALVANDO..." : "SALVAR ALTERAÇÕES"}
           </button>
+        </div>
       </div>
     </div>
   );
 };
 
-const Input = ({ label, value, onChange, placeholder, disabled, dark, type = "text" }: any) => (
-  <div className="w-full">
-    <label className={`text-[9px] font-black uppercase tracking-[0.2em] mb-3 block ml-2 ${dark ? 'text-slate-500' : 'text-slate-400'}`}>{label}</label>
-    <input 
-      type={type}
-      value={value || ''} 
-      onChange={(e) => onChange(e.target.value)} 
-      placeholder={placeholder} 
-      disabled={disabled} 
-      className={`w-full p-5 rounded-2xl border-2 border-transparent outline-none font-bold text-xs transition-all ${
-        dark 
-        ? 'bg-white/5 border-white/5 text-white focus:bg-white/10' 
-        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:bg-white dark:focus:bg-slate-900 focus:border-slate-200'
-      } ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`} 
-    />
+const Field = ({ icon: Icon, label, value, onChange, placeholder, disabled }: any) => (
+  <div>
+    <label className="flex items-center gap-1.5 mb-2 ml-1">
+      {Icon && <Icon size={11} className="text-slate-400" />}
+      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">{label}</span>
+    </label>
+    <input type="text" value={value || ''} onChange={e => onChange?.(e.target.value)} placeholder={placeholder} disabled={disabled}
+      className={`w-full py-4 px-5 rounded-xl border-2 outline-none font-semibold text-sm transition-all bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 placeholder:text-slate-400 ${
+        disabled
+          ? 'border-slate-100 dark:border-slate-800 opacity-60 cursor-not-allowed select-none'
+          : 'border-slate-200 dark:border-slate-700 focus:border-slate-300 dark:focus:border-slate-600'
+      }`} />
+  </div>
+);
+
+const PasswordField = ({ label, value, onChange, visible, onToggle, placeholder }: any) => (
+  <div>
+    <label className="flex items-center gap-1.5 mb-2 ml-1">
+      <Lock size={11} className="text-slate-400" />
+      <span className="text-[9px] font-black uppercase tracking-wider text-slate-400">{label}</span>
+    </label>
+    <div className="relative">
+      <input type={visible ? "text" : "password"} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+        className="w-full py-4 px-5 rounded-xl border-2 border-slate-200 dark:border-slate-700 outline-none font-semibold text-sm transition-all bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 focus:border-slate-300 dark:focus:border-slate-600 pr-14" />
+      <button type="button" onClick={onToggle} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+        {visible ? <EyeOff size={15} /> : <Eye size={15} />}
+      </button>
+    </div>
   </div>
 );
 

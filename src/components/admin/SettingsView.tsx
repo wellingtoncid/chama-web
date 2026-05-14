@@ -4,11 +4,18 @@ import {
   Save, ShieldAlert,
   Loader2, Star, DollarSign, Edit3,
   MessageSquare,
-  CreditCard, Gift, Globe, Eye, EyeOff, Package, Award, Wrench, GripVertical, AlertCircle, ShieldCheck, Search, Plus, X
+  CreditCard, Gift, Globe, Eye, EyeOff, Package, Award, Wrench, GripVertical, AlertCircle, ShieldCheck, Search, Plus, X,
+  Truck, CheckCircle2
 } from 'lucide-react';
 import { PageShell } from '@/components/admin';
 
 type TabId = 'general' | 'lists' | 'finance' | 'payments' | 'referral' | 'plans' | 'system' | 'moderation' | 'smtp';
+
+interface Tab {
+  id: TabId;
+  label: string;
+  icon: React.ReactNode;
+}
 
 const tabs: Tab[] = [
   { id: 'general', label: 'Geral', icon: <Globe size={16} /> },

@@ -77,7 +77,7 @@ export default function AccessManager() {
         });
         setRolePermissions(perms);
       }
-    } catch {
+    } catch (error) {
       console.error("Erro ao carregar:", error);
     } finally {
       setLoading(false);

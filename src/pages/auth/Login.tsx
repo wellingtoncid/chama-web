@@ -76,11 +76,12 @@ export default function Login() {
         setErrorMsg(res?.data?.message || "Acesso negado. Verifique suas credenciais.");
       }
     } catch (error: unknown) {
-      const backendMessage = error.response?.data?.message;
+      const err = error as { response?: { data?: { message?: string } }; request?: unknown };
+      const backendMessage = err.response?.data?.message;
       
       if (backendMessage) {
         setErrorMsg(backendMessage);
-      } else if (error.request) {
+      } else if (err.request) {
         setErrorMsg("Servidor offline. Tente novamente em instantes.");
       } else {
         setErrorMsg("Erro ao processar login.");

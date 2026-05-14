@@ -6,12 +6,14 @@ export interface MatchingDriver {
   driver_name: string;
   driver_slug: string;
   driver_whatsapp?: string;
+  driver_phone?: string;
   vehicle_type: string;
   body_type: string;
   home_city: string;
   home_state: string;
   service_radius_km: number;
   available_equipment: string[];
+  available_certifications?: string[];
   avatar_url: string | null;
   verification_status: string;
   profile_completeness: number;

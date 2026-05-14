@@ -14,6 +14,7 @@ import AuthModal from '../../components/modals/AuthModal';
 import AdCard from '../../components/shared/AdCard'; 
 import FreightCard from '../../components/shared/FreightCard';
 import { useTracker } from '../../services/useTracker';
+import { usePageMeta } from '../../hooks/usePageMeta';
 
 interface FreightData {
   id: number;
@@ -38,6 +39,8 @@ interface FreightData {
   owner_whatsapp?: string;
   owner_created_at?: string;
   total_owner_freights?: number;
+  display_phone?: string;
+  user_id?: number;
   created_at: string;
 }
 
@@ -178,6 +181,18 @@ export default function FreightDetails() {
       setPendingAction(null);
     }, 500);
   };
+
+  const freightTitle = freight ? `${freight.product} | ${freight.origin_city} → ${freight.dest_city}` : undefined;
+  const freightDesc = freight ? `Frete: ${freight.product} saindo de ${freight.origin_city}/${freight.origin_state} para ${freight.dest_city}/${freight.dest_state}.` : undefined;
+  const freightImage = freight?.owner_avatar || undefined;
+
+  usePageMeta(freight ? {
+    title: freightTitle,
+    description: freightDesc,
+    image: freightImage,
+    url: window.location.href,
+    type: 'article',
+  } : {});
 
   if (loading) return (
     <div className="min-h-screen flex items-center justify-center bg-slate-50">
@@ -322,8 +337,8 @@ export default function FreightDetails() {
               <div className="bg-white rounded-[3rem] p-8 md:p-10 shadow-2xl border-2 border-slate-100">
                 <div className="text-center">
                   <p className="text-[10px] font-black text-slate-400 uppercase mb-2 tracking-[0.3em]">Valor Estimado</p>
-                  <p className={`text-3xl md:text-5xl font-[1000] mb-10 tracking-tighter italic ${parseFloat(freight.price) > 0 ? 'text-green-600' : 'text-slate-400'}`}>
-                    {parseFloat(freight.price) > 0 ? parseFloat(freight.price).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'A COMBINAR'}
+                  <p className={`text-3xl md:text-5xl font-[1000] mb-10 tracking-tighter italic ${parseFloat(String(freight.price)) > 0 ? 'text-green-600' : 'text-slate-400'}`}>
+                    {parseFloat(String(freight.price)) > 0 ? parseFloat(String(freight.price)).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : 'A COMBINAR'}
                   </p>
                   
                   <div className="space-y-4">

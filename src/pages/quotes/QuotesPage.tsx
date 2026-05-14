@@ -107,7 +107,7 @@ export default function QuotesPage() {
           setUserModule('quotes');
         }
       }
-    } catch {
+    } catch (e) {
       console.error("Erro ao verificar módulos:", e);
     } finally {
       setLoading(false);

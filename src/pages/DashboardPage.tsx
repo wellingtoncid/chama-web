@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../api/api';
@@ -42,7 +42,11 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(authUser as User | null);
   const [loading, setLoading] = useState(false);
 
+  const fetched = useRef(false);
+
   const fetchUserData = useCallback(async () => {
+    if (fetched.current) return;
+    fetched.current = true;
     try {
       const response = await api.get('get-my-profile'); 
       if (response.data.success) {
@@ -78,7 +82,8 @@ export default function DashboardPage() {
   const isCompany = isCompanyRole(role);
   const isDriver = isDriverRole(role);
   const isSuperAdmin = isSuperAdminRole(role);
-  const hasAdsModule = isInternal || isCompany;
+  const isAdvertiser = role === 'advertiser';
+  const hasAdsModule = isInternal || isCompany || isAdvertiser;
 
   // LÓGICA DE BLOQUEIO / ONBOARDING
   // Verifica se faltam dados essenciais para empresas

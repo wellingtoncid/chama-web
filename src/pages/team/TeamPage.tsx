@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
 import { 
   Users, UserPlus, Mail, Shield, MoreVertical,
-  CheckClock, Trash2, Edit,
+  Clock, Check, Trash2, Edit,
   Loader2, UserX, ChevronDown
 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -88,7 +88,7 @@ export default function TeamPage() {
       if (invitesRes.data?.success) {
         setInvitations(invitesRes.data.data || []);
       }
-    } catch {
+    } catch (e) {
       console.error('Erro ao carregar dados:', e);
     } finally {
       setLoading(false);

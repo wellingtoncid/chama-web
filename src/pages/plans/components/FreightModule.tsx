@@ -1,5 +1,5 @@
 // useState removed 'react';
-import { Crown, Loader2, Check, Truck } from 'lucide-react';
+import { Crown, Loader2, Check, Truck, Star } from 'lucide-react';
 // Swal removed 'sweetalert2';
 import ModuleDetailLayout from './ModuleDetailLayout';
 
@@ -29,7 +29,7 @@ interface FreightModuleProps {
   currentPlanId?: number | null;
 }
 
-export default function FreightModule({ plans, rules, isActive, onBack, onPlanSelect = 0, currentPlanId = null }: FreightModuleProps) {
+export default function FreightModule({ plans, rules, isActive, onBack, onPlanSelect, currentPlanId = null }: FreightModuleProps) {
   return (
     <ModuleDetailLayout
       title="Logística"

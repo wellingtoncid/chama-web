@@ -24,7 +24,7 @@ const Header = () => {
 
   // Auth state
   const { user, logout, loading } = useAuth();
-  const displayName = user?.name ?? user?.displayName ?? user?.email ?? 'Usuário';
+  const displayName = String(user?.name ?? (user as Record<string, unknown>)?.displayName ?? user?.email ?? 'Usuário');
   const navigate = useNavigate();
 
   const handleLogout = () => {

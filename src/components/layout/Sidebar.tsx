@@ -157,8 +157,8 @@ const Sidebar = ({ user }: { user: any }) => {
         },
         // Só empresa vê "Logística / Meus Fretes"
         { label: 'Meus Fretes', icon: <Truck size={20}/>, path: '/dashboard/logistica', visible: isCompany && hasFreights },
-        // Só empresa tem anúncios publicitários
-        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: isCompany && hasAdvertiser },
+        // Empresa ou anunciante tem anúncios publicitários
+        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: (isCompany || role === 'advertiser') && hasAdvertiser },
         // Gestão de equipe para empresas
         { label: 'Equipe', icon: <Users size={20}/>, path: '/dashboard/equipe', visible: isCompany },
       ]

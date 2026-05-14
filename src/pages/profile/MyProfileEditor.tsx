@@ -7,8 +7,33 @@ import {
 import { api } from '../../api/api';
 import confetti from 'canvas-confetti';
 
+interface ProfileUser {
+  id?: number;
+  cnpj?: string;
+  company_name?: string;
+  role?: string;
+  slug?: string;
+  [key: string]: unknown;
+}
+
 interface MyProfileEditorProps {
-  user: unknown;
+  user: ProfileUser;
+}
+
+interface ExtraData {
+  cnpj: string;
+  razao_social: string;
+  veiculo_modelo: string;
+  veiculo_placa: string;
+  descricao_negocio: string;
+  whatsapp_comercial: string;
+  instagram: string;
+  website: string;
+  avatar_url: string;
+  banner_url: string;
+  cidades_atendidas: string;
+  anos_experiencia: string;
+  [key: string]: unknown;
 }
 
 export default function MyProfileEditor({ user }: MyProfileEditorProps) {
@@ -16,7 +41,7 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
   const [slug, setSlug] = useState('');
   const [slugAvailable, setSlugAvailable] = useState<null | boolean>(null);
   
-  const [extraData, setExtraData] = useState<unknown>({
+  const [extraData, setExtraData] = useState<ExtraData>({
     cnpj: user.cnpj || '',
     razao_social: user.company_name || '',
     veiculo_modelo: '',
@@ -49,7 +74,7 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
               ? JSON.parse(res.data.private_data) 
               : res.data.private_data;
             
-            setExtraData((prev: any) => ({ 
+            setExtraData((prev) => ({ 
               ...prev, 
               ...parsed,
               descricao_negocio: parsed.descricao_negocio || res.data.bio || prev.descricao_negocio,
@@ -57,7 +82,7 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
             }));
           }
         }
-      } catch { 
+      } catch (e) { 
         console.error("Erro ao carregar perfil:", e); 
       }
     };
@@ -225,9 +250,9 @@ export default function MyProfileEditor({ user }: MyProfileEditorProps) {
               <MessageCircle size={18} className="text-emerald-500" /> Contatos
             </h3>
             <div className="space-y-4">
-              <SocialInput label="WhatsApp" icon={<MessageCircle size={16}/>} value={extraData.whatsapp_comercial} onChange={(v: any) => setExtraData({...extraData, whatsapp_comercial: v})} />
-              <SocialInput label="Instagram" icon={<Instagram size={16}/>} value={extraData.instagram} onChange={(v: any) => setExtraData({...extraData, instagram: v})} />
-              <SocialInput label="Site" icon={<Globe size={16}/>} value={extraData.website} onChange={(v: any) => setExtraData({...extraData, website: v})} />
+              <SocialInput label="WhatsApp" icon={<MessageCircle size={16}/>} value={extraData.whatsapp_comercial} onChange={(v: string) => setExtraData({...extraData, whatsapp_comercial: v})} />
+              <SocialInput label="Instagram" icon={<Instagram size={16}/>} value={extraData.instagram} onChange={(v: string) => setExtraData({...extraData, instagram: v})} />
+              <SocialInput label="Site" icon={<Globe size={16}/>} value={extraData.website} onChange={(v: string) => setExtraData({...extraData, website: v})} />
             </div>
           </div>
 

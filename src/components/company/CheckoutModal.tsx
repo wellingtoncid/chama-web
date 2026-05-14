@@ -13,7 +13,7 @@ interface CheckoutModalProps {
 }
 
 interface PricingOption {
-  type: 'boost' | 'urgent';
+  type: string;
   name: string;
   description: string;
   price: number;

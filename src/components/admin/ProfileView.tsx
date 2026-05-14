@@ -14,7 +14,7 @@ interface Profile {
   role: string;
   city: string;
   state: string;
-  avatar: string;
+  avatar_url?: string;
   bio: string;
   cpf: string;
   cnpj: string;
@@ -46,8 +46,8 @@ export default function ProfileView() {
         setProfile(res.data.data);
         setFormData(res.data.data);
       }
-    } catch {
-      console.error("Erro ao carregar perfil:", error);
+    } catch (err) {
+      console.error("Erro ao carregar perfil:", err);
     } finally {
       setLoading(false);
     }
@@ -87,8 +87,8 @@ export default function ProfileView() {
         <div className="flex items-center gap-6 relative z-10">
           <div className="relative">
             <div className="w-32 h-32 rounded-full bg-white/20 flex items-center justify-center overflow-hidden border-4 border-white/30">
-              {profile?.avatar ? (
-                <img src={profile.avatar} alt={profile.name} className="w-full h-full object-cover" />
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
               ) : (
                 <User size={48} className="text-white" />
               )}

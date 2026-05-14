@@ -42,7 +42,7 @@ export default function PermissionsManager() {
         setPermissions(res.data.data);
         setGrouped(res.data.grouped || {});
       }
-    } catch {
+    } catch (error) {
       console.error("Erro ao carregar permissões:", error);
     } finally {
       setLoading(false);

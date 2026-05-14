@@ -94,7 +94,7 @@ export default function SupportPage() {
       if (res.data?.success) {
         setTickets(res.data.data || []);
       }
-    } catch {
+    } catch (e) {
       console.error("Erro ao carregar tickets:", e);
     } finally {
       setLoading(false);
@@ -108,7 +108,7 @@ export default function SupportPage() {
       if (res.data?.success) {
         setMessages(res.data.data || []);
       }
-    } catch {
+    } catch (e) {
       console.error("Erro ao carregar mensagens:", e);
     } finally {
       setLoadingMessages(false);

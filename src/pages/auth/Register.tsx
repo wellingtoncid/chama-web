@@ -39,7 +39,7 @@ export default function Register() {
     const cleanWhatsapp = whatsapp.replace(/\D/g, '');
     const cleanDocument = document.replace(/\D/g, '');
 
-    const payload = {
+    const payload: Record<string, string> = {
       name: name.trim(),
       email: email.trim().toLowerCase(),
       whatsapp: cleanWhatsapp,
@@ -66,7 +66,8 @@ export default function Register() {
         alert("Erro no cadastro: " + errorMsg);
       }
     } catch (error: unknown) {
-      const backendMessage = error.response?.data?.message;
+      const err = error as { response?: { data?: { message?: string } } };
+      const backendMessage = err.response?.data?.message;
       alert(backendMessage || "Erro ao conectar com o servidor.");
     } finally {
       setLoading(false);
