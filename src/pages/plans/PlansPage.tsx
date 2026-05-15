@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import RequestModal from '../../components/modals/RequestModal';
-import { PageShell, StatsGrid, StatCard } from '@/components/admin';
+import { PageShell } from '@/components/admin';
 
 // Canonical payment flow will be used via the existing MP checkout from cards
 // No extra modals; plan purchases go through the canonical path
@@ -73,7 +73,6 @@ export default function PlansPage() {
     moduleKey: '',
     moduleName: ''
   });
-  const [togglingMarketplace, setTogglingMarketplace] = useState(false);
   const [togglingAdvertiser, setTogglingAdvertiser] = useState(false);
   const [companyVerificationStatus, setCompanyVerificationStatus] = useState<{
     is_verified: boolean;
@@ -543,19 +542,6 @@ export default function PlansPage() {
     loadData();
   };
 
-  const toggleMarketplace = async (activate: boolean) => {
-    setTogglingMarketplace(true);
-    try {
-      const res = await api.post('/user/modules', { module_key: 'marketplace', action: activate ? 'activate' : 'deactivate' });
-      if (res.data.success) {
-        await loadData();
-        Swal.fire({ icon: 'success', title: activate ? 'Marketplace ativado!' : 'Marketplace desativado', timer: 3000, showConfirmButton: false });
-      }
-    } catch (e: any) {
-      Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || 'Erro' });
-    } finally { setTogglingMarketplace(false); }
-  };
-
   const toggleAdvertiser = async (activate: boolean) => {
     setTogglingAdvertiser(true);
     try {
@@ -789,13 +775,6 @@ export default function PlansPage() {
       }
     >
       
-      {/* StatsGrid */}
-      <StatsGrid>
-        <StatCard label="Total" value={plans.length} icon={CreditCard} />
-        <StatCard label="Ativos" value={plans.filter(p => p.active).length} variant="green" icon={Check} />
-        <StatCard label="Expirados" value={plans.filter(p => !p.active).length} variant="red" icon={AlertCircle} />
-      </StatsGrid>
-
       {selectedModule === 'freights' && (
         <FreightModule
           plans={getSubscriptionPlans('freight_subscription')}
@@ -815,11 +794,9 @@ export default function PlansPage() {
           rules={getModuleRules('marketplace')}
           isActive={status.isActive}
           onBack={() => setSelectedModule(null)}
-          onToggle={toggleMarketplace}
           onPlanSelect={handlePlanSelect}
           onPurchase={handlePurchase}
           purchasing={purchasing}
-          toggling={togglingMarketplace}
           currentPlanId={getActivePlanIdForModule('marketplace')}
         />
       )}
@@ -838,8 +815,6 @@ export default function PlansPage() {
           currentPlanId={getActivePlanIdForModule('advertiser')}
         />
       )}
-
-      // Cotações removidas do MVP
 
       {selectedModule === 'driver' && (
         <DriverModule

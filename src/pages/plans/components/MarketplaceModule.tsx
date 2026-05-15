@@ -1,6 +1,5 @@
 // useState removed 'react';
 import { ShoppingBag, Check, Star } from 'lucide-react';
-import Swal from 'sweetalert2';
 import ModuleDetailLayout from './ModuleDetailLayout';
 
 interface PricingRule {
@@ -22,53 +21,24 @@ interface MarketplaceModuleProps {
   rules: PricingRule[];
   isActive: boolean;
   onBack: () => void;
-  onToggle: (activate: boolean) => Promise<void>;
   onPlanSelect: (plan: any) => void;
   onPurchase: (moduleKey: string, feature: PricingRule, walletBalance?: number) => Promise<void>;
   purchasing: string | null;
-  toggling: boolean;
   walletBalance?: number;
   currentPlanId?: number | null;
   }
-
-const formatDuration = (days: number) => {
-  if (days === 1) return '1 dia';
-  if (days === 7) return '7 dias';
-  if (days === 30) return '30 dias';
-  return `${days} dias`;
-};
 
 export default function MarketplaceModule({
   plans,
   rules,
   isActive,
   onBack,
-  onToggle,
   onPlanSelect,
   onPurchase,
   purchasing,
-  toggling,
   walletBalance = 0,
   currentPlanId = null,
 }: MarketplaceModuleProps) {
-
-  const handleToggle = (newStatus: boolean) => {
-    const action = newStatus ? 'ativar' : 'desativar';
-    Swal.fire({
-      title: `Deseja ${action} o marketplace?`,
-      text: newStatus
-        ? 'Você tem 1 anúncio gratuito por mês incluso.'
-        : 'Seus anúncios ficarão ocultos para outros usuários, mas você ainda poderá vê-los.',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sim',
-      cancelButtonText: 'Cancelar'
-    }).then((result) => {
-      if (result.isConfirmed) {
-        onToggle(newStatus);
-      }
-    });
-  };
 
   return (
     <ModuleDetailLayout
@@ -77,15 +47,6 @@ export default function MarketplaceModule({
       description="Venda produtos e peças"
       isActive={isActive}
       onBack={onBack}
-      toggle={{
-        isActive,
-        onToggle: handleToggle,
-        toggling,
-        label: 'Marketplace',
-        subtitle: '1 anúncio gratuito por mês incluso',
-        inactiveText: 'Anúncios desativados ficam ocultos para outros usuários.',
-        color: 'from-purple-600 to-purple-500'
-      }}
     >
       {/* Planos de Assinatura */}
       {plans.length > 0 && (

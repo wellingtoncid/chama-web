@@ -149,7 +149,7 @@ export function UpgradeModal({
               </span>
               <span className="text-lg font-black text-orange-600">R$ {displayPriceMonthly.toFixed(2)}<span className="text-[10px]">/mês</span></span>
             </div>
-            <p className="text-[10px] text-orange-700">Uso ilimitado durante 30 dias</p>
+            <p className="text-[10px] text-orange-700">{displayPriceMonthly > 0 ? `${featureName} incluso no plano mensal` : 'Plano mensal indisponível para este recurso'}</p>
             <button 
               onClick={handleMonthlyPlan}
               disabled={loading}

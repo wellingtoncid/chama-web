@@ -2,15 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   PlusCircle, Package, Loader2, Zap, Trash2, Edit3, 
-  Truck, Search, AlertCircle, CheckCircle2, TrendingUp,
-  ShieldAlert, Eye, MessageCircle, Users, ExternalLink
+  Truck, Search, CheckCircle2,
+  Eye, MessageCircle, Users, ExternalLink
 } from 'lucide-react';
 import { api } from '../../api/api';
 import CheckoutModal from './CheckoutModal';
 import Swal from 'sweetalert2';
 import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 import { UsageMeter } from '../shared/UsageMeter';
-import { PageShell, StatsGrid, StatCard } from '@/components/admin';
+import { PageShell, StatsGrid, StatCard, FilterBar, StatusBadge } from '@/components/admin';
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
@@ -227,11 +227,49 @@ export default function FreightManager({ user }: any) {
     if (user?.id) fetchFreights(); 
   }, [user?.id]);
 
-  const filteredFreights = myFreights.filter(f => 
-    f.origin_city?.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    f.dest_city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    f.product?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const statusMap: Record<string, string[]> = {
+    active: ['OPEN', 'PENDING'],
+    completed: ['FINISHED', 'CLOSED'],
+    cancelled: ['CANCELLED'],
+  };
+
+  const filteredFreights = myFreights.filter(f => {
+    const matchesSearch =
+      !searchTerm ||
+      f.origin_city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.dest_city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      f.product?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      `cf-${f.id}`.includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === 'all' ||
+      (statusMap[statusFilter] ?? []).includes(f.status);
+
+    return matchesSearch && matchesStatus;
+  });
+
+  const timeAgo = (dateStr: string) => {
+    if (!dateStr) return '';
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / 86400000);
+    if (days === 0) return 'Hoje';
+    if (days === 1) return 'Ontem';
+    if (days > 0) return `Há ${days} dias`;
+    const absDays = Math.abs(days);
+    if (absDays === 1) return 'Amanhã';
+    return `Em ${absDays} dias`;
+  };
+
+  const hasAnyFreights = myFreights.length > 0;
+  const hasFilterResults = filteredFreights.length > 0;
+
+  const statusBadgeMap: Record<string, 'active' | 'pending' | 'completed' | 'cancelled'> = {
+    OPEN: 'active',
+    PENDING: 'pending',
+    FINISHED: 'completed',
+    CLOSED: 'completed',
+    CANCELLED: 'cancelled',
+  };
 
 return (
   <PageShell
@@ -248,7 +286,7 @@ return (
     }
   >
     {/* Usage Meter */}
-    <UsageMeter moduleKey="freights" />
+    <UsageMeter moduleKey="freights" hideCreateButton />
 
     {/* StatsGrid */}
     <div className="mt-6">
@@ -260,49 +298,26 @@ return (
     </div>
 
     {/* Search & Filters */}
-    <div className="flex flex-col md:flex-row gap-4 items-center justify-between mx-2 mt-4">
-      <div className="relative w-full max-w-md">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={18} />
-        <input 
-          type="text" 
-          placeholder="Filtrar por rota ou produto..."
-          className="w-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 px-4 py-3 pl-12 rounded-xl outline-none focus:border-orange-500 transition-all font-bold text-slate-600 dark:text-slate-300 text-[11px] uppercase shadow-sm"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+    <FilterBar
+      search={{
+        placeholder: 'Filtrar por rota, produto ou código...',
+        value: searchTerm,
+        onChange: setSearchTerm,
+      }}
+      tabs={[
+        { key: 'all', label: 'Todos' },
+        { key: 'active', label: 'Ativos' },
+        { key: 'completed', label: 'Concluídos' },
+        { key: 'cancelled', label: 'Cancelados' },
+      ]}
+      activeTab={statusFilter}
+      onTabChange={setStatusFilter}
+    >
+      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg border border-orange-100 dark:border-orange-800">
+        <Zap size={12} fill="currentColor" />
+        <span className="text-xs font-bold">{myFreights.filter(f => Number(f.is_featured) === 1).length} Destaques</span>
       </div>
-      
-      {/* Status Filter Tabs */}
-      <div className="flex items-center gap-2">
-        {[
-          { key: 'all', label: 'Todos' },
-          { key: 'active', label: 'Ativos' },
-          { key: 'completed', label: 'Concluídos' },
-          { key: 'cancelled', label: 'Cancelados' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setStatusFilter(tab.key)}
-            className={`px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-tight transition-all ${
-              statusFilter === tab.key
-                ? 'bg-slate-900 text-white'
-                : 'bg-white dark:bg-slate-800 text-slate-500 border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      <div className="flex items-center gap-2">
-         <div className="flex items-center gap-1.5 px-4 py-2.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-xl border border-orange-100 dark:border-orange-800">
-              <Zap size={12} fill="currentColor" />
-              <span className="text-[10px] font-black uppercase tracking-tight">
-                {myFreights.filter(f => Number(f.is_featured) === 1).length} Destaques
-              </span>
-         </div>
-      </div>
-    </div>
+    </FilterBar>
 
     {/* Rest of content (table/list) */}
       <div className="bg-white dark:bg-slate-800 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px]">
@@ -311,12 +326,19 @@ return (
             <Loader2 className="animate-spin text-orange-500" size={40} />
             <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Carregando painel logístico...</p>
           </div>
-        ) : filteredFreights.length === 0 ? (
+        ) : !hasAnyFreights ? (
           <div className="py-32 text-center">
             <div className="w-20 h-20 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200 dark:text-slate-600">
               <Truck size={40} />
             </div>
             <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">Nenhuma carga publicada no momento.</p>
+          </div>
+        ) : !hasFilterResults ? (
+          <div className="py-32 text-center">
+            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200 dark:text-slate-600">
+              <Search size={40} />
+            </div>
+            <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">Nenhuma carga encontrada para este filtro.</p>
           </div>
         ) : (
           <div className="divide-y divide-slate-50 dark:divide-slate-700">
@@ -332,6 +354,7 @@ return (
                     <div>
                       <div className="flex items-center gap-2 mb-1">
                         {isFeatured && <span className="text-[8px] font-black bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-tighter">Impulsionado</span>}
+                        <StatusBadge status={statusBadgeMap[f.status] ?? 'active'} />
                         <span className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-tighter italic">REF: CF-{f.id}</span>
                       </div>
 
@@ -343,9 +366,20 @@ return (
                         <span className="text-[9px] font-black bg-slate-900 dark:bg-slate-700 text-white dark:text-slate-200 px-2.5 py-1 rounded-lg uppercase italic tracking-tighter">
                           {f.product || 'Carga Geral'}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase italic">
-                          {f.weight} TON • {f.price ? `R$ ${f.price}` : 'A Combinar'}
+                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase italic">
+                          {f.weight} TON
                         </span>
+                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                          {f.price ? `R$ ${f.price}` : 'A Combinar'}
+                        </span>
+                        <span className="text-[9px] text-slate-400 dark:text-slate-500 italic">
+                          {timeAgo(f.created_at)}
+                        </span>
+                        {f.expires_at && (
+                          <span className="text-[9px] text-orange-500 italic">
+                            Expira {timeAgo(f.expires_at)}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -429,24 +463,6 @@ return (
         priceMonthly={pricingData?.priceMonthly || 0}
       />
     </PageShell>
-  );
-}
-
-// Componente de métrica simplificado para o módulo
-function MiniMetricCard({ icon, label, value, color }: any) {
-  const textColor = color === 'orange' ? 'text-orange-500 dark:text-orange-400' : color === 'blue' ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-white';
-  const bgColor = color === 'orange' ? 'bg-orange-50 dark:bg-orange-900/30' : color === 'blue' ? 'bg-blue-50 dark:bg-blue-900/30' : 'bg-slate-50 dark:bg-slate-700';
-  
-  return (
-    <div className="bg-white dark:bg-slate-800 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-700 shadow-sm flex items-center gap-4">
-      <div className={`${bgColor} ${textColor} w-12 h-12 rounded-2xl flex items-center justify-center shadow-inner`}>
-        {icon}
-      </div>
-      <div>
-        <p className="text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest leading-none mb-1">{label}</p>
-        <h3 className={`text-2xl font-black italic tracking-tighter ${textColor}`}>{value}</h3>
-      </div>
-    </div>
   );
 }
 

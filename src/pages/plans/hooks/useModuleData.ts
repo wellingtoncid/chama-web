@@ -163,24 +163,20 @@ export function useModuleData({
 
   const getSubscriptionPlans = useCallback(
     (moduleType: string) => {
-      // filtra por type=subscription E considera o módulo
-      // freight_subscription → Freight Starter/Pro
-      // marketplace_subscription → Classificado Basic/Pro  
-      // advertising → planos de publicidade
       return plans.filter((p) => {
-        const isActive = p.active === 1;
-        const isSubscription = p.type === 'subscription';
-        
+        if (p.active !== 1) return false;
+
         if (moduleType === 'freight_subscription') {
-          return isActive && isSubscription && (p.category === 'freight_starter' || p.category === 'freight_pro' || p.name?.includes('Freight'));
+          return p.category === 'freight_subscription';
         }
         if (moduleType === 'marketplace_subscription') {
-          return isActive && isSubscription && (p.category === 'classified_basic' || p.category === 'classified_pro' || p.name?.includes('Classificado'));
+          return p.category === 'marketplace_subscription';
         }
         if (moduleType === 'advertising') {
-          return isActive && isSubscription && (p.category === 'advertising' || p.name?.includes('Publicidade'));
+          return p.category === 'advertising';
         }
-        return isActive && isSubscription;
+        // Fallback: any active plan
+        return true;
       });
     },
     [plans]

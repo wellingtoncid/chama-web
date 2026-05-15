@@ -6,6 +6,7 @@ import Swal from 'sweetalert2';
 
 interface UsageMeterProps {
   moduleKey: 'freights' | 'marketplace';
+  hideCreateButton?: boolean;
 }
 
 interface UsageData {
@@ -15,7 +16,7 @@ interface UsageData {
   plan_name?: string;
 }
 
-export function UsageMeter({ moduleKey }: UsageMeterProps) {
+export function UsageMeter({ moduleKey, hideCreateButton = false }: UsageMeterProps) {
   const navigate = useNavigate();
   const [usageData, setUsageData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -118,26 +119,28 @@ export function UsageMeter({ moduleKey }: UsageMeterProps) {
       </div>
 
       {/* Botão criar */}
-      {isAtLimit ? (
-        <button 
-          onClick={handleCreateNew}
-          className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase"
-        >
-          Limite Atingido
-        </button>
-      ) : (
-        <button 
-          onClick={handleCreateNew}
-          className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black uppercase italic text-xs flex items-center gap-2 shadow-lg"
-        >
-          {isFreight ? <Package size={16} /> : <ShoppingBag size={16} />}
-          Novo {isFreight ? 'Frete' : 'Item'}
-          {limit > 0 && (
-            <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">
-              {usageData?.remaining || 0}
-            </span>
-          )}
-        </button>
+      {!hideCreateButton && (
+        isAtLimit ? (
+          <button 
+            onClick={handleCreateNew}
+            className="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold text-xs uppercase"
+          >
+            Limite Atingido
+          </button>
+        ) : (
+          <button 
+            onClick={handleCreateNew}
+            className="bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-3 rounded-2xl font-black uppercase italic text-xs flex items-center gap-2 shadow-lg"
+          >
+            {isFreight ? <Package size={16} /> : <ShoppingBag size={16} />}
+            Novo {isFreight ? 'Frete' : 'Item'}
+            {limit > 0 && (
+              <span className="bg-white/20 px-2 py-0.5 rounded text-[10px]">
+                {usageData?.remaining || 0}
+              </span>
+            )}
+          </button>
+        )
       )}
     </div>
   );

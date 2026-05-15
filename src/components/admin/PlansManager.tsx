@@ -30,7 +30,7 @@ export default function PlansManager() {
   const [pageSize, setPageSize] = useState(10);
   
   const [planData, setPlanData] = useState<any>({ 
-    id: null, name: '', price: '', duration_days: '', type: 'featured', description: '', active: 1 
+    id: null, name: '', price: '', duration_days: '', type: 'freight_list', category: 'freight_subscription', limit_monthly: 0, description: '', features: '', active: 1 
   });
 
   const loadPlans = async () => {
@@ -52,7 +52,7 @@ export default function PlansManager() {
     total: plans.length,
     active: plans.filter(p => Number(p.active) === 1).length,
     paused: plans.filter(p => Number(p.active) !== 1).length,
-    revenue: plans.reduce((acc, p) => acc + (Number(p.active) === 1 ? parseFloat(p.price) || 0 : 0), 0),
+    withLimit: plans.filter(p => Number(p.limit_monthly) > 0).length,
   }), [plans]);
 
   const filteredPlans = useMemo(() => {
@@ -72,22 +72,28 @@ export default function PlansManager() {
   }, [filteredPlans, currentPage, pageSize]);
 
   const handleSavePlan = async () => {
-    if(!planData.name || !planData.price) return alert("Preencha Nome e Preço");
+    if (!planData.name || planData.price === '') return alert("Preencha Nome e Preço");
     try {
       setSaving(true);
-      await api.post('/manage-plans', { ...planData, action: 'save' });
+      const res = await api.post('/admin-manage-plans', { ...planData, action: 'save' });
+      if (!res.data?.success) return alert(res.data?.message || 'Erro ao salvar');
       setShowDrawer(false);
       loadPlans();
-    } catch { alert("Erro ao salvar"); } finally { setSaving(false); }
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Erro ao salvar');
+    } finally { setSaving(false); }
   };
   
   const togglePlanStatus = async (plan: any) => {
     const newStatus = Number(plan.active) === 1 ? 0 : 1;
     if (!confirm(newStatus === 0 ? "Desativar?" : "Reativar?")) return;
     try {
-      await api.post('/manage-plans', { ...plan, active: newStatus, action: 'save' });
+      const res = await api.post('/admin-manage-plans', { ...plan, active: newStatus, action: 'save' });
+      if (!res.data?.success) return alert(res.data?.message || 'Erro');
       loadPlans();
-    } catch { alert("Erro"); }
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Erro');
+    }
   };
 
   const getPlanIcon = (type: string, size = 20) => {
@@ -127,7 +133,7 @@ export default function PlansManager() {
           <StatCard label="Total Planos" value={stats.total} icon={Layers} />
           <StatCard label="Ativos" value={stats.active} variant="green" icon={CheckCircle2} />
           <StatCard label="Pausados" value={stats.paused} variant="red" icon={Trash2} />
-          <StatCard label="Receita Potencial" value={`R$ ${stats.revenue.toFixed(2)}`} variant="blue" icon={BadgeDollarSign} />
+          <StatCard label="Com Limite" value={stats.withLimit} variant="blue" icon={BadgeDollarSign} />
         </StatsGrid>
       </div>
 
@@ -180,6 +186,7 @@ export default function PlansManager() {
                   <th className="px-5 py-4">Tipo</th>
                   <th className="px-5 py-4">Plano</th>
                   <th className="px-5 py-4">Valor</th>
+                  <th className="px-5 py-4">Limite</th>
                   <th className="px-5 py-4">Ciclo</th>
                   <th className="px-5 py-4">Status</th>
                   <th className="px-5 py-4 text-right">Ações</th>
@@ -191,9 +198,10 @@ export default function PlansManager() {
                     <td className="px-5 py-4">{getPlanIcon(plan.type)}</td>
                     <td className="px-5 py-4">
                       <div className="font-bold text-slate-800 dark:text-white">{plan.name}</div>
-                      <div className="text-xs text-slate-400">{plan.type}</div>
+                      <div className="text-xs text-slate-400">{plan.slug || plan.type}</div>
                     </td>
                     <td className="px-5 py-4 font-bold text-slate-800 dark:text-white">R$ {plan.price}</td>
+                    <td className="px-5 py-4 text-sm text-slate-500">{plan.limit_monthly ?? '∞'}/mês</td>
                     <td className="px-5 py-4 text-sm text-slate-500">{plan.duration_days} dias</td>
                     <td className="px-5 py-4">
                       <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${Number(plan.active) === 1 ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-slate-100 text-slate-500 dark:bg-slate-700 dark:text-slate-400'}`}>
@@ -322,8 +330,9 @@ export default function PlansManager() {
         {/* DRAWER */}
         {showDrawer && (
           <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100]">
-            <div className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-slate-800 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300">
-              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800 z-10">
+            <div className="absolute inset-0" onClick={() => setShowDrawer(false)} />
+            <div className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-white dark:bg-slate-800 shadow-2xl overflow-y-auto animate-in slide-in-from-right duration-300 z-10">
+              <div className="p-6 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center sticky top-0 bg-white dark:bg-slate-800">
                 <h3 className="text-xl font-bold text-slate-800 dark:text-white">{planData.id ? 'Editar Plano' : 'Novo Plano'}</h3>
                 <button onClick={() => setShowDrawer(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl"><X size={20}/></button>
               </div>
@@ -354,15 +363,36 @@ export default function PlansManager() {
                   </select>
                 </div>
                 <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Categoria</label>
+                  <select value={planData.category} onChange={e => setPlanData({...planData, category: e.target.value})} className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                    <option value="freight_subscription">Frete (assinatura)</option>
+                    <option value="marketplace_subscription">Marketplace (assinatura)</option>
+                    <option value="advertising">Publicidade</option>
+                    <option value="user_subscription">Usuário</option>
+                    <option value="groups">Grupos</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Limite Mensal</label>
+                  <input type="number" value={planData.limit_monthly} onChange={e => setPlanData({...planData, limit_monthly: e.target.value})} placeholder="0 = ilimitado" className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" />
+                  <p className="text-[9px] text-slate-400 mt-1">Quantos fretes/anúncios por mês. 0 = ilimitado.</p>
+                </div>
+                <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Descrição</label>
                   <textarea value={planData.description} onChange={e => setPlanData({...planData, description: e.target.value})} rows={4} placeholder="Descrição do plano..." className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none resize-none focus:ring-2 focus:ring-blue-500" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Destaque</label>
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input type="checkbox" checked={planData.is_highlighted == 1} onChange={e => setPlanData({...planData, is_highlighted: e.target.checked ? 1 : 0, sort_order: e.target.checked ? 1 : 0})} className="w-5 h-5 text-blue-600 rounded" />
+                    <span className="text-xs font-bold text-slate-600">Plano em destaque na página de planos</span>
+                  </label>
                 </div>
                 <button onClick={handleSavePlan} disabled={saving} className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
                   {saving ? <Loader2 className="animate-spin" size={16}/> : 'Salvar Plano'}
                 </button>
               </div>
             </div>
-            <div className="absolute inset-0" onClick={() => setShowDrawer(false)} />
           </div>
         )}
     </PageShell>
