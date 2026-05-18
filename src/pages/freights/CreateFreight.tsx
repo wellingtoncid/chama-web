@@ -1,21 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText, Wrench, Award } from 'lucide-react';
+import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText, Wrench, Award, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
 import WelcomeOnboarding from '../../components/profile/WelcomeOnboarding';
-import Swal from 'sweetalert2';
+import { Button } from '../../components/ui/Button';
 
 function parseJsonArray(value: any): string[] {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string' && value) {
-    try {
-      const parsed = JSON.parse(value);
-      return Array.isArray(parsed) ? parsed : [];
-    } catch {
-      return [];
-    }
+    try { const parsed = JSON.parse(value); return Array.isArray(parsed) ? parsed : []; }
+    catch { return []; }
   }
   return [];
 }
@@ -24,8 +20,7 @@ export default function CreateFreight() {
   const navigate = useNavigate();
   const location = useLocation();
   const editData = location.state?.editData;
-  
-  // Listas dinâmicas do admin
+
   const { vehicleTypes, bodyTypes, equipmentTypes, certificationTypes, loading: settingsLoading } = useSiteSettings();
 
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
@@ -33,18 +28,18 @@ export default function CreateFreight() {
   const [destCities, setDestCities] = useState<string[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
+  const [alertType, setAlertType] = useState<'success' | 'error'>('success');
 
   const storageUser = localStorage.getItem('@ChamaFrete:user');
   const currentUser = storageUser ? JSON.parse(storageUser) : null;
   const isAdminOrManager = ['admin', 'manager'].includes(currentUser?.role?.toLowerCase());
 
-  // Estado para controlar o usuário localmente após o onboarding
   const [user, setUser] = useState<any>(() => {
     const saved = localStorage.getItem('@ChamaFrete:user');
     return saved ? JSON.parse(saved) : null;
   });
 
-  // Lógica de verificação: Se for empresa e faltar documento ou nome
   const isCompany = ['COMPANY', 'TRANSPORTADORA', 'LOGISTICS'].includes(user?.role?.toUpperCase());
   const needsOnboarding = isCompany && (!user?.document || !user?.company_name);
 
@@ -66,15 +61,18 @@ export default function CreateFreight() {
     certifications_needed: [] as string[]
   });
 
+  const showAlert = (msg: string, type: 'success' | 'error' = 'success') => {
+    setAlertMsg(msg);
+    setAlertType(type);
+    setTimeout(() => setAlertMsg(null), 4000);
+  };
+
   useEffect(() => {
     getStates().then(setStates);
-
     if (isAdminOrManager) {
       api.get('list-all-users').then(res => {
         const list = res.data.success ? res.data.data : res.data;
-        if (Array.isArray(list)) {
-          setCompanies(list.filter((u: any) => u.role === 'company' || u.role === 'admin'));
-        }
+        if (Array.isArray(list)) setCompanies(list.filter((u: any) => u.role === 'company' || u.role === 'admin'));
       });
     }
   }, [isAdminOrManager]);
@@ -82,15 +80,8 @@ export default function CreateFreight() {
   useEffect(() => {
     if (editData) {
       const initializeEdit = async () => {
-        if (editData.origin_state) {
-          const cities = await getCitiesByState(editData.origin_state);
-          setOriginCities(cities);
-        }
-        if (editData.dest_state) {
-          const cities = await getCitiesByState(editData.dest_state);
-          setDestCities(cities);
-        }
-
+        if (editData.origin_state) { const cities = await getCitiesByState(editData.origin_state); setOriginCities(cities); }
+        if (editData.dest_state) { const cities = await getCitiesByState(editData.dest_state); setDestCities(cities); }
         setFormData({
           id: editData.id,
           user_id: String(editData.user_id || ''),
@@ -111,34 +102,23 @@ export default function CreateFreight() {
       };
       initializeEdit();
     } else if (currentUser && !isAdminOrManager) {
-      setFormData(prev => ({ 
-        ...prev, 
-        user_id: String(currentUser.id)
-      }));
+      setFormData(prev => ({ ...prev, user_id: String(currentUser.id) }));
     }
   }, [editData]);
 
   const handleStateChange = async (state: string, field: 'origin' | 'dest') => {
     const cities = await getCitiesByState(state);
-    if (field === 'origin') {
-      setOriginCities(cities);
-      setFormData(prev => ({ ...prev, origin_state: state, origin_city: '' }));
-    } else {
-      setDestCities(cities);
-      setFormData(prev => ({ ...prev, dest_state: state, dest_city: '' }));
-    }
+    if (field === 'origin') { setOriginCities(cities); setFormData(prev => ({ ...prev, origin_state: state, origin_city: '' })); }
+    else { setDestCities(cities); setFormData(prev => ({ ...prev, dest_state: state, dest_city: '' })); }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     try {
       const endpoint = formData.id ? 'update-freight' : 'create-freight';
-
       const storageUser = localStorage.getItem('@ChamaFrete:user');
       const user = storageUser ? JSON.parse(storageUser) : null;
-      
       const payload = {
         ...formData,
         id: formData.id,
@@ -149,59 +129,59 @@ export default function CreateFreight() {
         equipment_needed: JSON.stringify(formData.equipment_needed),
         certifications_needed: JSON.stringify(formData.certifications_needed)
       };
-
       const response = await api.post(`/${endpoint}`, payload);
-      // Aviso de Sucesso simples e limpo
-      await Swal.fire({
-        icon: 'success',
-        title: formData.id ? 'Salvo!' : 'Publicado!',
-        text: response.data.message,
-        timer: 2500,
-        showConfirmButton: false
-      });
-
-      navigate('/dashboard');
-
+      showAlert(response.data.message || (formData.id ? 'Salvo!' : 'Publicado!'), 'success');
+      setTimeout(() => navigate('/dashboard'), 1200);
     } catch (error: any) {
-      // Captura a mensagem do PHP (ex: conteúdo impróprio ou erro de banco)
       const msg = error.response?.data?.message || "Erro ao processar requisição.";
+      showAlert(msg, 'error');
+    } finally { setLoading(false); }
+  };
 
-      Swal.fire({
-        icon: 'error',
-        title: 'Atenção',
-        text: msg,
-        confirmButtonText: 'ENTENDI'
-      });
-    } finally {
-      setLoading(false);
-    }
+  const AlertToast = () => {
+    if (!alertMsg) return null;
+    const colors = {
+      success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+      error: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+    };
+    return (
+      <div className={`fixed top-6 right-6 z-[60] flex items-center gap-2 px-4 py-3 rounded-2xl border shadow-lg animate-in slide-in-from-right-4 duration-300 ${colors[alertType]}`}>
+        {alertType === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+        <span className="font-bold text-sm">{alertMsg}</span>
+      </div>
+    );
   };
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-5 lg:p-8">
-      {/* SE PRECISAR DE ONBOARDING, BLOQUEIA A TELA COM O MODAL */}
+      <AlertToast />
+
       {needsOnboarding && (
-        <WelcomeOnboarding 
-          user={user} 
-          onClose={() => navigate('/dashboard')} 
+        <WelcomeOnboarding
+          user={user}
+          onClose={() => navigate('/dashboard')}
           onComplete={(updatedData: any) => {
             const newUser = { ...user, ...updatedData };
             setUser(newUser);
             localStorage.setItem('@ChamaFrete:user', JSON.stringify(newUser));
-          }} 
+          }}
         />
       )}
 
       <div className="max-w-4xl mx-auto">
-        <button onClick={() => navigate(-1)} className="flex items-center gap-2 text-slate-400 dark:text-slate-500 mb-6 font-black uppercase text-xs tracking-widest hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+        <Button
+          variant="ghost"
+          onClick={() => navigate(-1)}
+          className="mb-6 text-slate-400 dark:text-slate-500"
+        >
           <ArrowLeft size={16} /> Voltar
-        </button>
+        </Button>
 
         <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700">
           <div className={`p-8 lg:p-10 text-white flex justify-between items-center relative ${isAdminOrManager ? 'bg-blue-600' : 'bg-slate-900 dark:bg-slate-900'}`}>
             <div className="relative z-10">
               <h1 className="text-2xl lg:text-3xl font-black flex items-center gap-3">
-                <Package className="text-orange-500" size={28} /> 
+                <Package className="text-orange-500" size={28} />
                 {formData.id ? 'Editar Carga' : 'Nova Carga'}
               </h1>
               <p className="text-xl text-white/70 mt-1">Preencha os dados do frete para publicar</p>
@@ -215,11 +195,11 @@ export default function CreateFreight() {
                 <label className="block text-xs font-black text-blue-600 dark:text-blue-400 mb-3 uppercase tracking-wider flex items-center gap-2">
                   <UserCircle size={16} /> Vincular à Empresa:
                 </label>
-                <select 
+                <select
                   required
                   className="w-full p-4 rounded-2xl bg-white dark:bg-slate-900 border-none shadow-sm font-bold text-slate-800 dark:text-slate-200"
                   value={formData.user_id}
-                  onChange={e => setFormData({...formData, user_id: e.target.value})}
+                  onChange={e => setFormData({ ...formData, user_id: e.target.value })}
                 >
                   <option value="">Selecione a empresa...</option>
                   {companies.map(c => (
@@ -230,7 +210,6 @@ export default function CreateFreight() {
             )}
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 lg:gap-8">
-              {/* ORIGEM */}
               <div className="space-y-4">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Origem</label>
                 <div className="flex gap-2">
@@ -238,14 +217,13 @@ export default function CreateFreight() {
                     <option value="">UF</option>
                     {states.map(s => <option key={s.sigla} value={s.sigla}>{s.sigla}</option>)}
                   </select>
-                  <select required className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.origin_city} onChange={e => setFormData({...formData, origin_city: e.target.value})}>
+                  <select required className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.origin_city} onChange={e => setFormData({ ...formData, origin_city: e.target.value })}>
                     <option value="">Cidade</option>
                     {originCities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                 </div>
               </div>
 
-              {/* DESTINO */}
               <div className="space-y-4">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Destino</label>
                 <div className="flex gap-2">
@@ -253,7 +231,7 @@ export default function CreateFreight() {
                     <option value="">UF</option>
                     {states.map(s => <option key={s.sigla} value={s.sigla}>{s.sigla}</option>)}
                   </select>
-                  <select required className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.dest_city} onChange={e => setFormData({...formData, dest_city: e.target.value})}>
+                  <select required className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-300" value={formData.dest_city} onChange={e => setFormData({ ...formData, dest_city: e.target.value })}>
                     <option value="">Cidade</option>
                     {destCities.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
@@ -264,52 +242,48 @@ export default function CreateFreight() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2 space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Produto</label>
-                <input type="text" required value={formData.product} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, product: e.target.value})} />
+                <input type="text" required value={formData.product} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, product: e.target.value })} />
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Peso (Ton)</label>
-                <input type="number" step="0.1" required value={formData.weight} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, weight: e.target.value})} />
+                <input type="number" step="0.1" required value={formData.weight} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, weight: e.target.value })} />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Veículo</label>
-                <select required value={formData.vehicle_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, vehicle_type: e.target.value})}>
+                <select required value={formData.vehicle_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, vehicle_type: e.target.value })}>
                   <option value="">Selecione...</option>
                   {vehicleTypes.map(v => <option key={v} value={v}>{v}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Carroceria</label>
-                <select required value={formData.body_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({...formData, body_type: e.target.value})}>
+                <select required value={formData.body_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, body_type: e.target.value })}>
                   <option value="">Selecione...</option>
                   {bodyTypes.map(b => <option key={b} value={b}>{b}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase ml-2 flex items-center gap-1"><DollarSign size={10}/> Preço (R$)</label>
-                <input type="number" required value={formData.price} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-200 dark:border-emerald-800" onChange={e => setFormData({...formData, price: e.target.value})} />
+                <label className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase ml-2 flex items-center gap-1"><DollarSign size={10} /> Preço (R$)</label>
+                <input type="number" required value={formData.price} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-200 dark:border-emerald-800 tabular-nums" onChange={e => setFormData({ ...formData, price: e.target.value })} />
               </div>
             </div>
 
-            {/* Equipamentos e Certificações */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2 flex items-center gap-1">
-                  <Wrench size={10}/> Equipamentos Necessários
+                  <Wrench size={10} /> Equipamentos Necessários
                 </label>
                 <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 min-h-[60px]">
                   {equipmentTypes.map(eq => (
                     <button
-                      key={eq}
-                      type="button"
+                      key={eq} type="button"
                       onClick={() => {
                         const current = formData.equipment_needed;
-                        const updated = current.includes(eq) 
-                          ? current.filter(e => e !== eq)
-                          : [...current, eq];
-                        setFormData({...formData, equipment_needed: updated});
+                        const updated = current.includes(eq) ? current.filter(e => e !== eq) : [...current, eq];
+                        setFormData({ ...formData, equipment_needed: updated });
                       }}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         formData.equipment_needed.includes(eq)
@@ -324,19 +298,16 @@ export default function CreateFreight() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2 flex items-center gap-1">
-                  <Award size={10}/> Certificações Necessárias
+                  <Award size={10} /> Certificações Necessárias
                 </label>
                 <div className="flex flex-wrap gap-2 p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 min-h-[60px]">
                   {certificationTypes.map(cert => (
                     <button
-                      key={cert}
-                      type="button"
+                      key={cert} type="button"
                       onClick={() => {
                         const current = formData.certifications_needed;
-                        const updated = current.includes(cert)
-                          ? current.filter(c => c !== cert)
-                          : [...current, cert];
-                        setFormData({...formData, certifications_needed: updated});
+                        const updated = current.includes(cert) ? current.filter(c => c !== cert) : [...current, cert];
+                        setFormData({ ...formData, certifications_needed: updated });
                       }}
                       className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
                         formData.certifications_needed.includes(cert)
@@ -351,27 +322,31 @@ export default function CreateFreight() {
               </div>
             </div>
 
-            {/* DESCRIÇÃO AMPLIADA */}
             <div className="space-y-2">
               <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2 flex items-center gap-2">
-                <FileText size={12}/> Observações e Detalhes da Carga
+                <FileText size={12} /> Observações e Detalhes da Carga
               </label>
-              <textarea 
-                rows={5} 
-                value={formData.description} 
+              <textarea
+                rows={5}
+                value={formData.description}
                 placeholder="Ex: Carga paletizada, exige ajudante para descarga, pagamento 50% na saída..."
-                className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-medium border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-orange-500 outline-none transition-all" 
-                onChange={e => setFormData({...formData, description: e.target.value})}
+                className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-medium border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 focus:ring-2 focus:ring-orange-500 outline-none transition-all"
+                onChange={e => setFormData({ ...formData, description: e.target.value })}
               />
             </div>
 
-            <button 
-              type="submit" 
-              disabled={loading} 
-              className={`w-full py-5 text-white rounded-2xl font-black text-base flex items-center justify-center gap-3 transition-all ${isAdminOrManager ? 'bg-blue-600 hover:bg-blue-700' : 'bg-slate-900 hover:bg-orange-600'}`}
+            <Button
+              type="submit"
+              disabled={loading}
+              className={`w-full ${isAdminOrManager ? 'bg-blue-600 hover:bg-blue-700' : ''}`}
+              size="lg"
             >
-              {loading ? "Processando..." : (formData.id ? 'SALVAR ALTERAÇÕES' : 'PUBLICAR FRETE')}
-            </button>
+              {loading ? (
+                <><Loader2 className="animate-spin" size={18} /> Processando...</>
+              ) : (
+                formData.id ? 'SALVAR ALTERAÇÕES' : 'PUBLICAR FRETE'
+              )}
+            </Button>
           </div>
         </form>
       </div>

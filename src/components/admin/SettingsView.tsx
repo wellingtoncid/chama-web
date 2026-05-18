@@ -51,6 +51,7 @@ export default function SettingsView() {
     referral_commission: '',
     default_plan: '1',
     maintenance_mode: false,
+    affiliate_requests_enabled: true,
     smtp_host: '',
     smtp_port: '',
     smtp_user: '',
@@ -98,6 +99,7 @@ export default function SettingsView() {
           default_plan: settings.default_plan || '1',
           freight_free_limit: settings.freight_free_limit || '3',
           maintenance_mode: settings.maintenance_mode === '1' || settings.maintenance_mode === true,
+          affiliate_requests_enabled: settings.affiliate_requests_enabled === '1' || settings.affiliate_requests_enabled === true,
           // Moderação
           review_auto_approve_high_rating: settings.review_auto_approve_high_rating === 'true' || settings.review_auto_approve_high_rating === '1' || settings.review_auto_approve_high_rating === true,
           review_auto_approve_threshold: settings.review_auto_approve_threshold || '4',
@@ -546,23 +548,45 @@ export default function SettingsView() {
 
       case 'system':
         return (
-          <div className={`p-6 rounded-2xl transition-all border ${config.maintenance_mode ? 'bg-red-600 border-red-700' : 'bg-red-50 border-red-100'}`}>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <ShieldAlert size={24} className={config.maintenance_mode ? 'text-white' : 'text-red-600'} />
-                <div>
-                  <p className={`font-bold text-sm ${config.maintenance_mode ? 'text-white' : 'text-red-600'}`}>Modo de Manutenção</p>
-                  <p className={`text-xs ${config.maintenance_mode ? 'text-white/70' : 'text-red-400'}`}>Ao ativar, apenas administradores acessam o App.</p>
+          <>
+            <div className={`p-6 rounded-2xl transition-all border ${config.maintenance_mode ? 'bg-red-600 border-red-700' : 'bg-red-50 border-red-100'}`}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <ShieldAlert size={24} className={config.maintenance_mode ? 'text-white' : 'text-red-600'} />
+                  <div>
+                    <p className={`font-bold text-sm ${config.maintenance_mode ? 'text-white' : 'text-red-600'}`}>Modo de Manutenção</p>
+                    <p className={`text-xs ${config.maintenance_mode ? 'text-white/70' : 'text-red-400'}`}>Ao ativar, apenas administradores acessam o App.</p>
+                  </div>
                 </div>
+                <button 
+                  onClick={() => setConfig({...config, maintenance_mode: !config.maintenance_mode})}
+                  className={`px-4 py-2.5 rounded-xl font-bold text-xs uppercase transition-colors ${config.maintenance_mode ? 'bg-white text-red-600 hover:bg-red-50' : 'bg-red-600 text-white hover:bg-red-700'}`}
+                >
+                  {config.maintenance_mode ? 'Desativar Manutenção' : 'Ativar Manutenção'}
+                </button>
               </div>
-              <button 
-                onClick={() => setConfig({...config, maintenance_mode: !config.maintenance_mode})}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs uppercase transition-colors ${config.maintenance_mode ? 'bg-white text-red-600 hover:bg-red-50' : 'bg-red-600 text-white hover:bg-red-700'}`}
-              >
-                {config.maintenance_mode ? 'Desativar Manutenção' : 'Ativar Manutenção'}
-              </button>
             </div>
-          </div>
+
+            <div className="bg-white p-6 rounded-2xl border border-slate-200 mt-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-amber-100 rounded-xl">
+                    <Star size={20} className="text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-slate-900">Solicitações de Afiliado</p>
+                    <p className="text-xs text-slate-500">Exibir opção de solicitar acesso a anúncios de afiliado</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setConfig({...config, affiliate_requests_enabled: !config.affiliate_requests_enabled})}
+                  className={`relative w-14 h-8 rounded-full transition-colors ${config.affiliate_requests_enabled ? 'bg-blue-600' : 'bg-slate-200'}`}
+                >
+                  <div className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${config.affiliate_requests_enabled ? 'translate-x-7' : 'translate-x-1'}`} />
+                </button>
+              </div>
+            </div>
+          </>
         );
 
       case 'moderation':

@@ -10,7 +10,8 @@ import CheckoutModal from './CheckoutModal';
 import Swal from 'sweetalert2';
 import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 import { UsageMeter } from '../shared/UsageMeter';
-import { PageShell, StatsGrid, StatCard, FilterBar, StatusBadge } from '@/components/admin';
+import { StatsGrid, StatCard, FilterBar, StatusBadge } from '@/components/admin';
+import DashboardShell from '@/components/layout/DashboardShell';
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
@@ -272,15 +273,15 @@ export default function FreightManager({ user }: any) {
   };
 
 return (
-  <PageShell
+  <DashboardShell
     title="Gestão de Cargas"
     description="Controle operacional da sua frota e fretes"
     actions={
       <button 
         onClick={() => checkAccessAndRun(() => navigate('/novo-frete'))}
-        className="bg-slate-900 text-white px-4 py-2.5 rounded-xl font-black uppercase flex items-center gap-3 hover:bg-orange-500 transition-all group"
+        className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-bold uppercase flex items-center gap-3 transition-all text-xs tracking-wide"
       >
-        <PlusCircle size={18} className="group-hover:rotate-90 transition-transform" /> 
+        <PlusCircle size={16} /> 
         Nova Publicação
       </button>
     }
@@ -289,13 +290,11 @@ return (
     <UsageMeter moduleKey="freights" hideCreateButton />
 
     {/* StatsGrid */}
-    <div className="mt-6">
-      <StatsGrid>
-        <StatCard label="Visualizações" value={stats.totalViews} icon={<Eye size={16} />} />
-        <StatCard label="Cargas Ativas" value={stats.activeFreights} variant="blue" icon={<Package size={16} />} />
-        <StatCard label="Interesses" value={stats.totalInterests} variant="purple" icon={<MessageCircle size={16} />} />
-      </StatsGrid>
-    </div>
+    <StatsGrid>
+      <StatCard label="Visualizações" value={stats.totalViews} icon={<Eye size={16} />} />
+      <StatCard label="Cargas Ativas" value={stats.activeFreights} variant="blue" icon={<Package size={16} />} />
+      <StatCard label="Interesses" value={stats.totalInterests} variant="purple" icon={<MessageCircle size={16} />} />
+    </StatsGrid>
 
     {/* Search & Filters */}
     <FilterBar
@@ -320,7 +319,7 @@ return (
     </FilterBar>
 
     {/* Rest of content (table/list) */}
-      <div className="bg-white dark:bg-slate-800 rounded-[3rem] border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px]">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px]">
         {loading ? (
           <div className="py-32 text-center flex flex-col items-center gap-4">
             <Loader2 className="animate-spin text-orange-500" size={40} />
@@ -462,7 +461,7 @@ return (
         pricePerUse={pricingData?.pricePerUse || 0}
         priceMonthly={pricingData?.priceMonthly || 0}
       />
-    </PageShell>
+    </DashboardShell>
   );
 }
 

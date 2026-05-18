@@ -9,6 +9,8 @@ import {
   Zap, ChevronRight, BellRing, Check, ShieldCheck, LayoutGrid,
   Box, Wallet
 } from 'lucide-react';
+import DashboardShell from '../../components/layout/DashboardShell';
+import { Button } from '../../components/ui/Button';
 
 interface DriverViewProps {
   forceTab?: string;
@@ -17,19 +19,18 @@ interface DriverViewProps {
 export default function DriverView({ forceTab }: DriverViewProps) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid'); // Alternador de visual
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
   const [allFreights, setAllFreights] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedFreight, setSelectedFreight] = useState<any>(null);
-  const [radarOn, setRadarOn] = useState(true); // Estado para o Radar
+  const [radarOn, setRadarOn] = useState(true);
   const [stats, setStats] = useState({ total_open: 0, total_favs: 0, total_invitations: 0 });
   
   const [invitations, setInvitations] = useState<any[]>([]);
   const [activeFreight, setActiveFreight] = useState<any>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
-  // Recuperação segura do usuário
   const user = useMemo(() => {
     const userData = localStorage.getItem('@ChamaFrete:user');
     if (!userData) return { id: 0, name: 'Motorista' };
@@ -70,7 +71,6 @@ export default function DriverView({ forceTab }: DriverViewProps) {
     }
   };
 
-  // 1. Carrega dados operacionais (Convites e Frete Ativo)
   const loadOperationalData = useCallback(async () => {
     if (!user.id) return;
     try {
@@ -85,7 +85,6 @@ export default function DriverView({ forceTab }: DriverViewProps) {
 
       setInvitations(resInv.data.success ? resInv.data.data : []);
       
-      // Correção "Carga Fantasma": Só ativa se houver dados reais e um ID
       const activeData = resActive.data.success ? resActive.data.data : resActive.data;
       setActiveFreight(activeData?.id ? activeData : null);
     } catch (e) {
@@ -93,7 +92,6 @@ export default function DriverView({ forceTab }: DriverViewProps) {
     }
   }, [user.id]);
 
-  // 2. Carrega a lista de fretes principal
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
@@ -118,33 +116,26 @@ export default function DriverView({ forceTab }: DriverViewProps) {
         params = { user_id: user.id, type: 'INVITATION' };
       }
 
-      // Chamada paralela otimizada
       const [resData, resStats] = await Promise.all([
         api.get(route, { params }),
         api.get('driver-stats', { params: { user_id: user.id } })
       ]);
 
-      // 1. Extração Ultra Segura
       const responseContent = resData.data;
       let finalArray = [];
 
       if (responseContent.success && Array.isArray(responseContent.data)) {
-        // Formato do Radar Smart ou Resposta padrão com .data
         finalArray = responseContent.data;
       } else if (Array.isArray(responseContent)) {
-        // Formato array simples
         finalArray = responseContent;
       } else if (responseContent.data && Array.isArray(responseContent.data.data)) {
-        // Formato do listPaginated (data.data)
         finalArray = responseContent.data.data;
       }
 
-      // 2. Atualiza Stats
       if (resStats.data) {
         setStats(resStats.data.data || resStats.data);
       }
       
-      // 3. Normalização usando o finalArray (O ERRO ESTAVA AQUI, USANDO RAWDATA)
       const processedData = finalArray.map((item: any) => ({
         ...item,
         id: item.freight_id || item.target_id || item.id,
@@ -165,7 +156,6 @@ export default function DriverView({ forceTab }: DriverViewProps) {
     loadData();
   }, [filter, loadData]);
 
-  // 3. Filtro visual inteligente
   const filteredFreights = useMemo(() => {
     if (!search.trim()) return allFreights;
     const normalize = (t: any) => t?.toString().normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase() || "";
@@ -187,42 +177,40 @@ export default function DriverView({ forceTab }: DriverViewProps) {
   };
 
   return (
-    <div className="space-y-6 pb-20">
-
-      {/* NOVO: HEADER DE IDENTIFICAÇÃO (Para você ver se os dados entraram) */}
-      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 px-2">
-        <div>
-          <h1 className="text-3xl font-black uppercase italic dark:text-white leading-none">
-            Olá, <span className="text-orange-500">{user.display_name.split(' ')[0]}</span>
-          </h1>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {user.vehicle_type ? (
-              <span className="bg-slate-900 text-white dark:bg-slate-800 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-2">
-                <Truck size={12} className="text-orange-500" /> {user.vehicle_type}
-              </span>
-            ) : (
-              <span className="bg-red-50 text-red-500 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider italic">
-                Veículo não definido
-              </span>
-            )}
-            
-            {user.body_type && (
-              <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-2">
-                <Box size={12} /> {user.body_type}
-              </span>
-            )}
-          </div>
+    <DashboardShell
+      title={
+        <span>
+          Olá, <span className="text-orange-500">{user.display_name.split(' ')[0]}</span>
+        </span>
+      }
+      description={
+        <div className="flex flex-wrap gap-2 mt-1">
+          {user.vehicle_type ? (
+            <span className="bg-slate-900 text-white dark:bg-slate-800 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-2">
+              <Truck size={12} className="text-orange-500" /> {user.vehicle_type}
+            </span>
+          ) : (
+            <span className="bg-red-50 text-red-500 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider italic">
+              Veículo não definido
+            </span>
+          )}
+          
+          {user.body_type && (
+            <span className="bg-slate-100 dark:bg-slate-800 text-slate-500 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-wider flex items-center gap-2">
+              <Box size={12} /> {user.body_type}
+            </span>
+          )}
         </div>
-        
-        {/* Radar Status Badge */}
-        <div className="hidden md:block text-right">
+      }
+      actions={
+        <div className="text-right">
           <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Status do Radar</p>
           <div className={`text-[10px] font-black uppercase italic ${radarOn ? 'text-emerald-500' : 'text-slate-300'}`}>
             {radarOn ? 'Rastreando cargas compatíveis' : 'Radar desligado'}
           </div>
         </div>
-      </div>
-      
+      }
+    >
       {/* Profile Completeness Alert */}
       <ProfileCompletenessAlert variant="banner" />
       
@@ -242,14 +230,14 @@ export default function DriverView({ forceTab }: DriverViewProps) {
               </h4>
               <p className="text-white/50 text-[10px] font-bold uppercase mt-1">{activeFreight.product}</p>
             </div>
-            <button className="bg-emerald-500 hover:bg-emerald-600 px-8 py-4 rounded-2xl font-black uppercase italic text-xs transition-all shadow-lg shadow-emerald-500/20">
+            <Button size="lg" className="bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
               Finalizar Entrega
-            </button>
+            </Button>
           </div>
         </div>
       )}
 
-      {/* BANNER DE CONVITES (APENAS NOTIFICAÇÃO) */}
+      {/* BANNER DE CONVITES */}
       {filter === 'all' && invitations.length > 0 && (
         <div className="bg-orange-500 text-white p-5 rounded-[2rem] flex items-center justify-between shadow-lg shadow-orange-500/20">
           <div className="flex items-center gap-4">
@@ -261,9 +249,9 @@ export default function DriverView({ forceTab }: DriverViewProps) {
               <p className="text-[9px] font-bold opacity-80 uppercase mt-1">Empresas aguardando sua resposta</p>
             </div>
           </div>
-          <button onClick={() => setFilter('invitations')} className="bg-white text-orange-500 px-5 py-2.5 rounded-xl text-[10px] font-black uppercase hover:scale-105 transition-transform">
+          <Button onClick={() => setFilter('invitations')} variant="hero-outline" size="sm">
             Ver Agora
-          </button>
+          </Button>
         </div>
       )}
 
@@ -321,13 +309,14 @@ export default function DriverView({ forceTab }: DriverViewProps) {
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
-          {/* Botão de Alternar Visual (Grid/List) */}
-          <button 
+          <Button 
             onClick={() => setViewMode(v => v === 'grid' ? 'list' : 'grid')}
-            className="hidden md:flex items-center justify-center bg-slate-100 dark:bg-slate-800 w-16 h-16 rounded-2xl text-slate-400 hover:text-orange-500 transition-colors"
+            variant="secondary"
+            size="icon"
+            className="hidden md:flex w-16 h-16 rounded-2xl"
           >
             {viewMode === 'grid' ? <List size={24} /> : <LayoutGrid size={24} />}
-          </button>
+          </Button>
         </div>
 
         <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar pt-2">
@@ -355,12 +344,12 @@ export default function DriverView({ forceTab }: DriverViewProps) {
                 <p className="text-[10px] font-black text-slate-300 uppercase mt-1">{new Date(inv.created_at).toLocaleString()}</p>
               </div>
               <div className="flex gap-2 w-full md:w-auto">
-                <button onClick={() => handleRespondInvitation(inv.id, 'accept')} className="flex-1 bg-slate-900 text-white px-6 py-3 rounded-xl font-black uppercase italic text-[10px] flex items-center justify-center gap-2">
+                <Button onClick={() => handleRespondInvitation(inv.id, 'accept')} className="flex-1" size="sm">
                   <Check size={14} /> Aceitar
-                </button>
-                <button onClick={() => handleRespondInvitation(inv.id, 'decline')} className="px-6 py-3 rounded-xl font-black uppercase italic text-[10px] text-slate-400 hover:bg-red-50 hover:text-red-500 transition-all">
+                </Button>
+                <Button onClick={() => handleRespondInvitation(inv.id, 'decline')} variant="outline" size="sm">
                   Recusar
-                </button>
+                </Button>
               </div>
             </div>
           ))}
@@ -393,7 +382,7 @@ export default function DriverView({ forceTab }: DriverViewProps) {
         </div>
       )}
 
-      {/* MODAL DETALHES (Agora no Painel) */}
+      {/* MODAL DETALHES */}
       {selectedFreight && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
           <div className="relative w-full max-w-xl animate-in zoom-in-95 duration-200">
@@ -409,11 +398,10 @@ export default function DriverView({ forceTab }: DriverViewProps) {
           </div>
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }
 
-// COMPONENTES AUXILIARES MANTIDOS
 function StatCard({ label, value, icon, color }: any) {
   const colors: any = {
     red: "text-red-500 bg-red-50 dark:bg-red-900/20",

@@ -19,9 +19,10 @@ interface ModuleCardProps {
   rulesCount: number;
   onClick: () => void;
   disabled?: boolean;
+  activePlanName?: string | null;
 }
 
-export default function ModuleCard({ module, status, rulesCount, onClick, disabled }: ModuleCardProps) {
+export default function ModuleCard({ module, status, rulesCount, onClick, disabled, activePlanName }: ModuleCardProps) {
   const isComingSoon = module.comingSoon;
   const isRequestingApproval = module.requiresApproval && !status.isActive;
   const isComingSoonWithApproval = isComingSoon && module.requiresApproval;
@@ -91,7 +92,12 @@ export default function ModuleCard({ module, status, rulesCount, onClick, disabl
         {module.description}
       </p>
 
-      {!isComingSoon && rulesCount === 0 && (
+      {activePlanName && (
+        <p className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400 mt-2 uppercase tracking-wide">
+          Plano: {activePlanName}
+        </p>
+      )}
+      {!activePlanName && !isComingSoon && rulesCount === 0 && (
         <p className="text-[9px] text-slate-400 dark:text-slate-500 mt-2">Nenhum recurso disponível</p>
       )}
     </button>

@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
-import { 
-  FileText, Plus, Loader2, MapPin, Package, 
+import {
+  FileText, Plus, MapPin, Package,
   Truck, Warehouse, Box, X, Send,
-  DollarSign, Calendar, Scale, ChevronRight
+  Scale, ChevronRight, AlertCircle, CheckCircle, Loader2
 } from 'lucide-react';
 import { api } from '../../api/api';
-import Swal from 'sweetalert2';
+import { Button } from '../../components/ui/Button';
+import DashboardShell from '../../components/layout/DashboardShell';
+import ConfirmModal from '../../components/shared/ConfirmModal';
 
 interface Quote {
   id: number;
@@ -51,16 +53,36 @@ const quoteTypes = [
 ];
 
 const statusColors: Record<string, string> = {
-  open: 'bg-green-100 text-green-700',
-  closed: 'bg-slate-100 text-slate-600',
-  expired: 'bg-red-100 text-red-700'
+  open: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+  closed: 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
+  expired: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 };
 
 const statusLabels: Record<string, string> = {
   open: 'Aberta',
   closed: 'Fechada',
-  expired: 'Expirada'
+  expired: 'Expirada',
 };
+
+const fmtRelative = (dateStr: string) => {
+  const now = Date.now();
+  const d = new Date(dateStr).getTime();
+  const diffDays = Math.floor((now - d) / 86400000);
+  if (diffDays === 0) {
+    const h = Math.floor((now - d) / 3600000);
+    if (h === 0) {
+      const m = Math.floor((now - d) / 60000);
+      return m <= 1 ? 'agora' : `${m}min atrás`;
+    }
+    return `hoje ${new Date(dateStr).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`;
+  }
+  if (diffDays === 1) return 'ontem';
+  if (diffDays < 7) return `${diffDays} dias atrás`;
+  return new Date(dateStr).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+};
+
+const fmtFull = (s: string) =>
+  s ? new Date(s).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
 
 export default function QuotesPage() {
   const [loading, setLoading] = useState(true);
@@ -71,6 +93,9 @@ export default function QuotesPage() {
   const [showResponseModal, setShowResponseModal] = useState(false);
   const [saving, setSaving] = useState(false);
   const [userModule, setUserModule] = useState<string | null>(null);
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning'>('success');
+  const [confirmAccept, setConfirmAccept] = useState<{ quoteId: number; responseId: number } | null>(null);
 
   const [formData, setFormData] = useState({
     type: 'frete',
@@ -94,337 +119,317 @@ export default function QuotesPage() {
     notes: ''
   });
 
-  useEffect(() => {
-    checkModuleAndLoad();
-  }, []);
+  useEffect(() => { checkModuleAndLoad(); }, []);
+
+  const showAlert = (msg: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setAlertMsg(msg);
+    setAlertType(type);
+    setTimeout(() => setAlertMsg(null), 3000);
+  };
 
   const checkModuleAndLoad = async () => {
     try {
       const res = await api.get('/user/usage');
       if (res.data?.success) {
         const modules = res.data.data?.active_modules || [];
-        if (modules.includes('quotes')) {
-          setUserModule('quotes');
-        }
+        if (modules.includes('quotes')) setUserModule('quotes');
       }
-    } catch (e) {
-      console.error("Erro ao verificar módulos:", e);
-    } finally {
+    } catch { /* silent */ } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    if (userModule) {
-      loadQuotes();
-    }
-  }, [activeTab, userModule]);
+  useEffect(() => { if (userModule) loadQuotes(); }, [activeTab, userModule]);
 
   const loadQuotes = async () => {
     try {
       setLoading(true);
       let res;
-      
-      if (activeTab === 'my-quotes') {
-        res = await api.get('/quotes');
-      } else if (activeTab === 'available') {
-        res = await api.get('/quotes/open');
-      } else if (activeTab === 'responses') {
-        res = await api.get('/quotes/responses/my');
-      }
-
-      if (res?.data?.success) {
-        setQuotes(res.data.data || []);
-      }
-    } catch (e: any) {
-      if (e.response?.status === 403) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Módulo necessário',
-          text: e.response.data?.message || 'Você precisa ativar um módulo de Cotações'
-        });
-      }
-    } finally {
+      if (activeTab === 'my-quotes') res = await api.get('/quotes');
+      else if (activeTab === 'available') res = await api.get('/quotes/open');
+      else if (activeTab === 'responses') res = await api.get('/quotes/responses/my');
+      if (res?.data?.success) setQuotes(res.data.data || []);
+    } catch { /* silent */ } finally {
       setLoading(false);
     }
   };
 
   const handleCreateQuote = async () => {
-    if (!formData.title.trim()) {
-      return Swal.fire({ icon: 'warning', title: 'Campo obrigatório', text: 'Preencha o título' });
-    }
-
+    if (!formData.title.trim()) return showAlert('Preencha o título', 'warning');
     try {
       setSaving(true);
       const res = await api.post('/quotes', formData);
-      
       if (res.data?.success) {
-        Swal.fire({ icon: 'success', title: 'Cotação criada!', timer: 2000 });
+        showAlert('Cotação criada!', 'success');
         setShowCreateModal(false);
         setFormData({
-          type: 'frete',
-          title: '',
-          origin_city: '',
-          dest_city: '',
-          commodity_type: '',
-          requires_insurance: 1,
-          weight: '',
-          cargo_value: '',
-          volume: '',
-          period_days: '',
-          pickup_date: '',
-          description: ''
+          type: 'frete', title: '', origin_city: '', dest_city: '', commodity_type: '',
+          requires_insurance: 1, weight: '', cargo_value: '', volume: '', period_days: '', pickup_date: '', description: ''
         });
         loadQuotes();
       }
     } catch (e: any) {
-      Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || 'Não foi possível criar' });
+      showAlert(e.response?.data?.message || 'Não foi possível criar', 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const handleRespondQuote = async () => {
-    if (!selectedQuote || !responseData.price) {
-      return Swal.fire({ icon: 'warning', title: 'Campo obrigatório', text: 'Preencha o preço' });
-    }
-
+    if (!selectedQuote || !responseData.price) return showAlert('Preencha o preço', 'warning');
     try {
       setSaving(true);
       const res = await api.post(`/quotes/${selectedQuote.id}/respond`, responseData);
-      
       if (res.data?.success) {
-        Swal.fire({ icon: 'success', title: 'Resposta enviada!', timer: 2000 });
+        showAlert('Resposta enviada!', 'success');
         setShowResponseModal(false);
         setResponseData({ price: '', delivery_time: '', conditions: '', notes: '' });
         loadQuotes();
       }
     } catch (e: any) {
-      Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || 'Não foi possível responder' });
+      showAlert(e.response?.data?.message || 'Não foi possível responder', 'error');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleAcceptResponse = async (quoteId: number, responseId: number) => {
-    const result = await Swal.fire({
-      title: 'Aceitar esta resposta?',
-      text: 'Ao aceitar, a cotação será encerrada.',
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, aceitar',
-      cancelButtonText: 'Cancelar'
-    });
-    
-    if (result.isConfirmed) {
-      try {
-        const res = await api.post(`/quotes/${quoteId}/accept`, { response_id: responseId });
-        if (res.data?.success) {
-          Swal.fire({ icon: 'success', title: 'Resposta aceita!', timer: 2000 });
-          loadQuotes();
-        }
-      } catch {
-        Swal.fire({ icon: 'error', title: 'Erro' });
+  const handleAcceptResponse = async () => {
+    if (!confirmAccept) return;
+    try {
+      const res = await api.post(`/quotes/${confirmAccept.quoteId}/accept`, { response_id: confirmAccept.responseId });
+      if (res.data?.success) {
+        showAlert('Resposta aceita!', 'success');
+        loadQuotes();
       }
+    } catch {
+      showAlert('Erro ao aceitar resposta', 'error');
+    } finally {
+      setConfirmAccept(null);
     }
   };
 
-  const getQuoteTypeLabel = (type: string) => {
-    return quoteTypes.find(t => t.value === type)?.label || type;
-  };
-
+  const getQuoteTypeLabel = (type: string) => quoteTypes.find(t => t.value === type)?.label || type;
   const getQuoteTypeIcon = (type: string) => {
     const Icon = quoteTypes.find(t => t.value === type)?.icon || FileText;
     return <Icon size={16} />;
   };
 
-  const formatDate = (dateStr: string) => {
-    return new Date(dateStr).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
+  // Toast simples
+  const AlertToast = () => {
+    if (!alertMsg) return null;
+    const colors = {
+      success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+      error: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+      warning: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+    };
+    return (
+      <div className={`fixed top-6 right-6 z-[60] flex items-center gap-2 px-4 py-3 rounded-2xl border shadow-lg animate-in slide-in-from-right-4 duration-300 ${colors[alertType]}`}>
+        {alertType === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+        <span className="font-bold text-sm">{alertMsg}</span>
+      </div>
+    );
   };
 
-
   // Sem acesso ao módulo
-  if (!userModule) {
+  if (!userModule && !loading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
-        <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-6">
-          <FileText size={40} className="text-amber-500" />
+      <DashboardShell title="Cotações" description="Solicite acesso ao módulo de Cotações">
+        <div className="flex flex-col items-center justify-center min-h-[50vh] text-center px-4">
+          <div className="w-20 h-20 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mb-6">
+            <FileText size={40} className="text-amber-500" />
+          </div>
+          <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white mb-4">
+            Módulo Indisponível
+          </h2>
+          <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
+            O módulo de Cotações requer aprovação da equipe Chama Frete.
+            Solicite acesso pelo painel da sua empresa.
+          </p>
+          <Button variant="default" onClick={() => window.location.href = '/dashboard'}>
+            Voltar ao Dashboard
+          </Button>
         </div>
-        <h2 className="text-2xl font-black uppercase italic text-slate-900 dark:text-white mb-4">
-          Módulo Indisponível
-        </h2>
-        <p className="text-slate-500 dark:text-slate-400 max-w-md mb-8">
-          O módulo de Cotações requer aprovação da equipe Chama Frete. 
-          Solicite acesso pelo painel da sua empresa.
-        </p>
-        <button 
-          onClick={() => window.location.href = '/dashboard'}
-          className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-sm"
-        >
-          Voltar ao Dashboard
-        </button>
-      </div>
+      </DashboardShell>
     );
   }
 
+  // Loading skeleton
   if (loading) return (
-    <div className="p-20 flex flex-col items-center justify-center animate-pulse">
-      <Loader2 className="animate-spin text-emerald-500 mb-4" size={48} />
-      <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
-    </div>
+    <DashboardShell title="Cotações" description="Carregando...">
+      <div className="space-y-4 animate-pulse">
+        <div className="flex gap-2">
+          {[1, 2, 3].map(i => <div key={i} className="h-10 w-36 bg-slate-200 dark:bg-slate-700 rounded-2xl" />)}
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl border p-6">
+              <div className="h-4 w-24 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+              <div className="h-5 w-40 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
+              <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+              <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </DashboardShell>
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-[3rem] p-8 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
-        <div className="relative z-10 flex justify-between items-start">
-          <div className="flex items-center gap-4">
-            <div className="bg-white/20 p-3 rounded-2xl">
-              <FileText size={28} />
-            </div>
-            <div>
-              <h2 className="text-3xl font-black uppercase italic">Cotações</h2>
-              <p className="text-emerald-100 text-sm font-medium">Gerencie suas solicitações</p>
-            </div>
-          </div>
-          <button 
-            onClick={() => setShowCreateModal(true)}
-            className="bg-white text-emerald-600 px-6 py-3 rounded-2xl font-black uppercase text-sm flex items-center gap-2 hover:bg-emerald-50 transition-all"
-          >
+    <>
+      <AlertToast />
+
+      <DashboardShell
+        title="Cotações"
+        description="Gerencie suas solicitações de cotação"
+        actions={
+          <Button onClick={() => setShowCreateModal(true)}>
             <Plus size={18} /> Nova Cotação
-          </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex gap-2 bg-white p-1.5 rounded-2xl border border-slate-100 w-fit">
-        {[
-          { key: 'my-quotes', label: 'Minhas Cotações' },
-          { key: 'available', label: 'Disponíveis' },
-          { key: 'responses', label: 'Minhas Respostas' }
-        ].map(tab => (
-          <button
-            key={tab.key}
-            onClick={() => setActiveTab(tab.key as any)}
-            className={`px-6 py-2 rounded-xl font-bold text-sm uppercase transition-all ${
-              activeTab === tab.key 
-                ? 'bg-emerald-600 text-white' 
-                : 'text-slate-500 hover:bg-slate-50'
-            }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Quotes Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {quotes.length === 0 ? (
-          <div className="col-span-full bg-white rounded-[2rem] p-12 text-center border border-slate-100">
-            <FileText size={48} className="mx-auto mb-3 text-slate-300" />
-            <p className="text-slate-500 font-medium">Nenhuma cotação encontrada</p>
-          </div>
-        ) : (
-          quotes.map(quote => (
-            <div 
-              key={quote.id}
-              className="bg-white rounded-[2rem] border border-slate-100 p-6 hover:shadow-lg transition-shadow"
+          </Button>
+        }
+      >
+        {/* Tabs */}
+        <div className="flex gap-2 bg-white dark:bg-slate-800 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 w-fit">
+          {[
+            { key: 'my-quotes', label: 'Minhas Cotações' },
+            { key: 'available', label: 'Disponíveis' },
+            { key: 'responses', label: 'Minhas Respostas' }
+          ].map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setActiveTab(tab.key as any)}
+              className={`px-6 py-2 rounded-xl font-bold text-sm uppercase transition-all ${
+                activeTab === tab.key
+                  ? 'bg-emerald-600 text-white'
+                  : 'text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700'
+              }`}
             >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-2">
-                  <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${statusColors[quote.status]}`}>
-                    {statusLabels[quote.status]}
-                  </span>
-                  <span className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-400 bg-slate-100 px-2 py-1 rounded-full">
-                    {getQuoteTypeIcon(quote.type)}
-                    {getQuoteTypeLabel(quote.type)}
-                  </span>
-                </div>
-                <span className="text-[10px] text-slate-400">#{quote.id}</span>
-              </div>
+              {tab.label}
+            </button>
+          ))}
+        </div>
 
-              <h3 className="font-bold text-slate-800 mb-2 line-clamp-1">{quote.title}</h3>
-
-              {(quote.origin_city || quote.dest_city) && (
-                <div className="flex items-center gap-2 text-xs text-slate-500 mb-2">
-                  <MapPin size={12} />
-                  {quote.origin_city && <span>{quote.origin_city}</span>}
-                  {quote.origin_city && quote.dest_city && <span>→</span>}
-                  {quote.dest_city && <span>{quote.dest_city}</span>}
-                </div>
-              )}
-
-              {quote.commodity_type && (
-                <p className="text-xs text-slate-400 mb-2">Mercadoria: {quote.commodity_type}</p>
-              )}
-
-              {quote.weight && (
-                <div className="flex items-center gap-1 text-xs text-slate-400">
-                  <Scale size={12} />
-                  <span>{quote.weight} kg</span>
-                </div>
-              )}
-
-              <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-100">
-                <span className="text-[10px] text-slate-400">{formatDate(quote.created_at)}</span>
-                
-                {activeTab === 'available' && quote.status === 'open' && (
-                  <button
-                    onClick={() => {
-                      setSelectedQuote(quote);
-                      setShowResponseModal(true);
-                    }}
-                    className="px-3 py-1.5 bg-emerald-500 text-white text-xs font-bold uppercase rounded-lg hover:bg-emerald-600 transition-colors"
-                  >
-                    Responder
-                  </button>
-                )}
-
-                {activeTab === 'my-quotes' && quote.responses && quote.responses.length > 0 && (
-                  <span className="text-xs font-bold text-emerald-600">
-                    {quote.responses.length} resposta(s)
-                  </span>
-                )}
-              </div>
+        {/* Quotes Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {quotes.length === 0 ? (
+            <div className="col-span-full bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700">
+              <FileText size={48} className="mx-auto mb-3 text-slate-300 dark:text-slate-600" />
+              <p className="text-slate-500 dark:text-slate-400 font-medium">Nenhuma cotação encontrada</p>
             </div>
-          ))
-        )}
-      </div>
+          ) : (
+            quotes.map(quote => (
+              <div
+                key={quote.id}
+                className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 hover:shadow-lg dark:hover:shadow-slate-900/50 transition-shadow"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className={`px-2 py-1 rounded-full text-[10px] font-black uppercase ${statusColors[quote.status]}`}>
+                      {statusLabels[quote.status]}
+                    </span>
+                    <span className="flex items-center gap-1 text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full">
+                      {getQuoteTypeIcon(quote.type)}
+                      {getQuoteTypeLabel(quote.type)}
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500">#{quote.id}</span>
+                </div>
+
+                <h3 className="font-bold text-slate-800 dark:text-slate-200 mb-2 line-clamp-1">{quote.title}</h3>
+
+                {(quote.origin_city || quote.dest_city) && (
+                  <div className="flex items-center gap-2 text-xs text-slate-500 dark:text-slate-400 mb-2">
+                    <MapPin size={12} />
+                    {quote.origin_city && <span>{quote.origin_city}</span>}
+                    {quote.origin_city && quote.dest_city && <ChevronRight size={12} className="text-slate-300" />}
+                    {quote.dest_city && <span>{quote.dest_city}</span>}
+                  </div>
+                )}
+
+                {quote.commodity_type && (
+                  <p className="text-xs text-slate-400 dark:text-slate-500 mb-2">Mercadoria: {quote.commodity_type}</p>
+                )}
+
+                {quote.weight && (
+                  <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
+                    <Scale size={12} />
+                    <span>{quote.weight} kg</span>
+                  </div>
+                )}
+
+                <div className="flex items-center justify-between mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                  <span className="text-[10px] text-slate-400 dark:text-slate-500" title={fmtFull(quote.created_at)}>
+                    {fmtRelative(quote.created_at)}
+                  </span>
+
+                  {activeTab === 'available' && quote.status === 'open' && (
+                    <Button
+                      size="sm"
+                      variant="default"
+                      onClick={() => {
+                        setSelectedQuote(quote);
+                        setShowResponseModal(true);
+                      }}
+                    >
+                      Responder
+                    </Button>
+                  )}
+
+                  {activeTab === 'my-quotes' && quote.responses && quote.responses.length > 0 && (
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                      {quote.responses.length} resposta(s)
+                    </span>
+                  )}
+
+                  {activeTab === 'responses' && quote.winner_bid_id && quote.status === 'closed' && (
+                    <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">Aceita</span>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </DashboardShell>
+
+      {/* Confirmar Aceitação */}
+      <ConfirmModal
+        isOpen={!!confirmAccept}
+        onClose={() => setConfirmAccept(null)}
+        onConfirm={handleAcceptResponse}
+        title="Aceitar esta resposta?"
+        description="Ao aceitar, a cotação será encerrada."
+        confirmText="Sim, aceitar"
+        cancelText="Cancelar"
+        variant="success"
+      />
 
       {/* Create Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase italic text-slate-900">Nova Cotação</h3>
-              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+              <h3 className="text-xl font-black uppercase italic text-slate-900 dark:text-white">Nova Cotação</h3>
+              <button onClick={() => setShowCreateModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                 <X size={20} className="text-slate-400" />
               </button>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Tipo de Cotação</label>
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Tipo de Cotação</label>
                 <div className="grid grid-cols-2 gap-2">
                   {quoteTypes.map(type => (
                     <button
                       key={type.value}
-                      onClick={() => setFormData({...formData, type: type.value})}
+                      onClick={() => setFormData({ ...formData, type: type.value })}
                       className={`p-3 rounded-xl border text-left transition-all ${
-                        formData.type === type.value 
-                          ? 'border-emerald-500 bg-emerald-50' 
-                          : 'border-slate-200 hover:border-emerald-300'
+                        formData.type === type.value
+                          ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/20 dark:border-emerald-600'
+                          : 'border-slate-200 dark:border-slate-700 hover:border-emerald-300 dark:hover:border-emerald-600'
                       }`}
                     >
                       <div className="flex items-center gap-2">
                         <type.icon size={18} className={formData.type === type.value ? 'text-emerald-600' : 'text-slate-400'} />
-                        <span className="font-bold text-sm">{type.label}</span>
+                        <span className="font-bold text-sm text-slate-800 dark:text-slate-200">{type.label}</span>
                       </div>
                     </button>
                   ))}
@@ -432,127 +437,123 @@ export default function QuotesPage() {
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Título *</label>
-                <input 
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Título *</label>
+                <input
                   type="text"
                   value={formData.title}
-                  onChange={(e) => setFormData({...formData, title: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                   placeholder="Descreva o serviço desejado"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Cidade Origem</label>
-                  <input 
+                  <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Cidade Origem</label>
+                  <input
                     type="text"
                     value={formData.origin_city}
-                    onChange={(e) => setFormData({...formData, origin_city: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, origin_city: e.target.value })}
                     placeholder="Cidade/Estado"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Cidade Destino</label>
-                  <input 
+                  <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Cidade Destino</label>
+                  <input
                     type="text"
                     value={formData.dest_city}
-                    onChange={(e) => setFormData({...formData, dest_city: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, dest_city: e.target.value })}
                     placeholder="Cidade/Estado"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Mercadoria</label>
-                  <input 
+                  <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Mercadoria</label>
+                  <input
                     type="text"
                     value={formData.commodity_type}
-                    onChange={(e) => setFormData({...formData, commodity_type: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, commodity_type: e.target.value })}
                     placeholder="Ex: Eletrônicos, Móveis..."
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Peso (kg)</label>
-                  <input 
+                  <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Peso (kg)</label>
+                  <input
                     type="text"
                     value={formData.weight}
-                    onChange={(e) => setFormData({...formData, weight: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
                     placeholder="Ex: 500"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Valor Carga (R$)</label>
-                  <input 
+                  <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Valor Carga (R$)</label>
+                  <input
                     type="text"
                     value={formData.cargo_value}
-                    onChange={(e) => setFormData({...formData, cargo_value: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, cargo_value: e.target.value })}
                     placeholder="Ex: 10000"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Volume</label>
-                  <input 
+                  <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Volume</label>
+                  <input
                     type="text"
                     value={formData.volume}
-                    onChange={(e) => setFormData({...formData, volume: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, volume: e.target.value })}
                     placeholder="Ex: 2 pallets"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                   />
                 </div>
               </div>
 
               {formData.type === 'armazenagem' && (
                 <div>
-                  <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Período (dias)</label>
-                  <input 
+                  <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Período (dias)</label>
+                  <input
                     type="number"
                     value={formData.period_days}
-                    onChange={(e) => setFormData({...formData, period_days: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, period_days: e.target.value })}
                     placeholder="Quantos dias?"
-                    className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                    className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200"
                   />
                 </div>
               )}
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Descrição</label>
-                <textarea 
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Descrição</label>
+                <textarea
                   value={formData.description}
-                  onChange={(e) => setFormData({...formData, description: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   placeholder="Detalhes adicionais..."
                   rows={3}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm resize-none"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400 resize-none"
                 />
               </div>
 
               <label className="flex items-center gap-2 cursor-pointer">
-                <input 
+                <input
                   type="checkbox"
                   checked={formData.requires_insurance === 1}
-                  onChange={(e) => setFormData({...formData, requires_insurance: e.target.checked ? 1 : 0})}
+                  onChange={(e) => setFormData({ ...formData, requires_insurance: e.target.checked ? 1 : 0 })}
                   className="w-4 h-4 rounded border-slate-300 text-emerald-600"
                 />
-                <span className="text-sm font-medium text-slate-600">Requer seguro</span>
+                <span className="text-sm font-medium text-slate-600 dark:text-slate-400">Requer seguro</span>
               </label>
 
-              <button
-                onClick={handleCreateQuote}
-                disabled={saving}
-                className="w-full py-4 bg-emerald-500 text-white rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all disabled:opacity-50"
-              >
+              <Button onClick={handleCreateQuote} disabled={saving} className="w-full" size="lg">
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
                 Criar Cotação
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -561,78 +562,74 @@ export default function QuotesPage() {
       {/* Response Modal */}
       {showResponseModal && selectedQuote && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-lg w-full">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-lg w-full">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase italic text-slate-900">Responder Cotação</h3>
-              <button onClick={() => setShowResponseModal(false)} className="p-2 hover:bg-slate-100 rounded-xl">
+              <h3 className="text-xl font-black uppercase italic text-slate-900 dark:text-white">Responder Cotação</h3>
+              <button onClick={() => setShowResponseModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
                 <X size={20} className="text-slate-400" />
               </button>
             </div>
 
-            <div className="bg-slate-50 rounded-xl p-4 mb-4">
-              <h4 className="font-bold text-slate-800">{selectedQuote.title}</h4>
-              <p className="text-xs text-slate-500 mt-1">
+            <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 mb-4">
+              <h4 className="font-bold text-slate-800 dark:text-slate-200">{selectedQuote.title}</h4>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                 {selectedQuote.origin_city} → {selectedQuote.dest_city}
               </p>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Preço (R$) *</label>
-                <input 
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Preço (R$) *</label>
+                <input
                   type="number"
                   value={responseData.price}
-                  onChange={(e) => setResponseData({...responseData, price: e.target.value})}
+                  onChange={(e) => setResponseData({ ...responseData, price: e.target.value })}
                   placeholder="0,00"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm tabular-nums text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Prazo de Entrega</label>
-                <input 
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Prazo de Entrega</label>
+                <input
                   type="text"
                   value={responseData.delivery_time}
-                  onChange={(e) => setResponseData({...responseData, delivery_time: e.target.value})}
+                  onChange={(e) => setResponseData({ ...responseData, delivery_time: e.target.value })}
                   placeholder="Ex: 5 dias úteis"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Condições</label>
-                <input 
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Condições</label>
+                <input
                   type="text"
                   value={responseData.conditions}
-                  onChange={(e) => setResponseData({...responseData, conditions: e.target.value})}
+                  onChange={(e) => setResponseData({ ...responseData, conditions: e.target.value })}
                   placeholder="Ex: Pagamento em 30 dias"
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-black uppercase text-slate-400 mb-2">Observações</label>
-                <textarea 
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Observações</label>
+                <textarea
                   value={responseData.notes}
-                  onChange={(e) => setResponseData({...responseData, notes: e.target.value})}
+                  onChange={(e) => setResponseData({ ...responseData, notes: e.target.value })}
                   placeholder="Detalhes adicionais..."
                   rows={2}
-                  className="w-full p-3 rounded-xl border border-slate-200 font-bold text-sm resize-none"
+                  className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400 resize-none"
                 />
               </div>
 
-              <button
-                onClick={handleRespondQuote}
-                disabled={saving}
-                className="w-full py-4 bg-emerald-500 text-white rounded-xl font-black uppercase text-sm flex items-center justify-center gap-2 hover:bg-emerald-600 transition-all disabled:opacity-50"
-              >
+              <Button onClick={handleRespondQuote} disabled={saving} className="w-full" size="lg">
                 {saving ? <Loader2 className="animate-spin" size={18} /> : <Send size={18} />}
                 Enviar Resposta
-              </button>
+              </Button>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

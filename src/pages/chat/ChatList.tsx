@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/api/api';
-import { MessageSquare, Clock, ChevronRight, Loader2, Search, Inbox } from 'lucide-react';
+import { api } from '../../api/api';
+import { MessageSquare, Clock, ChevronRight, Search, Inbox } from 'lucide-react';
+import DashboardShell from '../../components/layout/DashboardShell';
 
 interface ChatRoom {
   room_id: number;
@@ -44,20 +45,31 @@ export default function ChatList() {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
-      </div>
+      <DashboardShell title="Minhas Mensagens" description="Carregando...">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-11 w-full md:w-64 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+          <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 divide-y divide-slate-100 dark:divide-slate-700/50">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="p-5 md:p-6 flex items-center gap-4">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-slate-200 dark:bg-slate-700 rounded-2xl shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+                  <div className="h-3 w-56 bg-slate-200 dark:bg-slate-700 rounded" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="p-5 lg:p-8 max-w-[1440px] mx-auto space-y-5 lg:space-y-6 animate-in fade-in duration-500 pb-20">
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-black text-slate-900 dark:text-white uppercase italic">Minhas Mensagens</h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">Gerencie suas negociações de frete</p>
-        </div>
-
+    <DashboardShell
+      title="Minhas Mensagens"
+      description="Gerencie suas negociações de frete"
+      actions={
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
           <input 
@@ -68,8 +80,8 @@ export default function ChatList() {
             className="pl-10 pr-4 py-2 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none w-full md:w-64 transition-all dark:text-slate-200 dark:placeholder-slate-500"
           />
         </div>
-      </div>
-
+      }
+    >
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
         {filteredRooms.length > 0 ? (
           <div className="divide-y divide-slate-100 dark:divide-slate-700/50">
@@ -123,6 +135,6 @@ export default function ChatList() {
           </div>
         )}
       </div>
-    </div>
+    </DashboardShell>
   );
 }

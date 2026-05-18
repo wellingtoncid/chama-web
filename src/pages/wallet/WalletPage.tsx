@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Wallet, ArrowUpRight, ArrowDownLeft, QrCode, Clock, AlertCircle, Loader2 } from 'lucide-react';
-import { api } from '@/api/api';
-import { Button } from '@/components/ui/Button';
+import { Wallet, ArrowUpRight, ArrowDownLeft, QrCode, Clock, AlertCircle } from 'lucide-react';
+import { api } from '../../api/api';
+import { Button } from '../../components/ui/Button';
 
 // Definição de interface para melhorar a estabilidade do código
 interface Transaction {
@@ -116,9 +116,18 @@ export default function WalletPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 flex flex-col items-center justify-center">
-         <Loader2 className="animate-spin text-orange-500 mb-4" size={40} />
-         <p className="text-slate-500 font-medium animate-pulse">Sincronizando carteira...</p>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-6 animate-pulse">
+        <div className="max-w-2xl mx-auto space-y-6">
+          <div className="flex items-center gap-3 mb-8">
+            <div className="w-14 h-14 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+            <div className="space-y-2">
+              <div className="h-7 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="h-4 w-36 bg-slate-200 dark:bg-slate-700 rounded" />
+            </div>
+          </div>
+          <div className="bg-slate-200 dark:bg-slate-700 rounded-3xl p-8 h-52" />
+          <div className="bg-white dark:bg-slate-800 rounded-3xl border border-slate-200 dark:border-slate-700 p-5 h-64" />
+        </div>
       </div>
     );
   }

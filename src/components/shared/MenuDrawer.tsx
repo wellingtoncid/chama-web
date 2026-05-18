@@ -1,30 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Truck, Megaphone, ShoppingBag, 
-  User, ShieldCheck, CreditCard, LogOut, MessageSquare, 
-  Wallet, UserCog, Settings, Mail, Users,
-  PlusCircle, Tag, HelpCircle, Headphones, FileText, Shield, LayoutGrid, Star, Flag,
-  X, ChevronRight, BookOpen, UserPlus
-} from 'lucide-react';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { LogOut, X, ChevronRight, User, LayoutDashboard, MessageSquare } from 'lucide-react';
 import { api } from '@/api/api';
 import { useAuth } from '@/context/AuthContext';
 import { isInternal as isInternalRole, isExternal as isExternalRole, isSuperAdmin as isSuperAdminRole, isDriver as isDriverRole, isCompany as isCompanyRole } from '@/constants/roleUtils';
-
-interface MenuItem {
-  label: string;
-  icon: React.ReactNode;
-  path: string;
-  visible: boolean;
-  highlight?: boolean;
-  special?: boolean;
-}
-
-interface MenuSection {
-  title: string;
-  visible?: boolean;
-  items: MenuItem[];
-}
+import { buildMenuSections } from '@/constants/dashboardMenuItems';
 
 interface MenuDrawerProps {
   isOpen: boolean;
@@ -37,7 +17,6 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   const navigate = useNavigate();
   const { logout: authLogout } = useAuth();
   const [activeModules, setActiveModules] = useState<string[]>([]);
-  const [isAvailable, setIsAvailable] = useState(user?.is_available ?? 1);
   const [isAuthor, setIsAuthor] = useState(false);
 
   const fetchUserModules = useCallback(async () => {
@@ -45,9 +24,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
       const res = await api.get('/user/modules');
       if (res.data?.success) {
         const modules = res.data.data.modules || [];
-        const active = modules
-          .filter((m: any) => m.is_active)
-          .map((m: any) => m.key);
+        const active = modules.filter((m: any) => m.is_active).map((m: any) => m.key);
         setActiveModules(active);
       }
     } catch (e) {
@@ -55,29 +32,9 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
     }
   }, []);
 
-  const checkAuthorStatus = useCallback(async () => {
-    try {
-      const res = await api.get('/article-author-status');
-      if (res.data?.success) {
-        setIsAuthor(res.data.data.is_author || false);
-      }
-    } catch (e) {
-      console.error('Erro ao verificar status de autor:', e);
-    }
-  }, []);
-
   useEffect(() => {
     fetchUserModules();
-    if (user) {
-      checkAuthorStatus();
-    }
-  }, [fetchUserModules, checkAuthorStatus, user]);
-
-  useEffect(() => {
-    if (user?.is_available !== undefined) {
-      setIsAvailable(user.is_available);
-    }
-  }, [user?.is_available]);
+  }, [fetchUserModules]);
 
   const role = String(user?.role || '').toLowerCase();
   const isInternal = isInternalRole(role);
@@ -85,77 +42,8 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   const isExternal = isExternalRole(role);
   const isDriver = isDriverRole(role);
   const isCompany = isCompanyRole(role);
-  
-  const hasModule = (key: string) => activeModules.includes(key);
-  const hasFreights = hasModule('freights') || isSuperAdmin;
-  const hasMarketplace = hasModule('marketplace') || isSuperAdmin;
-  const hasQuotes = hasModule('quotes') || isSuperAdmin;
-  const hasFinancial = hasModule('financial') || isSuperAdmin;
-  const hasGroups = hasModule('groups') || isSuperAdmin;
-  const hasPlans = hasModule('plans') || isSuperAdmin;
-  const hasSupport = hasModule('support') || isSuperAdmin;
-  const hasArticles = hasModule('articles') || isSuperAdmin;
-  const hasAdvertiser = hasModule('advertiser') || isSuperAdmin;
 
-  const menuSections: MenuSection[] = [
-    {
-      title: "Administração",
-      visible: isInternal,
-      items: [
-        { label: 'BI & Performance', icon: <ShieldCheck size={20} />, path: '/dashboard/admin/bi', visible: isInternal, special: true },
-        { label: 'Gestão de Cargas', icon: <Truck size={20}/>, path: '/dashboard/admin/cargas', visible: isInternal },
-        { label: 'Gestão de Comunidade', icon: <Megaphone size={20}/>, path: '/dashboard/admin/comunidades', visible: isInternal },
-        { label: 'Gestão de Cotações', icon: <FileText size={20}/>, path: '/dashboard/admin/cotacoes', visible: isInternal },
-        { label: 'Gestão de Marketplaces', icon: <ShoppingBag size={20}/>, path: '/dashboard/admin/marketplace', visible: isInternal },
-        { label: 'Categorias Marketplace', icon: <LayoutGrid size={20}/>, path: '/dashboard/admin/marketplace-categorias', visible: isInternal },
-        { label: 'Gestão de Suporte', icon: <Headphones size={20}/>, path: '/dashboard/admin/suporte', visible: isInternal },
-        { label: 'Gestão Financeira', icon: <Wallet size={20}/>, path: '/dashboard/admin/financeiro', visible: isInternal },
-        { label: 'Gestão de Leads', icon: <Mail size={20}/>, path: '/dashboard/admin/leads', visible: isInternal },
-        { label: 'Planos de Assinatura', icon: <Tag size={20}/>, path: '/dashboard/admin/planos', visible: isSuperAdmin },
-        { label: 'Precificação', icon: <CreditCard size={20}/>, path: '/dashboard/admin/precificacao', visible: isSuperAdmin },
-        { label: 'Gestão de Identidade', icon: <ShieldCheck size={20}/>, path: '/dashboard/admin/verificacoes', visible: isInternal },
-        { label: 'Gestão de Anúncios', icon: <Megaphone size={20}/>, path: '/dashboard/admin/publicidade', visible: isInternal },
-        { label: 'Gestão de Artigos', icon: <BookOpen size={20}/>, path: '/dashboard/admin/artigos', visible: isInternal },
-        { label: 'Gestão de Autores', icon: <UserPlus size={20}/>, path: '/dashboard/admin/autores', visible: isInternal },
-        { label: 'Avaliações', icon: <Star size={20}/>, path: '/dashboard/admin/avaliacoes', visible: isInternal },
-        { label: 'Denúncias', icon: <Flag size={20}/>, path: '/dashboard/admin/denuncias', visible: isInternal },
-        { label: 'Afiliados', icon: <Star size={20} className="fill-amber-400 text-amber-500"/>, path: '/dashboard/admin/afiliados', visible: isSuperAdmin },
-        { label: 'Configurações', icon: <Settings size={20}/>, path: '/dashboard/admin/configuracoes', visible: isInternal },
-        { label: 'Auditoria do Sistema', icon: <Shield size={20}/>, path: '/dashboard/admin/auditoria', visible: isInternal },
-      ]
-    },
-    {
-      title: "Acessos",
-      visible: isSuperAdmin,
-      items: [
-        { label: 'Usuários', icon: <Users size={18}/>, path: '/dashboard/admin/usuarios', visible: isSuperAdmin },
-        { label: 'Cargos', icon: <Shield size={18}/>, path: '/dashboard/admin/cargos', visible: isSuperAdmin },
-        { label: 'Módulos', icon: <LayoutGrid size={18}/>, path: '/dashboard/admin/modulos', visible: isSuperAdmin },
-      ]
-    },
-    {
-      title: "Operacional",
-      visible: isExternal,
-      items: [
-        { label: 'Anunciar Carga', icon: <PlusCircle size={20}/>, path: '/novo-frete', visible: isCompany && hasFreights, highlight: true },
-        { label: 'Meus Fretes', icon: <Truck size={20}/>, path: '/dashboard/logistica', visible: isCompany && hasFreights },
-        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: (isCompany || role === 'advertiser') && hasAdvertiser },
-        { label: 'Equipe', icon: <Users size={20}/>, path: '/dashboard/equipe', visible: isCompany },
-      ]
-    },
-    {
-      title: "Ecossistema",
-      items: [
-        { label: 'Cotações', icon: <FileText size={20}/>, path: '/dashboard/cotacoes', visible: isCompany && hasQuotes },
-        { label: 'Marketplace', icon: <ShoppingBag size={20}/>, path: '/dashboard/vendas', visible: hasMarketplace },
-        { label: 'Financeiro', icon: <CreditCard size={20}/>, path: '/dashboard/financeiro', visible: isExternal && (hasFinancial || isDriver) },
-        { label: 'Planos', icon: isDriver ? <Shield size={20}/> : <Tag size={20}/>, path: '/dashboard/planos', visible: hasPlans },
-        { label: 'Suporte', icon: <HelpCircle size={20}/>, path: '/dashboard/suporte', visible: hasSupport },
-        { label: 'Meus Artigos', icon: <BookOpen size={20}/>, path: '/dashboard/meus-artigos', visible: isAuthor || isInternal || hasArticles || role === 'author' },
-        { label: 'Meu Perfil', icon: <User size={20}/>, path: '/dashboard/profile', visible: true },
-      ]
-    },
-  ];
+  const menuSections = buildMenuSections(role, activeModules, isSuperAdmin, isInternal, isExternal, isCompany, isDriver, isAuthor);
 
   const handleNavigate = (path: string) => {
     navigate(path);

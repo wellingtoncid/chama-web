@@ -1,10 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, Camera, Loader2, AlertCircle, X, Plus, MapPin, Star, ExternalLink, Search, Eye, MousePointer } from 'lucide-react';
-import { api } from '@/api/api';
-import { getStates, getCitiesByState } from '@/services/location';
-import { AdImage } from '@/components/AdImage';
-import Swal from 'sweetalert2';
+import {
+  ArrowLeft, Camera, Loader2, AlertCircle, X, Plus, MapPin, Star,
+  ExternalLink, Search, CheckCircle, CreditCard, Wallet
+} from 'lucide-react';
+import { api } from '../../api/api';
+import { getStates, getCitiesByState } from '../../services/location';
+import { AdImage } from '../../components/AdImage';
+import { Button } from '../../components/ui/Button';
 
 const MARKETPLACE_CONFIG = {
   maxImages: 5,
@@ -48,6 +51,10 @@ export default function ListingFormPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [cities, setCities] = useState<string[]>([]);
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning'>('success');
+  const [showBalanceModal, setShowBalanceModal] = useState(false);
+  const [balanceData, setBalanceData] = useState<{ required: number; balance: number; freeLimit: number; usedFree: number } | null>(null);
 
   const [formData, setFormData] = useState({
     title: '',
@@ -64,6 +71,7 @@ export default function ListingFormPage() {
   const [scraping, setScraping] = useState(false);
   const [affiliatePreview, setAffiliatePreview] = useState<AffiliatePreview | null>(null);
   const [hasAffiliateAccess, setHasAffiliateAccess] = useState(false);
+  const [requestsEnabled, setRequestsEnabled] = useState(true);
   const [checkingAffiliate, setCheckingAffiliate] = useState(true);
 
   const [users, setUsers] = useState<UserOption[]>([]);
@@ -71,6 +79,27 @@ export default function ListingFormPage() {
 
   const user = JSON.parse(localStorage.getItem('@ChamaFrete:user') || '{}');
   const isAdmin = ['admin', 'manager'].includes(user.role?.toLowerCase());
+
+  const showAlert = (msg: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setAlertMsg(msg);
+    setAlertType(type);
+    setTimeout(() => setAlertMsg(null), 4000);
+  };
+
+  const AlertToast = () => {
+    if (!alertMsg) return null;
+    const colors = {
+      success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+      error: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+      warning: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+    };
+    return (
+      <div className={`fixed top-6 right-6 z-[60] flex items-center gap-2 px-4 py-3 rounded-2xl border shadow-lg animate-in slide-in-from-right-4 duration-300 ${colors[alertType]}`}>
+        {alertType === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+        <span className="font-bold text-sm">{alertMsg}</span>
+      </div>
+    );
+  };
 
   useEffect(() => {
     loadInitialData();
@@ -82,6 +111,7 @@ export default function ListingFormPage() {
       const res = await api.get('/affiliate/access');
       if (res.data?.success) {
         setHasAffiliateAccess(res.data.data?.has_access ?? res.data.has_access ?? false);
+        setRequestsEnabled(res.data.data?.requests_enabled ?? res.data.requests_enabled ?? true);
       }
     } catch (error) {
       console.error('Erro ao verificar acesso de afiliado:', error);
@@ -171,14 +201,9 @@ export default function ListingFormPage() {
 
         setSelectedUserId(listing.user_id);
       }
-    } catch (error) {
-      Swal.fire({
-        title: 'Erro',
-        text: 'Não foi possível carregar o anúncio.',
-        icon: 'error',
-        background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-        color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-      }).then(() => navigate('/dashboard'));
+    } catch {
+      showAlert('Não foi possível carregar o anúncio.', 'error');
+      setTimeout(() => navigate('/dashboard'), 1500);
     } finally {
       setLoadingData(false);
     }
@@ -188,7 +213,7 @@ export default function ListingFormPage() {
     try {
       const res = await api.get('/list-all-users?limit=100');
       if (res.data?.success && res.data.data) {
-        const userList = res.data.data.filter((u: any) => u.role !== 'admin' && u.role !== 'manager');
+        const userList = res.data.data.filter((u: any) => u.role !== 'admin' && u.role !== 'manager'); // eslint-disable-line @typescript-eslint/no-explicit-any
         setUsers(userList);
       }
     } catch (error) {
@@ -198,7 +223,7 @@ export default function ListingFormPage() {
 
   const handleScrapeProduct = async () => {
     if (!externalUrl) {
-      Swal.fire('Atenção', 'Cole a URL do produto do Mercado Livre primeiro.', 'warning');
+      showAlert('Cole a URL do produto do Mercado Livre primeiro.', 'warning');
       return;
     }
 
@@ -222,15 +247,15 @@ export default function ListingFormPage() {
           setFormData(prev => ({ ...prev, title: data.title }));
         }
         if (data.price && !formData.price) {
-          setFormData(prev => ({ ...prev, price: data.price.toString() }));
+          setFormData(prev => ({ ...prev, price: String(data.price) }));
         }
         if (data.main_image && existingImages.length === 0) {
           setExistingImages([data.main_image]);
         }
       }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const message = error.response?.data?.message || 'Não foi possível buscar os dados do produto.';
-      Swal.fire('Erro', message, 'error');
+      showAlert(message, 'error');
     } finally {
       setScraping(false);
     }
@@ -326,76 +351,31 @@ export default function ListingFormPage() {
         await api.post('/update-listing', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        Swal.fire({
-          title: 'Sucesso!',
-          text: 'Anúncio atualizado com sucesso!',
-          icon: 'success',
-          background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-        }).then(() => navigate(-1));
+        showAlert('Anúncio atualizado com sucesso!', 'success');
+        setTimeout(() => navigate(-1), 1200);
       } else {
         await api.post('/create-listing', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
-        Swal.fire({
-          title: 'Sucesso!',
-          text: 'Anúncio publicado com sucesso!',
-          icon: 'success',
-          background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-        }).then(() => navigate(-1));
+        showAlert('Anúncio publicado com sucesso!', 'success');
+        setTimeout(() => navigate(-1), 1200);
       }
-    } catch (error: any) {
+    } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const status = error.response?.status;
       const resData = error.response?.data;
 
       if (status === 402 && resData?.code === 'INSUFFICIENT_BALANCE') {
-        const required = resData.required || 9.90;
-        const balance = resData.balance || 0;
-        const freeLimit = resData.free_limit || 0;
-        const usedFree = resData.used_free || 0;
-
-        Swal.fire({
-          title: 'Saldo Insuficiente',
-          html: `
-            <div class="text-left space-y-2">
-              <p>Você precisa de <strong>R$ ${required.toFixed(2).replace('.', ',')}</strong> para publicar.</p>
-              <p class="text-slate-500">Saldo atual: <strong>R$ ${balance.toFixed(2).replace('.', ',')}</strong></p>
-              ${freeLimit > 0 ? `<p class="text-amber-600 mt-2">Você já usou ${usedFree} de ${freeLimit} publicação(ões) grátis este mês.</p>` : ''}
-            </div>
-          `,
-          icon: 'warning',
-          showCancelButton: true,
-          confirmButtonText: 'Recarregar Carteira',
-          cancelButtonText: 'Pagar com Mercado Pago',
-          confirmButtonColor: '#059669',
-          cancelButtonColor: '#3B82F6',
-          reverseButtons: true,
-          background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-        }).then((result) => {
-          if (result.isConfirmed) {
-            navigate('/dashboard/financeiro');
-          } else if (result.isDismissed) {
-            handleMercadoPagoPayment();
-          }
+        setBalanceData({
+          required: resData.required || 9.90,
+          balance: resData.balance || 0,
+          freeLimit: resData.free_limit || 0,
+          usedFree: resData.used_free || 0,
         });
+        setShowBalanceModal(true);
       } else if (status === 403) {
-        Swal.fire({
-          title: 'Sem Acesso',
-          text: resData?.message || 'Você não tem acesso ao recurso de afiliados.',
-          icon: 'warning',
-          background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-        });
+        showAlert(resData?.message || 'Você não tem acesso ao recurso de afiliados.', 'warning');
       } else {
-        Swal.fire({
-          title: 'Erro',
-          text: resData?.message || 'Erro ao processar.',
-          icon: 'error',
-          background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-        });
+        showAlert(resData?.message || 'Erro ao processar.', 'error');
       }
     } finally {
       setLoading(false);
@@ -403,6 +383,7 @@ export default function ListingFormPage() {
   };
 
   const handleMercadoPagoPayment = async () => {
+    setShowBalanceModal(false);
     try {
       const res = await api.post('/module/purchase-per-use', {
         module_key: 'marketplace',
@@ -413,21 +394,33 @@ export default function ListingFormPage() {
       if (res.data?.success && res.data?.url) {
         window.location.href = res.data.url;
       }
-    } catch (e: any) {
-      Swal.fire({
-        title: 'Erro',
-        text: e.response?.data?.message || 'Erro ao processar pagamento.',
-        icon: 'error',
-        background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-        color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-      });
+    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
+      showAlert(e.response?.data?.message || 'Erro ao processar pagamento.', 'error');
     }
   };
 
   if (loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="animate-spin text-emerald-600" size={48} />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-5 lg:p-8 animate-in fade-in duration-500">
+        <div className="max-w-4xl mx-auto space-y-6 animate-pulse">
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+            <div className="space-y-2">
+              <div className="h-6 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+              <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+            </div>
+          </div>
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6 space-y-4">
+            <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
+            <div className="h-20 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+            <div className="h-4 w-48 bg-slate-200 dark:bg-slate-700 rounded" />
+            <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+              <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-2xl" />
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -435,435 +428,485 @@ export default function ListingFormPage() {
   const totalImages = images.length + existingImages.length;
 
   return (
-    <div className="p-5 lg:p-8 max-w-4xl mx-auto animate-in fade-in duration-500 pb-20">
-      <div className="flex items-center gap-4 mb-6">
-        <button
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-5 lg:p-8 animate-in fade-in duration-500">
+      <AlertToast />
+
+      <div className="max-w-4xl mx-auto">
+        <Button
+          variant="ghost"
           onClick={() => navigate(-1)}
-          className="w-10 h-10 rounded-xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+          className="mb-6 text-slate-400 dark:text-slate-500"
         >
-          <ArrowLeft size={18} className="text-slate-600 dark:text-slate-400" />
-        </button>
-        <div>
-          <h1 className="text-xl lg:text-2xl font-black text-slate-900 dark:text-white">
-            {isEditing ? 'Editar Anúncio' : 'Novo Anúncio'}
-          </h1>
-          <p className="text-xs font-medium text-slate-500 dark:text-slate-400">
-            Marketplace Ecossistema
-          </p>
-        </div>
-      </div>
+          <ArrowLeft size={16} /> Voltar
+        </Button>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Admin User Selector */}
-        {isAdmin && (
-          <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl">
-                <Star size={20} className="text-amber-600 fill-amber-400" />
-              </div>
-              <div>
-                <h3 className="font-black text-slate-900 dark:text-white uppercase italic text-sm">
-                  Criar em Nome de
-                </h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
-                  Selecione o usuário para qual o anúncio será criado
-                </p>
-              </div>
-            </div>
-            <select
-              value={selectedUserId || ''}
-              onChange={(e) => setSelectedUserId(Number(e.target.value))}
-              required
-              className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 appearance-none border-2 border-amber-200 dark:border-amber-700 focus:border-amber-500"
-            >
-              <option value="">Selecione um usuário...</option>
-              {users.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name} ({u.email}) - {u.role}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
-
-        {/* Affiliate Section */}
-        {checkingAffiliate ? (
-          <div className="rounded-2xl p-6 border-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700">
-            <div className="animate-pulse flex items-center gap-3">
-              <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
-              <div className="space-y-2">
-                <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded"></div>
-                <div className="h-3 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
-              </div>
-            </div>
-          </div>
-        ) : !hasAffiliateAccess ? (
-          <div className="rounded-2xl p-6 border-2 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
-                  <Star size={20} className="text-amber-500" />
-                </div>
-                <div>
-                  <h3 className="font-black text-amber-700 dark:text-amber-400 uppercase italic text-sm">
-                    Anúncio de Afiliado
-                  </h3>
-                  <p className="text-xs text-amber-600 dark:text-amber-400">
-                    Libere acesso para criar anúncios do Mercado Livre
-                  </p>
-                </div>
-              </div>
-              <button
-                onClick={() => navigate('/dashboard/vendas?showAffiliateModal=true')}
-                className="px-4 py-2 bg-amber-500 text-white rounded-xl font-bold text-xs uppercase hover:bg-amber-600 transition-all"
-              >
-                Solicitar Acesso
-              </button>
-            </div>
-          </div>
-        ) : (
-          <div className={`rounded-2xl p-6 border-2 ${isAffiliate ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className={`p-2 rounded-xl ${isAffiliate ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-slate-100 dark:bg-slate-700'}`}>
-                  <Star size={20} className={isAffiliate ? 'text-amber-500 fill-amber-400' : 'text-slate-400'} />
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Admin User Selector */}
+          {isAdmin && (
+            <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-xl">
+                  <Star size={20} className="text-amber-600 fill-amber-400" />
                 </div>
                 <div>
                   <h3 className="font-black text-slate-900 dark:text-white uppercase italic text-sm">
-                    Anúncio de Afiliado
+                    Criar em Nome de
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Link do Mercado Livre com sua tag de afiliado
+                    Selecione o usuário para qual o anúncio será criado
                   </p>
                 </div>
               </div>
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={isAffiliate}
-                  onChange={(e) => {
-                    setIsAffiliate(e.target.checked);
-                    if (!e.target.checked) {
-                      setExternalUrl('');
-                      setAffiliatePreview(null);
-                    }
-                  }}
-                  className="sr-only peer"
-                />
-                <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
-              </label>
-            </div>
-
-          {isAffiliate && (
-            <div className="space-y-4 mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
-              <div>
-                <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 ml-2 mb-2 block">
-                  URL do Produto no Mercado Livre
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="url"
-                    value={externalUrl}
-                    onChange={(e) => {
-                      setExternalUrl(e.target.value);
-                      setAffiliatePreview(null);
-                    }}
-                    placeholder="https://produto.mercadolivre.com.br/MLB-xxxxx"
-                    className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 border-2 border-slate-200 dark:border-slate-700 focus:border-amber-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleScrapeProduct}
-                    disabled={scraping || !externalUrl}
-                    className="px-6 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-bold text-sm flex items-center gap-2 hover:from-amber-600 hover:to-orange-600 transition-all disabled:opacity-50"
-                  >
-                    {scraping ? (
-                      <Loader2 size={18} className="animate-spin" />
-                    ) : (
-                      <Search size={18} />
-                    )}
-                    Buscar
-                  </button>
-                </div>
-              </div>
-
-              {affiliatePreview && (
-                <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ExternalLink size={16} className="text-amber-500" />
-                    <span className="text-xs font-black uppercase text-amber-600 dark:text-amber-400">Preview do Produto</span>
-                  </div>
-                  <div className="flex gap-4">
-                    {affiliatePreview.main_image && (
-                      <img
-                        src={affiliatePreview.main_image}
-                        alt={affiliatePreview.title}
-                        className="w-20 h-20 object-cover rounded-xl"
-                      />
-                    )}
-                    <div className="flex-1">
-                      <p className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2">
-                        {affiliatePreview.title}
-                      </p>
-                      {affiliatePreview.price > 0 && (
-                        <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
-                          {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(affiliatePreview.price)}
-                        </p>
-                      )}
-                      {affiliatePreview.seller_name && (
-                        <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Vendido por: {affiliatePreview.seller_name}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  <strong>Como funciona:</strong> Quando alguém clicar no botão "Comprar", será redirecionado para o Mercado Livre com sua tag de afiliado. Você ganhará comissão pelas vendas.
-                </p>
-              </div>
-            </div>
-          )}
-        </div>
-        )}
-
-        {/* Images Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
-          <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-3 block">
-            Fotos ({totalImages}/{MARKETPLACE_CONFIG.maxImages})
-          </label>
-
-          {existingImages.length > 0 && (
-            <div className="grid grid-cols-5 gap-2 mb-3">
-              {existingImages.map((img, index) => (
-                <div key={`existing-${index}`} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600">
-                  <AdImage url={img} className="w-full h-full object-cover" alt={`Imagem ${index + 1}`} />
-                  <button
-                    type="button"
-                    onClick={() => removeExistingImage(index)}
-                    className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                  >
-                    <X size={12} />
-                  </button>
-                  {index === 0 && (
-                    <span className="absolute bottom-1 left-1 bg-emerald-500 text-white text-[8px] font-black px-1 rounded">Capa</span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {images.length > 0 && (
-            <div className="grid grid-cols-5 gap-2 mb-3">
-              {images.map((img, index) => (
-                <div key={`new-${index}`} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600">
-                  <img src={URL.createObjectURL(img)} alt={`Nova imagem ${index + 1}`} className="w-full h-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => removeNewImage(index)}
-                    className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
-                  >
-                    <X size={12} />
-                  </button>
-                  <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-[8px] font-black px-1 rounded">Nova</span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {totalImages < MARKETPLACE_CONFIG.maxImages && (
-            <div className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-2xl p-6 text-center hover:border-emerald-500 transition-all cursor-pointer relative">
-              <input
-                type="file"
-                accept={MARKETPLACE_CONFIG.acceptedFormats.join(',')}
-                multiple
-                onChange={handleImageChange}
-                className="absolute inset-0 opacity-0 cursor-pointer"
-              />
-              <Camera className="mx-auto text-slate-300 dark:text-slate-600 mb-2" size={32} />
-              <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Clique para adicionar fotos</p>
-              <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
-                {MARKETPLACE_CONFIG.maxImages - totalImages} foto(s) disponível(s)
-              </p>
-            </div>
-          )}
-
-          {errors.length > 0 && (
-            <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl">
-              {errors.map((error, index) => (
-                <div key={index} className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs mb-1 last:mb-0">
-                  <AlertCircle size={14} />
-                  <span>{error}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Details Section */}
-        <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 space-y-4">
-          <div>
-            <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Título do Anúncio</label>
-            <input
-              name="title"
-              required
-              value={formData.title}
-              onChange={handleInputChange}
-              placeholder="Ex: Caminhão Scania R440 ou Pneu Usado"
-              className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 border-2 border-transparent focus:border-emerald-500/20 transition-all"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Categoria</label>
               <select
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
+                value={selectedUserId || ''}
+                onChange={(e) => setSelectedUserId(Number(e.target.value))}
                 required
-                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 appearance-none"
+                className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 appearance-none border-2 border-amber-200 dark:border-amber-700 focus:border-amber-500"
               >
-                <option value="">Selecione...</option>
-                {categories.map((cat) => (
-                  <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                <option value="">Selecione um usuário...</option>
+                {users.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.name} ({u.email}) - {u.role}
+                  </option>
                 ))}
               </select>
             </div>
+          )}
+
+          {/* Affiliate Section */}
+          {checkingAffiliate ? (
+            <div className="rounded-2xl p-6 border-2 bg-slate-50 dark:bg-slate-800 border-slate-100 dark:border-slate-700">
+              <div className="animate-pulse flex items-center gap-3">
+                <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl"></div>
+                <div className="space-y-2">
+                  <div className="h-4 w-32 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                  <div className="h-3 w-48 bg-slate-200 dark:bg-slate-700 rounded"></div>
+                </div>
+              </div>
+            </div>
+          ) : !hasAffiliateAccess && requestsEnabled ? (
+            <div className="rounded-2xl p-6 border-2 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-amber-100 dark:bg-amber-900/30">
+                    <Star size={20} className="text-amber-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-amber-700 dark:text-amber-400 uppercase italic text-sm">
+                      Anúncio de Afiliado
+                    </h3>
+                    <p className="text-xs text-amber-600 dark:text-amber-400">
+                      Libere acesso para criar anúncios do Mercado Livre
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="default"
+                  onClick={() => navigate('/dashboard/vendas?showAffiliateModal=true')}
+                >
+                  Solicitar Acesso
+                </Button>
+              </div>
+            </div>
+          ) : hasAffiliateAccess ? (
+            <div className={`rounded-2xl p-6 border-2 ${isAffiliate ? 'bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 border-amber-300 dark:border-amber-700' : 'bg-white dark:bg-slate-800 border-slate-100 dark:border-slate-700'}`}>
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-xl ${isAffiliate ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-slate-100 dark:bg-slate-700'}`}>
+                    <Star size={20} className={isAffiliate ? 'text-amber-500 fill-amber-400' : 'text-slate-400'} />
+                  </div>
+                  <div>
+                    <h3 className="font-black text-slate-900 dark:text-white uppercase italic text-sm">
+                      Anúncio de Afiliado
+                    </h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Link do Mercado Livre com sua tag de afiliado
+                    </p>
+                  </div>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={isAffiliate}
+                    onChange={(e) => {
+                      setIsAffiliate(e.target.checked);
+                      if (!e.target.checked) {
+                        setExternalUrl('');
+                        setAffiliatePreview(null);
+                      }
+                    }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-amber-300 dark:peer-focus:ring-amber-800 rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all dark:border-slate-600 peer-checked:bg-amber-500"></div>
+                </label>
+              </div>
+
+            {isAffiliate && (
+              <div className="space-y-4 mt-4 pt-4 border-t border-amber-200 dark:border-amber-800">
+                <div>
+                  <label className="text-xs font-black uppercase text-slate-500 dark:text-slate-400 ml-2 mb-2 block">
+                    URL do Produto no Mercado Livre
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      value={externalUrl}
+                      onChange={(e) => {
+                        setExternalUrl(e.target.value);
+                        setAffiliatePreview(null);
+                      }}
+                      placeholder="https://produto.mercadolivre.com.br/MLB-xxxxx"
+                      className="flex-1 p-4 bg-white dark:bg-slate-900 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 border-2 border-slate-200 dark:border-slate-700 focus:border-amber-500"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleScrapeProduct}
+                      disabled={scraping || !externalUrl}
+                      variant="default"
+                    >
+                      {scraping ? (
+                        <Loader2 size={18} className="animate-spin" />
+                      ) : (
+                        <Search size={18} />
+                      )}
+                      Buscar
+                    </Button>
+                  </div>
+                </div>
+
+                {affiliatePreview && (
+                  <div className="bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-700">
+                    <div className="flex items-center gap-2 mb-3">
+                      <ExternalLink size={16} className="text-amber-500" />
+                      <span className="text-xs font-black uppercase text-amber-600 dark:text-amber-400">Preview do Produto</span>
+                    </div>
+                    <div className="flex gap-4">
+                      {affiliatePreview.main_image && (
+                        <img
+                          src={affiliatePreview.main_image}
+                          alt={affiliatePreview.title}
+                          className="w-20 h-20 object-cover rounded-xl"
+                        />
+                      )}
+                      <div className="flex-1">
+                        <p className="font-bold text-slate-900 dark:text-white text-sm line-clamp-2">
+                          {affiliatePreview.title}
+                        </p>
+                        {affiliatePreview.price > 0 && (
+                          <p className="text-lg font-black text-emerald-600 dark:text-emerald-400">
+                            {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(affiliatePreview.price)}
+                          </p>
+                        )}
+                        {affiliatePreview.seller_name && (
+                          <p className="text-xs text-slate-500 dark:text-slate-400">
+                            Vendido por: {affiliatePreview.seller_name}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
+                  <p className="text-xs text-amber-700 dark:text-amber-400">
+                    <strong>Como funciona:</strong> Quando alguém clicar no botão "Comprar", será redirecionado para o Mercado Livre com sua tag de afiliado. Você ganhará comissão pelas vendas.
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
+          ) : null}
+
+          {/* Images Section */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700">
+            <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-3 block">
+              Fotos ({totalImages}/{MARKETPLACE_CONFIG.maxImages})
+            </label>
+
+            {existingImages.length > 0 && (
+              <div className="grid grid-cols-5 gap-2 mb-3">
+                {existingImages.map((img, index) => (
+                  <div key={`existing-${index}`} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600">
+                    <AdImage url={img} className="w-full h-full object-cover" alt={`Imagem ${index + 1}`} />
+                    <button
+                      type="button"
+                      onClick={() => removeExistingImage(index)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X size={12} />
+                    </button>
+                    {index === 0 && (
+                      <span className="absolute bottom-1 left-1 bg-emerald-500 text-white text-[8px] font-black px-1 rounded">Capa</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {images.length > 0 && (
+              <div className="grid grid-cols-5 gap-2 mb-3">
+                {images.map((img, index) => (
+                  <div key={`new-${index}`} className="relative aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 border-2 border-slate-200 dark:border-slate-600">
+                    <img src={URL.createObjectURL(img)} alt={`Nova imagem ${index + 1}`} className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => removeNewImage(index)}
+                      className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                    >
+                      <X size={12} />
+                    </button>
+                    <span className="absolute bottom-1 left-1 bg-blue-500 text-white text-[8px] font-black px-1 rounded">Nova</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {totalImages < MARKETPLACE_CONFIG.maxImages && (
+              <div className="border-2 border-dashed border-slate-200 dark:border-slate-600 rounded-2xl p-6 text-center hover:border-emerald-500 transition-all cursor-pointer relative">
+                <input
+                  type="file"
+                  accept={MARKETPLACE_CONFIG.acceptedFormats.join(',')}
+                  multiple
+                  onChange={handleImageChange}
+                  className="absolute inset-0 opacity-0 cursor-pointer"
+                />
+                <Camera className="mx-auto text-slate-300 dark:text-slate-600 mb-2" size={32} />
+                <p className="text-xs font-bold text-slate-500 dark:text-slate-400">Clique para adicionar fotos</p>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500 mt-1">
+                  {MARKETPLACE_CONFIG.maxImages - totalImages} foto(s) disponível(s)
+                </p>
+              </div>
+            )}
+
+            {errors.length > 0 && (
+              <div className="mt-3 p-3 bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 rounded-xl">
+                {errors.map((error, index) => (
+                  <div key={index} className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs mb-1 last:mb-0">
+                    <AlertCircle size={14} />
+                    <span>{error}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Details Section */}
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 space-y-4">
+            <div>
+              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Título do Anúncio</label>
+              <input
+                name="title"
+                required
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Ex: Caminhão Scania R440 ou Pneu Usado"
+                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 border-2 border-transparent focus:border-emerald-500/20 transition-all"
+              />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Categoria</label>
+                <select
+                  name="category"
+                  value={formData.category}
+                  onChange={handleInputChange}
+                  required
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 appearance-none"
+                >
+                  <option value="">Selecione...</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.slug}>{cat.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Preço (R$)</label>
+                <input
+                  name="price"
+                  type="number"
+                  step="0.01"
+                  required
+                  value={formData.price}
+                  onChange={handleInputChange}
+                  placeholder="0,00"
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 tabular-nums"
+                />
+              </div>
+            </div>
 
             <div>
-              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Preço (R$)</label>
-              <input
-                name="price"
-                type="number"
-                step="0.01"
-                required
-                value={formData.price}
+              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Condição</label>
+              <div className="flex gap-2">
+                <label className="flex-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="item_condition"
+                    value="novo"
+                    checked={formData.item_condition === 'novo'}
+                    onChange={handleInputChange}
+                    className="hidden peer"
+                  />
+                  <div className="p-4 text-center border-2 rounded-2xl font-black uppercase text-xs peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/30 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 text-slate-400 dark:text-slate-500 cursor-pointer transition-all">
+                    Novo
+                  </div>
+                </label>
+                <label className="flex-1 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="item_condition"
+                    value="usado"
+                    checked={formData.item_condition === 'usado'}
+                    onChange={handleInputChange}
+                    className="hidden peer"
+                  />
+                  <div className="p-4 text-center border-2 rounded-2xl font-black uppercase text-xs peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/30 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 text-slate-400 dark:text-slate-500 cursor-pointer transition-all">
+                    Usado
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Estado</label>
+                <div className="relative">
+                  <select
+                    name="location_state"
+                    value={formData.location_state}
+                    onChange={handleInputChange}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-xs text-slate-800 dark:text-slate-100 appearance-none pr-10"
+                  >
+                    <option value="">Selecione...</option>
+                    {states.map((state) => (
+                      <option key={state.sigla} value={state.sigla}>
+                        {state.nome} ({state.sigla})
+                      </option>
+                    ))}
+                  </select>
+                  <MapPin size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Cidade</label>
+                <div className="relative">
+                  <select
+                    name="location_city"
+                    value={formData.location_city}
+                    onChange={handleInputChange}
+                    disabled={!formData.location_state}
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-xs text-slate-800 dark:text-slate-100 appearance-none pr-10 disabled:opacity-50"
+                  >
+                    <option value="">Selecione...</option>
+                    {cities.map((city) => (
+                      <option key={city} value={city}>{city}</option>
+                    ))}
+                  </select>
+                  <MapPin size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Descrição</label>
+              <textarea
+                name="description"
+                value={formData.description}
                 onChange={handleInputChange}
-                placeholder="0,00"
-                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100"
+                rows={4}
+                placeholder="Descreva seu produto..."
+                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
               />
             </div>
           </div>
 
-          <div>
-            <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Condição</label>
-            <div className="flex gap-2">
-              <label className="flex-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name="item_condition"
-                  value="novo"
-                  checked={formData.item_condition === 'novo'}
-                  onChange={handleInputChange}
-                  className="hidden peer"
-                />
-                <div className="p-4 text-center border-2 rounded-2xl font-black uppercase text-xs peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/30 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 text-slate-400 dark:text-slate-500 cursor-pointer transition-all">
-                  Novo
-                </div>
-              </label>
-              <label className="flex-1 cursor-pointer">
-                <input
-                  type="radio"
-                  name="item_condition"
-                  value="usado"
-                  checked={formData.item_condition === 'usado'}
-                  onChange={handleInputChange}
-                  className="hidden peer"
-                />
-                <div className="p-4 text-center border-2 rounded-2xl font-black uppercase text-xs peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/30 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 text-slate-400 dark:text-slate-500 cursor-pointer transition-all">
-                  Usado
-                </div>
-              </label>
-            </div>
+          {/* Submit Buttons */}
+          <div className="flex gap-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => navigate(-1)}
+              className="flex-1"
+              size="lg"
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              disabled={loading || totalImages === 0}
+              className="flex-1"
+              size="lg"
+            >
+              {loading ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : totalImages === 0 ? (
+                'Adicione pelo menos 1 foto'
+              ) : isEditing ? (
+                <>
+                  <Plus size={18} /> Salvar Alterações
+                </>
+              ) : (
+                <>
+                  <Plus size={18} /> Publicar Anúncio
+                </>
+              )}
+            </Button>
           </div>
+        </form>
+      </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Estado</label>
-              <div className="relative">
-                <select
-                  name="location_state"
-                  value={formData.location_state}
-                  onChange={handleInputChange}
-                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-xs text-slate-800 dark:text-slate-100 appearance-none pr-10"
-                >
-                  <option value="">Selecione...</option>
-                  {states.map((state) => (
-                    <option key={state.sigla} value={state.sigla}>
-                      {state.nome} ({state.sigla})
-                    </option>
-                  ))}
-                </select>
-                <MapPin size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              </div>
+      {/* Insufficient Balance Modal */}
+      {showBalanceModal && balanceData && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-2xl p-8 max-w-md w-full">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-black uppercase italic text-slate-900 dark:text-white">Saldo Insuficiente</h3>
+              <button onClick={() => setShowBalanceModal(false)} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-xl transition-colors">
+                <X size={20} className="text-slate-400" />
+              </button>
             </div>
-            <div>
-              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Cidade</label>
-              <div className="relative">
-                <select
-                  name="location_city"
-                  value={formData.location_city}
-                  onChange={handleInputChange}
-                  disabled={!formData.location_state}
-                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-xs text-slate-800 dark:text-slate-100 appearance-none pr-10 disabled:opacity-50"
-                >
-                  <option value="">Selecione...</option>
-                  {cities.map((city) => (
-                    <option key={city} value={city}>{city}</option>
-                  ))}
-                </select>
-                <MapPin size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              </div>
-            </div>
-          </div>
 
-          <div>
-            <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Descrição</label>
-            <textarea
-              name="description"
-              value={formData.description}
-              onChange={handleInputChange}
-              rows={4}
-              placeholder="Descreva seu produto..."
-              className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
-            />
+            <div className="space-y-3 mb-6">
+              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-xl p-4">
+                <p className="text-sm text-slate-700 dark:text-slate-300">
+                  Você precisa de <strong className="text-orange-600 dark:text-orange-400">R$ {balanceData.required.toFixed(2).replace('.', ',')}</strong> para publicar.
+                </p>
+              </div>
+              <div className="bg-slate-50 dark:bg-slate-800 rounded-xl p-4 flex items-center gap-3">
+                <Wallet size={20} className="text-slate-400" />
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Saldo atual: <strong>R$ {balanceData.balance.toFixed(2).replace('.', ',')}</strong>
+                </p>
+              </div>
+              {balanceData.freeLimit > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3">
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    Você já usou {balanceData.usedFree} de {balanceData.freeLimit} publicação(ões) grátis este mês.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => navigate('/dashboard/financeiro')}
+                className="flex-1"
+              >
+                <CreditCard size={16} /> Recarregar Carteira
+              </Button>
+              <Button
+                variant="default"
+                onClick={handleMercadoPagoPayment}
+                className="flex-1"
+              >
+                Pagar com Mercado Pago
+              </Button>
+            </div>
           </div>
         </div>
-
-        {/* Submit Buttons */}
-        <div className="flex gap-4">
-          <button
-            type="button"
-            onClick={() => navigate(-1)}
-            className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-black uppercase text-xs transition-all hover:bg-slate-200 dark:hover:bg-slate-600"
-          >
-            Cancelar
-          </button>
-          <button
-            type="submit"
-            disabled={loading || totalImages === 0}
-            className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-black uppercase text-xs transition-all hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-          >
-            {loading ? (
-              <Loader2 className="animate-spin" size={18} />
-            ) : totalImages === 0 ? (
-              'Adicione pelo menos 1 foto'
-            ) : isEditing ? (
-              <>
-                <Plus size={18} /> Salvar Alterações
-              </>
-            ) : (
-              <>
-                <Plus size={18} /> Publicar Anúncio
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+      )}
     </div>
   );
 }

@@ -1,15 +1,11 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { 
-  LayoutDashboard, Truck, Megaphone, ShoppingBag, 
-  User, ShieldCheck, CreditCard, LogOut, MessageSquare, 
-  Wallet, UserCog, Settings, Mail, Users,
-  PlusCircle, Tag, HelpCircle, Headphones, FileText, Menu, X, Shield, LayoutGrid, Star, Flag
-} from 'lucide-react';
+import { LogOut, Menu, X } from 'lucide-react';
 import logoImg from '../../assets/chama-thumb-blue-rbg.png';
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../../api/api';
 import { useAuth } from '../../context/AuthContext';
 import { isInternal as isInternalRole, isExternal as isExternalRole, isSuperAdmin as isSuperAdminRole, isDriver as isDriverRole, isCompany as isCompanyRole } from '../../constants/roleUtils';
+import { buildMenuSections } from '../../constants/dashboardMenuItems';
 import Swal from 'sweetalert2';
 
 const Sidebar = ({ user }: { user: any }) => {
@@ -20,6 +16,7 @@ const Sidebar = ({ user }: { user: any }) => {
   const [activeModules, setActiveModules] = useState<string[]>([]);
   const [isAvailable, setIsAvailable] = useState(user?.is_available ?? 1);
   const [toggling, setToggling] = useState(false);
+  const [isAuthor, setIsAuthor] = useState(false);
 
   const fetchUserModules = useCallback(async () => {
     try {
@@ -82,106 +79,14 @@ const Sidebar = ({ user }: { user: any }) => {
     navigate('/login');
   };
 
-  // --- LÓGICA DE PERMISSÕES ---
   const role = String(user?.role || '').toLowerCase();
   const isInternal = isInternalRole(role);
   const isExternal = isExternalRole(role);
   const isSuperAdmin = isSuperAdminRole(role);
   const isDriver = isDriverRole(role);
   const isCompany = isCompanyRole(role);
-  
-  // Módulos ativos
-  const hasModule = (key: string) => activeModules.includes(key);
-  const hasFreights = hasModule('freights') || isSuperAdmin;
-  const hasMarketplace = hasModule('marketplace') || isSuperAdmin;
-  const hasQuotes = hasModule('quotes') || isSuperAdmin;
-  const hasFinancial = hasModule('financial') || isSuperAdmin;
-  const hasGroups = hasModule('groups') || isSuperAdmin;
-  const hasPlans = hasModule('plans') || isSuperAdmin;
-  const hasSupport = hasModule('support') || isSuperAdmin;
-  const hasAdvertiser = hasModule('advertiser') || isSuperAdmin;
 
-  // --- DEFINIÇÃO DO MENU POR SEÇÕES ---
-  const menuSections = [
-    {
-      title: "Principal",
-      items: [
-        { label: 'Início', icon: <LayoutDashboard size={20}/>, path: '/dashboard', visible: true },
-        { label: 'Mensagens', icon: <MessageSquare size={20}/>, path: '/dashboard/chat', visible: true },
-      ]
-    },
-    {
-      title: "Administração",
-      visible: isInternal,
-      items: [
-        { label: 'BI & Performance', icon: <ShieldCheck size={20} />, path: '/dashboard/admin/bi', visible: isInternal, special: true },
-        { label: 'Gestão de Cargas', icon: <Truck size={20}/>, path: '/dashboard/admin/cargas', visible: isInternal },
-        { label: 'Gestão de Comunidade', icon: <Megaphone size={20}/>, path: '/dashboard/admin/comunidades', visible: isInternal },
-        { label: 'Gestão de Cotações', icon: <FileText size={20}/>, path: '/dashboard/admin/cotacoes', visible: isInternal },
-        { label: 'Gestão de Marketplaces', icon: <ShoppingBag size={20}/>, path: '/dashboard/admin/marketplace', visible: isInternal },
-        { label: 'Categorias Marketplace', icon: <LayoutGrid size={20}/>, path: '/dashboard/admin/marketplace-categorias', visible: isInternal },
-        { label: 'Gestão de Suporte', icon: <Headphones size={20}/>, path: '/dashboard/admin/suporte', visible: isInternal },
-        { label: 'Gestão Financeira', icon: <Wallet size={20}/>, path: '/dashboard/admin/financeiro', visible: isInternal },
-        { label: 'Gestão de Leads', icon: <Mail size={20}/>, path: '/dashboard/admin/leads', visible: isInternal },
-        { label: 'Planos de Assinatura', icon: <Tag size={20}/>, path: '/dashboard/admin/planos', visible: isSuperAdmin },
-        { label: 'Precificação', icon: <CreditCard size={20}/>, path: '/dashboard/admin/precificacao', visible: isSuperAdmin },
-        { label: 'Gestão de Identidade', icon: <ShieldCheck size={20}/>, path: '/dashboard/admin/verificacoes', visible: isInternal },
-        { label: 'Gestão de Anúncios', icon: <Megaphone size={20}/>, path: '/dashboard/admin/publicidade', visible: isInternal },
-        { label: 'Avaliações', icon: <Star size={20}/>, path: '/dashboard/admin/avaliacoes', visible: isInternal },
-        { label: 'Denúncias', icon: <Flag size={20}/>, path: '/dashboard/admin/denuncias', visible: isInternal },
-        { label: 'Afiliados', icon: <Star size={20} className="fill-amber-400 text-amber-500"/>, path: '/dashboard/admin/afiliados', visible: isSuperAdmin },
-        { label: 'Configurações', icon: <Settings size={20}/>, path: '/dashboard/admin/configuracoes', visible: isInternal },
-        { label: 'Log de Atividades', icon: <UserCog size={20}/>, path: '/dashboard/admin/atividade', visible: isInternal },
-      ]
-    },
-    {
-      title: "Acessos",
-      visible: isSuperAdmin,
-      items: [
-        { label: 'Usuários', icon: <Users size={18}/>, path: '/dashboard/admin/usuarios', visible: isSuperAdmin },
-        { label: 'Cargos', icon: <Shield size={18}/>, path: '/dashboard/admin/cargos', visible: isSuperAdmin },
-        { label: 'Módulos', icon: <LayoutGrid size={18}/>, path: '/dashboard/admin/modulos', visible: isSuperAdmin },
-      ]
-    },
-    {
-      title: "Operacional",
-      visible: isExternal,
-      items: [
-        // Só empresa pode criar fretes
-        { 
-          label: 'Anunciar Carga', 
-          icon: <PlusCircle size={20}/>, 
-          path: '/novo-frete', 
-          visible: isCompany && hasFreights,
-          highlight: true
-        },
-        // Só empresa vê "Logística / Meus Fretes"
-        { label: 'Meus Fretes', icon: <Truck size={20}/>, path: '/dashboard/logistica', visible: isCompany && hasFreights },
-        // Empresa ou anunciante tem anúncios publicitários
-        { label: 'Meus Anúncios', icon: <ShoppingBag size={20}/>, path: '/dashboard/anunciante', visible: (isCompany || role === 'advertiser') && hasAdvertiser },
-        // Gestão de equipe para empresas
-        { label: 'Equipe', icon: <Users size={20}/>, path: '/dashboard/equipe', visible: isCompany },
-      ]
-    },
-    {
-      title: "Ecossistema",
-      items: [
-        { label: 'Comunidades', icon: <Users size={20}/>, path: '/dashboard/comunidades', visible: hasGroups },
-        // Cotações só para empresa
-        { label: 'Cotações', icon: <FileText size={20}/>, path: '/dashboard/cotacoes', visible: isCompany && hasQuotes },
-        // Marketplace para ambos (driver pode ver/vender itens)
-        { label: 'Marketplace', icon: <ShoppingBag size={20}/>, path: '/dashboard/vendas', visible: hasMarketplace },
-        // Financeiro: para empresa e driver (mostra carteira + histórico)
-        { label: 'Financeiro', icon: <CreditCard size={20}/>, path: '/dashboard/financeiro', visible: isExternal && (hasFinancial || isDriver) },
-        // Planos: só para driver
-        { label: 'Planos', icon: <Shield size={20}/>, path: '/dashboard/planos', visible: isDriver && hasPlans },
-        // Planos: só empresa vê planos gerais
-        { label: 'Planos', icon: <Tag size={20}/>, path: '/dashboard/planos', visible: isCompany && hasPlans },
-        { label: 'Suporte', icon: <HelpCircle size={20}/>, path: '/dashboard/suporte', visible: hasSupport },
-        { label: 'Meu Perfil', icon: <User size={20}/>, path: '/dashboard/profile', visible: true },
-      ]
-    }
-  ];
+  const menuSections = buildMenuSections(role, activeModules, isSuperAdmin, isInternal, isExternal, isCompany, isDriver, isAuthor);
 
   return (
     <>

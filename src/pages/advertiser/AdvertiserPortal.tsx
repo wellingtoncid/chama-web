@@ -7,6 +7,9 @@ import { api, BASE_URL_API } from '../../api/api';
 import Swal from 'sweetalert2';
 import { getStates, getCitiesByState } from '../../services/location';
 import { useAdPositions } from '../../hooks/useAdPositions';
+import DashboardShell from '../../components/layout/DashboardShell';
+import { Button } from '../../components/ui/Button';
+import ConfirmModal from '../../components/shared/ConfirmModal';
 
 const getImageUrl = (imageUrl: string) => {
   if (!imageUrl) return null;
@@ -31,6 +34,7 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
   const [states, setStates] = useState<{sigla: string, nome: string}[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [loadingCities, setLoadingCities] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<any>(null);
   
   const { positions, loading: positionsLoading, getIcon } = useAdPositions();
   
@@ -78,7 +82,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
     try {
       setLoading(true);
       
-      // Load ads
       const adsRes = await api.get(`/my-ads`);
       const ads = adsRes.data?.data || [];
       setMyAds(ads);
@@ -98,7 +101,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
     }
   };
 
-  // Buscar estados ao montar o componente
   useEffect(() => {
     const fetchStates = async () => {
       const data = await getStates();
@@ -107,7 +109,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
     fetchStates();
   }, []);
 
-  // Buscar cidades quando o estado selecionado mudar
   useEffect(() => {
     const fetchCities = async () => {
       if (formData.location_state) {
@@ -191,7 +192,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
       } else {
         const msg = res.data?.message || 'Erro ao criar anúncio';
         
-        // Se precisa pagar
         if (res.data?.requires_payment) {
           const price = res.data?.price_monthly || res.data?.price_per_use;
           Swal.fire({
@@ -225,24 +225,15 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
     }
   };
 
-  const handleDeleteAd = async (adId: number) => {
-    const result = await Swal.fire({
-      title: 'Excluir Anúncio?',
-      text: 'Esta ação não pode ser desfeita.',
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, excluir',
-      cancelButtonText: 'Cancelar'
-    });
-
-    if (result.isConfirmed) {
-      try {
-        await api.post('/ads/save', { action: 'delete', id: adId });
-        Swal.fire({ icon: 'success', title: 'Sucesso', text: 'Anúncio excluído!' });
-        loadData();
-      } catch (err) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao excluir' });
-      }
+  const handleDeleteAd = async () => {
+    if (!deleteTarget) return;
+    try {
+      await api.post('/ads/save', { action: 'delete', id: deleteTarget.id });
+      Swal.fire({ icon: 'success', title: 'Sucesso', text: 'Anúncio excluído!' });
+      setDeleteTarget(null);
+      loadData();
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Erro', text: 'Falha ao excluir' });
     }
   };
 
@@ -262,7 +253,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
     setShowCreateModal(true);
   };
 
-  // Sem acesso ao módulo
   if (!hasAccess) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
@@ -276,18 +266,23 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
           O módulo de Publicidade requer aprovação da equipe Chama Frete. 
           Solicite acesso pelo painel da sua empresa.
         </p>
-        <button 
-          onClick={() => window.location.href = '/dashboard'}
-          className="px-8 py-3 bg-slate-900 dark:bg-white text-white dark:text-slate-900 rounded-xl font-black uppercase text-sm"
-        >
+        <Button onClick={() => window.location.href = '/dashboard'} variant="hero" size="lg">
           Voltar ao Dashboard
-        </button>
+        </Button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    <DashboardShell
+      title="Publicidade"
+      description="Painel do Anunciante"
+      actions={
+        <Button onClick={() => setShowCreateModal(true)} size="lg">
+          <PlusCircle size={18} /> Novo Anúncio
+        </Button>
+      }
+    >
       {/* Header com métricas */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         <div className="bg-emerald-500 p-4 rounded-[2rem] text-white shadow-lg">
@@ -312,36 +307,17 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
         </div>
       </div>
 
-      {/* Toolbar */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white p-4 rounded-[2rem] border border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center text-white">
-            <Megaphone size={20} />
-          </div>
-          <div>
-            <h2 className="text-lg font-black uppercase italic text-slate-800 leading-tight">Meus Anúncios</h2>
-            <p className="text-[8px] font-bold text-slate-400 uppercase">Painel do Anunciante</p>
-          </div>
-        </div>
-        <button 
-          onClick={() => setShowCreateModal(true)}
-          className="bg-slate-900 hover:bg-orange-500 text-white px-6 py-3 rounded-2xl font-black uppercase text-xs flex items-center gap-2 transition-all"
-        >
-          <PlusCircle size={18} /> Novo Anúncio
-        </button>
-      </div>
-
       {/* Lista de Anúncios */}
-      <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden">
+      <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden dark:bg-slate-900 dark:border-slate-800">
         {loading || positionsLoading ? (
           <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-orange-500" size={32} /></div>
         ) : myAds.length === 0 ? (
           <div className="p-12 text-center">
             <Megaphone size={48} className="mx-auto text-slate-200 mb-4" />
             <p className="text-slate-400 font-bold">Nenhum anúncio criado</p>
-            <button onClick={() => setShowCreateModal(true)} className="mt-4 text-orange-500 font-bold text-sm">
+            <Button onClick={() => setShowCreateModal(true)} variant="link" className="mt-4">
               Criar primeiro anúncio
-            </button>
+            </Button>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -378,7 +354,7 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                         </div>
                       </td>
                       <td className="px-4 py-3">
-                        <p className="font-bold text-slate-800 text-sm">{ad.title}</p>
+                        <p className="font-bold text-slate-800 text-sm dark:text-slate-200">{ad.title}</p>
                         <p className="text-[8px] text-slate-400">{ad.location_city || 'Brasil'} • {ad.position}</p>
                       </td>
                       <td className="px-4 py-3">
@@ -399,12 +375,12 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                       </td>
                       <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <button onClick={() => handleEditAd(ad)} className="p-2 bg-blue-100 text-blue-600 rounded-lg hover:bg-blue-500 hover:text-white transition-all" title="Editar">
+                          <Button onClick={() => handleEditAd(ad)} variant="secondary" size="icon" title="Editar">
                             <Pencil size={14} />
-                          </button>
-                          <button onClick={() => handleDeleteAd(ad.id)} className="p-2 bg-red-50 text-red-400 rounded-lg hover:bg-red-500 hover:text-white transition-all" title="Excluir">
+                          </Button>
+                          <Button onClick={() => setDeleteTarget(ad)} variant="destructive" size="icon" title="Excluir">
                             <Trash2 size={14} />
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -426,7 +402,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Preview Upload */}
               <div className="relative">
                 <input type="file" accept="image/*" onChange={handleImageChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
                 <div className={`h-32 rounded-2xl border-2 border-dashed flex items-center justify-center ${preview ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200'}`}>
@@ -441,7 +416,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                 </div>
               </div>
 
-              {/* Posição */}
               <div>
                 <label className="text-xs font-black uppercase text-slate-400 block mb-2">Espaço Publicitário</label>
                 <select 
@@ -460,7 +434,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                 </select>
               </div>
 
-              {/* Título */}
               <div>
                 <label className="text-xs font-black uppercase text-slate-400 block mb-2">Título</label>
                 <input 
@@ -473,7 +446,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                 />
               </div>
 
-              {/* Localização (Estado e Cidade) */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs font-black uppercase text-slate-400 block mb-2">Estado (UF)</label>
@@ -507,7 +479,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                 </div>
               </div>
 
-              {/* Link */}
               <div>
                 <label className="text-xs font-black uppercase text-slate-400 block mb-2">Link de Destino (URL ou WhatsApp)</label>
                 <input 
@@ -520,9 +491,8 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                 />
               </div>
 
-              {/* Descrição */}
               <div>
-                <label className="text-xs font-black uppercase text-slate-400 block mb-2">Descrição (opicional)</label>
+                <label className="text-xs font-black uppercase text-slate-400 block mb-2">Descrição (opcional)</label>
                 <textarea 
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -531,17 +501,28 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                 />
               </div>
 
-              <button 
+              <Button 
                 type="submit" 
                 disabled={creating}
-                className="w-full bg-orange-500 hover:bg-orange-600 text-white py-4 rounded-2xl font-black uppercase flex items-center justify-center gap-2"
+                className="w-full"
+                size="xl"
               >
                 {creating ? <Loader2 className="animate-spin" size={20} /> : (editingId ? 'Salvar Alterações' : 'Criar Anúncio')}
-              </button>
+              </Button>
             </form>
           </div>
         </div>
       )}
-    </div>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteAd}
+        title="Excluir Anúncio?"
+        description={deleteTarget ? `Tem certeza que deseja excluir "${deleteTarget.title}"? Esta ação não pode ser desfeita.` : ''}
+        confirmText="Sim, excluir"
+        variant="danger"
+      />
+    </DashboardShell>
   );
 }

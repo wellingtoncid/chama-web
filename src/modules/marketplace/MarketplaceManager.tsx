@@ -7,6 +7,8 @@ import { AdImage } from '../../components/AdImage';
 import AffiliateInterestModal from './components/AffiliateInterestModal';
 import CheckoutModalMarketplace from '../../components/company/CheckoutModalMarketplace';
 import { UsageMeter } from '../../components/shared/UsageMeter';
+import DashboardShell from '../../components/layout/DashboardShell';
+import ConfirmModal from '../../components/shared/ConfirmModal';
 
 interface ListingItem {
   id: number;
@@ -50,9 +52,9 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
   const [hasAffiliateAccess, setHasAffiliateAccess] = useState(false);
   const [affiliateLoading, setAffiliateLoading] = useState(true);
   
-  // Verificação inline abaixo
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<ListingItem | null>(null);
 
   const fetchMyItems = async () => {
     try {
@@ -267,61 +269,31 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
   };
 
   const handleDelete = async (item: ListingItem) => {
-    const result = await Swal.fire({
-      title: 'Excluir Anúncio?',
-      text: `Tem certeza que deseja excluir "${item.title}"? Esta ação não pode ser desfeita.`,
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Sim, excluir',
-      cancelButtonText: 'Cancelar',
-      confirmButtonColor: '#DC2626',
-      background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-      color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-    });
+    setDeleteTarget(item);
+  };
 
-    if (result.isConfirmed) {
-      try {
-        const res = await api.post('/delete-listing', { id: item.id });
-        if (res.data?.success) {
-          Swal.fire({
-            title: 'Excluído!',
-            text: 'Anúncio excluído com sucesso.',
-            icon: 'success',
-            timer: 2000,
-            showConfirmButton: false,
-            background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-            color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-          });
-          fetchMyItems();
-        }
-      } catch {
-        Swal.fire({
-          title: 'Erro',
-          text: 'Erro ao excluir anúncio.',
-          icon: 'error',
-          background: document.documentElement.classList.contains('dark') ? '#1e293b' : undefined,
-          color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
-        });
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      const res = await api.post('/delete-listing', { id: deleteTarget.id });
+      if (res.data?.success) {
+        fetchMyItems();
       }
+    } catch {
+      console.error('Erro ao excluir anúncio');
+    } finally {
+      setDeleteTarget(null);
     }
   };
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-700">
-      {/* Header com Ações */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h1 className="text-4xl font-[1000] text-slate-800 dark:text-slate-100 tracking-tighter uppercase italic leading-none">
-            Classificados
-          </h1>
-          <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em] mt-2">
-            Gerencie seus itens à venda no ecossistema
-          </p>
-        </div>
-
-        {/* MEDIDOR DE USO - busca do servidor */}
+    <DashboardShell
+      title="Marketplace"
+      description="Gerencie seus itens à venda no ecossistema"
+      actions={
         <UsageMeter moduleKey="marketplace" />
-      </div>
+      }
+    >
 
       {/* Affiliate Section */}
       {!affiliateLoading && (
@@ -518,7 +490,17 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
           }}
         />
       )}
-    </div>
+
+      <ConfirmModal
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Excluir Anúncio?"
+        description={deleteTarget ? `Tem certeza que deseja excluir "${deleteTarget.title}"? Esta ação não pode ser desfeita.` : ''}
+        confirmText="Sim, excluir"
+        variant="danger"
+      />
+    </DashboardShell>
   );
 };
 

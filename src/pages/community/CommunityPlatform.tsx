@@ -2,11 +2,12 @@ import { useState, useEffect } from 'react';
 import { api } from '../../api/api';
 import { useNavigate } from 'react-router-dom';
 import { 
-  Search, Users, Filter, Loader2, X, Plus,
-  MessageCircle
+  Search, Users, Filter, X, Plus,
+  MessageCircle, AlertCircle, CheckCircle
 } from 'lucide-react';
 import GroupCard from '../../components/shared/GroupCard';
-import Swal from 'sweetalert2';
+import { Button } from '../../components/ui/Button';
+import DashboardShell from '../../components/layout/DashboardShell';
 
 interface WhatsAppGroup {
   id: number;
@@ -44,6 +45,15 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [categories, setCategories] = useState<{id: number; name: string; color: string}[]>([]);
   
+  const [alertMsg, setAlertMsg] = useState<string | null>(null);
+  const [alertType, setAlertType] = useState<'success' | 'error' | 'warning'>('success');
+
+  const showAlert = (msg: string, type: 'success' | 'error' | 'warning' = 'success') => {
+    setAlertMsg(msg);
+    setAlertType(type);
+    setTimeout(() => setAlertMsg(null), 4000);
+  };
+
   const role = String(user?.role || '').toLowerCase();
   const isAdmin = role === 'admin';
 
@@ -73,12 +83,7 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
     } catch (err) {
       console.error("Erro ao carregar comunidades:", err);
       setGroups([]);
-      Swal.fire({
-        icon: 'error',
-        title: 'Erro ao carregar',
-        text: 'Não foi possível carregar as comunidades.',
-        confirmButtonText: 'OK'
-      });
+      showAlert('Não foi possível carregar as comunidades.', 'error');
     } finally {
       setLoading(false);
     }
@@ -117,42 +122,55 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
   };
 
   if (loading) {
+  const AlertToast = () => {
+    if (!alertMsg) return null;
+    const colors = {
+      success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
+      error: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
+      warning: 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800',
+    };
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin text-emerald-500 mx-auto mb-4" />
-          <p className="text-slate-400 font-bold uppercase text-xs tracking-widest">Carregando comunidades...</p>
-        </div>
+      <div className={`fixed top-6 right-6 z-[60] flex items-center gap-2 px-4 py-3 rounded-2xl border shadow-lg animate-in slide-in-from-right-4 duration-300 ${colors[alertType]}`}>
+        {alertType === 'success' ? <CheckCircle size={18} /> : <AlertCircle size={18} />}
+        <span className="font-bold text-sm">{alertMsg}</span>
       </div>
+    );
+  };
+
+  return (
+      <DashboardShell title="Comunidades" description="Carregando...">
+        <div className="space-y-4 animate-pulse">
+          <div className="h-14 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700" />
+          <div className="flex flex-wrap gap-3">
+            {[1, 2, 3, 4].map(i => <div key={i} className="h-11 w-28 bg-slate-200 dark:bg-slate-700 rounded-xl" />)}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-6">
+                <div className="h-4 w-20 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+                <div className="h-5 w-36 bg-slate-200 dark:bg-slate-700 rounded mb-3" />
+                <div className="h-4 w-28 bg-slate-200 dark:bg-slate-700 rounded mb-4" />
+                <div className="h-4 w-full bg-slate-200 dark:bg-slate-700 rounded" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617] p-6 md:p-8 space-y-6 animate-in fade-in duration-500">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
-            <MessageCircle size={28} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-2xl md:text-3xl font-black text-slate-800 dark:text-white uppercase italic tracking-tight">
-              Comunidades
-            </h1>
-            <p className="text-sm text-slate-500 dark:text-slate-400">
-              {filteredGroups.length} grupo{filteredGroups.length !== 1 ? 's' : ''} disponível{filteredGroups.length !== 1 ? 'is' : ''}
-            </p>
-          </div>
-        </div>
-        
-        {isAdmin && (
-          <button className="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20 transition-all">
-            <Plus size={18} />
-            Novo Grupo
-          </button>
-        )}
-      </div>
-
+    <DashboardShell
+      title="Comunidades"
+      description={`${filteredGroups.length} grupo${filteredGroups.length !== 1 ? 's' : ''} disponível${filteredGroups.length !== 1 ? 'is' : ''}`}
+      actions={isAdmin ? (
+        <Button className="flex items-center gap-2 px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-bold text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/20">
+          <Plus size={18} />
+          Novo Grupo
+        </Button>
+      ) : undefined}
+    >
+      <AlertToast />
       {/* Barra de Busca e Filtros */}
       <div className="space-y-4">
         {/* Busca */}
@@ -166,43 +184,44 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
             className="w-full bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 focus:border-emerald-500 rounded-2xl py-4 pl-14 pr-6 font-bold text-sm text-slate-700 dark:text-slate-200 outline-none transition-all"
           />
           {searchTerm && (
-            <button 
+            <Button 
               type="button"
+              variant="ghost"
+              size="icon"
               onClick={() => setSearchTerm('')}
-              className="absolute right-6 top-1/2 -translate-y-1/2 p-1 text-slate-400 hover:text-red-500 transition-colors"
+              className="absolute right-6 top-1/2 -translate-y-1/2 text-slate-400 hover:text-red-500"
             >
               <X size={18} />
-            </button>
+            </Button>
           )}
         </form>
 
         {/* Filtros */}
         <div className="flex items-center gap-4">
-          <button
+          <Button
             onClick={() => setShowFilters(!showFilters)}
-            className={`
-              flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm transition-all
-              ${showFilters || hasActiveFilters
+            className={`flex items-center gap-2 px-5 py-3 rounded-xl font-bold text-sm ${
+              showFilters || hasActiveFilters
                 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                 : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
-              }
-            `}
+            }`}
           >
             <Filter size={18} />
             Filtros
             {hasActiveFilters && (
               <span className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
             )}
-          </button>
+          </Button>
           
           {hasActiveFilters && (
-            <button
+            <Button
               onClick={clearFilters}
+              variant="ghost"
               className="text-sm font-bold text-red-500 hover:text-red-600 flex items-center gap-1"
             >
               <X size={14} />
               Limpar filtros
-            </button>
+            </Button>
           )}
         </div>
 
@@ -214,12 +233,13 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
                 Filtrar por Categoria
               </h3>
               {hasActiveFilters && (
-                <button
+                <Button
                   onClick={clearFilters}
+                  variant="ghost"
                   className="text-xs font-bold text-red-500 hover:text-red-600"
                 >
                   Limpar
-                </button>
+                </Button>
               )}
             </div>
             

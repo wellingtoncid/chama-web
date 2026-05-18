@@ -22,7 +22,7 @@ const Hero = () => {
       <div className="container mx-auto px-4 relative">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 bg-orange-500/10 text-orange-600 dark:text-orange-400 rounded-full px-5 py-2 text-sm font-bold mb-8 animate-fade-in">
-            <span className="uppercase tracking-wider">Desde 2017 • 15.000+ inscritos</span>
+            <span className="uppercase tracking-wider">Desde 2017 • 20.000+ inscritos</span>
           </div>
 
           <h1 className="text-5xl md:text-7xl font-[1000] text-slate-900 dark:text-white mb-8 tracking-tighter leading-[0.9] uppercase italic animate-fade-up">

@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { api } from '@/api/api';
-import { Send, ArrowLeft, Loader2, MessageSquare } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { api } from '../../api/api';
+import { Send, ArrowLeft, MessageSquare } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { Button } from '../../components/ui/Button';
 
 interface Message {
   id: number;
@@ -103,8 +104,24 @@ export default function ChatRoom() {
 
   if (loading) {
     return (
-      <div className="flex h-96 items-center justify-center">
-        <Loader2 className="animate-spin text-blue-600" size={40} />
+      <div className="animate-pulse h-[calc(100vh-180px)] lg:h-[calc(100vh-120px)] bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center gap-3">
+          <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-full" />
+          <div className="space-y-2 flex-1">
+            <div className="h-4 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+            <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
+          </div>
+        </div>
+        <div className="flex-1 p-4 space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className={`flex ${i % 2 === 0 ? 'justify-end' : 'justify-start'}`}>
+              <div className={`${i % 2 === 0 ? 'w-48' : 'w-64'} h-16 bg-slate-200 dark:bg-slate-700 rounded-2xl`} />
+            </div>
+          ))}
+        </div>
+        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+          <div className="h-12 bg-slate-200 dark:bg-slate-700 rounded-xl" />
+        </div>
       </div>
     );
   }
@@ -114,7 +131,7 @@ export default function ChatRoom() {
       <div className="flex h-96 items-center justify-center">
         <div className="text-center">
           <p className="text-slate-500 dark:text-slate-400 font-medium">{error}</p>
-          <button onClick={loadMessages} className="mt-2 text-blue-600 text-sm font-bold">Tentar novamente</button>
+          <Button onClick={loadMessages} variant="link" className="mt-2 text-blue-600 text-sm font-bold">Tentar novamente</Button>
         </div>
       </div>
     );
@@ -124,9 +141,9 @@ export default function ChatRoom() {
     <div className="flex flex-col h-[calc(100vh-180px)] lg:h-[calc(100vh-120px)] bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden">
       <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/chat')} className="lg:hidden">
+          <Button onClick={() => navigate('/chat')} variant="ghost" size="icon" className="lg:hidden">
             <ArrowLeft size={20} className="text-slate-600 dark:text-slate-400" />
-          </button>
+          </Button>
           <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center text-white shrink-0">
             <MessageSquare size={18} />
           </div>
@@ -172,12 +189,13 @@ export default function ChatRoom() {
           placeholder="Digite sua mensagem..."
           className="flex-1 bg-slate-100 dark:bg-slate-800 border-none rounded-xl px-4 py-3 text-sm dark:text-slate-200 focus:ring-2 focus:ring-blue-500 outline-none dark:placeholder-slate-500"
         />
-        <button 
+        <Button 
           disabled={sending}
-          className="bg-blue-600 text-white p-3 rounded-xl hover:bg-slate-900 dark:hover:bg-blue-700 transition-all disabled:opacity-50 shrink-0"
+          size="icon"
+          className="bg-blue-600 text-white p-3 rounded-xl hover:bg-slate-900 dark:hover:bg-blue-700 disabled:opacity-50 shrink-0"
         >
-          {sending ? <Loader2 className="animate-spin" size={20} /> : <Send size={20} />}
-        </button>
+          {sending ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={20} />}
+        </Button>
       </form>
     </div>
   );
