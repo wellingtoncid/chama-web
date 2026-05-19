@@ -285,30 +285,30 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
     >
       {/* Header com métricas */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-        <div className="bg-emerald-500 p-4 rounded-[2rem] text-white shadow-lg">
+        <div className="bg-emerald-500 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Anúncios Ativos</p>
           <h3 className="text-2xl font-black italic">{myAds.filter(a => a.status === 'active').length}</h3>
         </div>
-        <div className="bg-blue-500 p-4 rounded-[2rem] text-white shadow-lg">
+        <div className="bg-blue-500 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Visualizações</p>
           <h3 className="text-2xl font-black italic">{stats.views.toLocaleString()}</h3>
         </div>
-        <div className="bg-purple-500 p-4 rounded-[2rem] text-white shadow-lg">
+        <div className="bg-purple-500 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Cliques</p>
           <h3 className="text-2xl font-black italic">{stats.clicks.toLocaleString()}</h3>
         </div>
-        <div className="bg-orange-500 p-4 rounded-[2rem] text-white shadow-lg">
+        <div className="bg-orange-500 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">CTR</p>
           <h3 className="text-2xl font-black italic">{stats.ctr}</h3>
         </div>
-        <div className="bg-slate-900 p-4 rounded-[2rem] text-white shadow-lg">
+        <div className="bg-slate-900 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Total</p>
           <h3 className="text-2xl font-black italic">{myAds.length}</h3>
         </div>
       </div>
 
       {/* Lista de Anúncios */}
-      <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden dark:bg-slate-900 dark:border-slate-800">
+      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden dark:bg-slate-900 dark:border-slate-800">
         {loading || positionsLoading ? (
           <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-orange-500" size={32} /></div>
         ) : myAds.length === 0 ? (
@@ -395,7 +395,7 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
       {/* Modal de Criar Anúncio */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-[2rem] p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-black uppercase italic">{editingId ? 'Editar Anúncio' : 'Novo Anúncio'}</h2>
               <button onClick={() => { setShowCreateModal(false); setEditingId(null); setFormData({ title: '', description: '', image_url: '', destination_url: '', position: 'sidebar', location_city: '', location_state: '', image: null }); setPreview(null); }}><X size={24} className="text-slate-400" /></button>

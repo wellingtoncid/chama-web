@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -10,11 +10,15 @@ import DriverView from '../components/driver/DriverView';
 import FreightManager from '../components/company/FreightManager';
 import AdvertiserPortal from '../pages/advertiser/AdvertiserPortal';
 import MyProfile from '../pages/profile/MyProfile';
-import ChatList from './chat/ChatList';
-import ChatRoom from './chat/ChatRoom';
+import ChatPage from './chat/ChatPage';
 import WelcomeOnboarding from '../components/profile/WelcomeOnboarding';
 
 import PlansPage from './plans/PlansPage';
+import FreightModule from './plans/components/FreightModule';
+import MarketplaceModule from './plans/components/MarketplaceModule';
+import AdvertiserModule from './plans/components/AdvertiserModule';
+import DriverModule from './plans/components/DriverModule';
+import { PlansProvider } from '../context/PlansContext';
 import CompanyProPage from './company/CompanyProPage';
 import FinancialPage from './financial/FinancialPage';
 import SupportPage from './support/SupportPage';
@@ -152,7 +156,13 @@ export default function DashboardPage() {
           )}
 
           {/* Páginas para todos os usuários logados */}
-          <Route path="planos" element={<PlansPage />} />
+          <Route path="planos" element={<PlansProvider><Outlet /></PlansProvider>}>
+            <Route index element={<PlansPage />} />
+            <Route path="freights" element={<FreightModule />} />
+            <Route path="marketplace" element={<MarketplaceModule />} />
+            <Route path="advertiser" element={<AdvertiserModule />} />
+            <Route path="driver" element={<DriverModule />} />
+          </Route>
           <Route path="financeiro" element={<FinancialPage />} />
           <Route path="suporte" element={<SupportPage />} />
           <Route path="cotacoes" element={<QuotesPage />} />
@@ -161,8 +171,8 @@ export default function DashboardPage() {
           <Route path="meus-artigos" element={<MyArticlesPage />} />
 
           <Route path="profile" element={<MyProfile user={user} refreshUser={fetchUserData} />} />
-          <Route path="chat" element={<ChatList />} />
-          <Route path="chat/:roomId" element={<ChatRoom />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="chat/:roomId" element={<ChatPage />} />
           <Route path="vendas" element={<MarketplaceManager user={user} />} />
           <Route path="marketplace" element={<MarketplaceManager user={user} />} />
           <Route path="*" element={<Navigate to="" replace />} />

@@ -31,7 +31,7 @@ const DriverFields = ({ formData, setFormData }: any) => {
           <select
             value={formData.vehicle_type || ''}
             onChange={(e) => handleInputChange('vehicle_type', e.target.value)}
-            className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold outline-none appearance-none focus:ring-2 ring-orange-500/20"
+            className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-xl border-none font-bold outline-none appearance-none focus:ring-2 ring-orange-500/20"
           >
             <option value="">Selecione...</option>
             {vehicleTypes.map((v) => (
@@ -47,7 +47,7 @@ const DriverFields = ({ formData, setFormData }: any) => {
           <select
             value={formData.body_type || ''}
             onChange={(e) => handleInputChange('body_type', e.target.value)}
-            className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold outline-none appearance-none focus:ring-2 ring-orange-500/20"
+            className="w-full p-5 bg-slate-50 dark:bg-slate-800 rounded-xl border-none font-bold outline-none appearance-none focus:ring-2 ring-orange-500/20"
           >
             <option value="">Selecione...</option>
             {bodyTypes.map((b) => (
@@ -115,7 +115,7 @@ const DriverFields = ({ formData, setFormData }: any) => {
           value={formData.home_cep || ''}
           onChange={(e) => handleInputChange('home_cep', e.target.value)}
           placeholder="00000-000"
-          className="w-full md:w-64 p-5 bg-slate-50 dark:bg-slate-800 rounded-2xl border-none font-bold outline-none focus:ring-2 ring-orange-500/20"
+          className="w-full md:w-64 p-5 bg-slate-50 dark:bg-slate-800 rounded-xl border-none font-bold outline-none focus:ring-2 ring-orange-500/20"
         />
         <p className="text-[10px] text-slate-400">
           Informe seu CEP para definir sua região de atuação

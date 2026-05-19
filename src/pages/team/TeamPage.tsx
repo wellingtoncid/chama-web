@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
-import { 
+import {
   Users, UserPlus, Mail, Shield, MoreVertical,
   Clock, Check, Trash2, Edit,
-  Loader2, UserX, ChevronDown
+  Loader2, UserX, ChevronDown, ArrowLeft
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import DashboardShell from '@/components/layout/DashboardShell';
+import { Button, buttonVariants } from '@/components/ui/Button';
+import { cn } from '@/lib/utils';
 
 interface TeamMember {
   id: number;
@@ -206,41 +209,26 @@ export default function TeamPage() {
 
   if (loading) {
     return (
-      <div className="p-20 flex flex-col items-center justify-center animate-pulse">
-        <Loader2 className="animate-spin text-orange-500 mb-4" size={48} />
-        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
-      </div>
+      <DashboardShell title="Gestão de Equipe" description="Gerencie membros e convites da sua empresa">
+        <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+          <Loader2 className="animate-spin text-orange-500 mb-4" size={48} />
+          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
+        </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[2rem] p-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl"></div>
-        
-        <div className="relative z-10 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-orange-500">
-              <Users size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black uppercase italic">Gestão de Equipe</h2>
-              <p className="text-slate-300 text-sm font-medium">
-                Gerencie membros e convites da sua empresa
-              </p>
-            </div>
-          </div>
-
-          <button
-            onClick={() => setInviteModal(true)}
-            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-orange-500 hover:bg-orange-600 text-white font-bold transition-colors"
-          >
-            <UserPlus size={18} />
-            Convidar
-          </button>
-        </div>
+    <DashboardShell title="Gestão de Equipe" description="Gerencie membros e convites da sua empresa" actions={
+      <div className="flex items-center gap-2">
+        <a href="/dashboard/profile" className={cn(buttonVariants({ variant: "ghost" }))}>
+          <ArrowLeft size={16} /> Voltar
+        </a>
+        <Button onClick={() => setInviteModal(true)}>
+          <UserPlus size={18} /> Convidar
+        </Button>
       </div>
+    }>
 
       {/* Tabs */}
       <div className="flex gap-2 bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl w-fit">
@@ -509,6 +497,6 @@ export default function TeamPage() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }

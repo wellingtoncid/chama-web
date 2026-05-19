@@ -50,6 +50,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showAffiliateInterest, setShowAffiliateInterest] = useState(false);
   const [hasAffiliateAccess, setHasAffiliateAccess] = useState(false);
+  const [requestsEnabled, setRequestsEnabled] = useState(true);
   const [affiliateLoading, setAffiliateLoading] = useState(true);
   
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
@@ -96,9 +97,11 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
       const res = await api.get('/affiliate/access');
       if (res.data?.success) {
         setHasAffiliateAccess(res.data.data?.has_access ?? res.data.has_access ?? false);
+        setRequestsEnabled(res.data.data?.requests_enabled ?? res.data.requests_enabled ?? true);
       }
     } catch (error) {
       console.error('Erro ao verificar acesso de afiliado:', error);
+      setRequestsEnabled(false);
     } finally {
       setAffiliateLoading(false);
     }
@@ -296,7 +299,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
     >
 
       {/* Affiliate Section */}
-      {!affiliateLoading && (
+      {!affiliateLoading && (requestsEnabled || hasAffiliateAccess) && (
         <div className={`rounded-3xl border-2 overflow-hidden ${
           hasAffiliateAccess 
             ? 'border-amber-300 dark:border-amber-700 bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10' 

@@ -1,53 +1,41 @@
-// useState removed 'react';
-import { Crown, Loader2, Check, Truck, Star } from 'lucide-react';
-// Swal removed 'sweetalert2';
-import ModuleDetailLayout from './ModuleDetailLayout';
+import { ArrowLeft, Check, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { usePlans } from '../../../context/PlansContext';
+import DashboardShell from '../../../components/layout/DashboardShell';
+import { Button } from '../../../components/ui/Button';
 
-interface PricingRule {
-  id: number;
-  module_key: string;
-  feature_key: string;
-  feature_name: string;
-  pricing_type: string;
-  free_limit: number;
-  price_per_use: number;
-  price_monthly: number;
-  price_daily: number;
-  duration_days: number;
-  is_active: number;
-}
+export default function FreightModule() {
+  const navigate = useNavigate();
+  const {
+    pricingRules,
+    getSubscriptionPlans, getActivePlanIdForModule,
+    handlePlanSelect,
+  } = usePlans();
 
-interface FreightModuleProps {
-  plans: any[];
-  rules: PricingRule[];
-  isActive: boolean;
-  onBack: () => void;
-  onPlanSelect: (plan: any) => void;
-  onPurchase: (moduleKey: string, feature: PricingRule, walletBalance?: number) => Promise<void>;
-  purchasing: string | null;
-  walletBalance?: number;
-  currentPlanId?: number | null;
-}
+  const subscriptionPlans = getSubscriptionPlans('freight_subscription');
+  const rules = pricingRules.filter(r => r.module_key === 'freights');
+  const currentPlanId = getActivePlanIdForModule('freights');
 
-export default function FreightModule({ plans, rules, isActive, onBack, onPlanSelect, currentPlanId = null }: FreightModuleProps) {
   return (
-    <ModuleDetailLayout
+    <DashboardShell
       title="Logística"
-      icon={<Truck size={24} />}
       description="Publique fretes e encontre motoristas"
-      isActive={isActive}
-      onBack={onBack}
+      actions={
+        <Button variant="ghost" onClick={() => navigate('/dashboard/planos')}>
+          <ArrowLeft size={16} /> Voltar
+        </Button>
+      }
     >
       {/* Planos de Assinatura */}
-      {plans.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden">
+      {subscriptionPlans.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
           <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 p-4">
             <h3 className="font-black uppercase italic text-slate-900 dark:text-slate-100">Planos de Assinatura</h3>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">Escolha o melhor para sua operação</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
-            {plans.map((plan) => {
+            {subscriptionPlans.map((plan: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
               const isCurrentPlan = currentPlanId === plan.id;
               const isHighlighted = Boolean(plan.is_highlighted);
               const planFeatures = Array.isArray(plan.features) 
@@ -57,7 +45,7 @@ export default function FreightModule({ plans, rules, isActive, onBack, onPlanSe
               return (
                 <div
                   key={plan.id}
-                  onClick={() => onPlanSelect(plan)}
+                  onClick={() => handlePlanSelect(plan)}
                   className={`p-4 rounded-xl border-2 relative cursor-pointer transition-all ${
                     isCurrentPlan
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-400 dark:shadow-lg dark:shadow-emerald-900/20'
@@ -109,6 +97,6 @@ export default function FreightModule({ plans, rules, isActive, onBack, onPlanSe
           </p>
         </div>
       )}
-    </ModuleDetailLayout>
+    </DashboardShell>
   );
 }

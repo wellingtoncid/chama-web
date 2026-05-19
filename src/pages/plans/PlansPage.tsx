@@ -1,47 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/api';
 import {
-  Check, Truck,
-  ShoppingBag, Megaphone, FileText,
-  AlertCircle, User, Building2,
-  CreditCard, History, ArrowLeft
+  Truck, ShoppingBag, Megaphone, User, Building2,
+  CreditCard, History, FileText
 } from 'lucide-react';
-import Swal from 'sweetalert2';
 import RequestModal from '../../components/modals/RequestModal';
 import DashboardShell from '../../components/layout/DashboardShell';
 import { Button } from '../../components/ui/Button';
-
-// Components
 import ModuleCard from './components/ModuleCard';
-import FreightModule from './components/FreightModule';
-import MarketplaceModule from './components/MarketplaceModule';
-import AdvertiserModule from './components/AdvertiserModule';
-import DriverModule from './components/DriverModule';
-import { useModuleData } from './hooks/useModuleData';
-
-interface PricingRule {
-  id: number;
-  module_key: string;
-  feature_key: string;
-  feature_name: string;
-  pricing_type: string;
-  free_limit: number;
-  price_per_use: number;
-  price_monthly: number;
-  price_daily: number;
-  duration_days: number;
-  is_active: number;
-}
-
-interface UserModule {
-  key: string;
-  name: string;
-  is_active: boolean;
-  plan_id?: number | null;
-  requires_approval?: boolean;
-  approval_status?: string;
-}
+import { usePlans } from '../../context/PlansContext';
 
 interface ModuleInfo {
   key: string;
@@ -55,78 +22,18 @@ interface ModuleInfo {
 
 export default function PlansPage() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(true);
-  const [pricingRules, setPricingRules] = useState<PricingRule[]>([]);
-  const [plans, setPlans] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
-  const [userModules, setUserModules] = useState<UserModule[]>([]);
-  const [driverHasContracted, setDriverHasContracted] = useState(false);
-  const [driverVerificationStatus, setDriverVerificationStatus] = useState<{
-    status: string | null;
-    rejection_reason: string | null;
-  }>({ status: null, rejection_reason: null });
-  const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [selectedModule, setSelectedModule] = useState<string | null>(null);
+  const {
+    loading, plans, transactions,
+    walletBalance, usageStats, isDriver, isCompany,
+    getModuleStatus, getModuleRules, getActivePlanIdForModule,
+  } = usePlans();
+
   const [requestModal, setRequestModal] = useState<{ isOpen: boolean; moduleKey: string; moduleName: string }>({
-    isOpen: false,
-    moduleKey: '',
-    moduleName: ''
+    isOpen: false, moduleKey: '', moduleName: ''
   });
-  const [togglingAdvertiser, setTogglingAdvertiser] = useState(false);
-  const [companyVerificationStatus, setCompanyVerificationStatus] = useState<{
-    is_verified: boolean;
-    has_pending: boolean;
-    verification: any | null; // eslint-disable-line @typescript-eslint/no-explicit-any
-  }>({ is_verified: false, has_pending: false, verification: null });
-  const [transactions, setTransactions] = useState<any[]>([]); // eslint-disable-line @typescript-eslint/no-explicit-any
   const [showHistory, setShowHistory] = useState(false);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
-  const [usageStats, setUsageStats] = useState<{ freights: any; marketplace: any }>({ // eslint-disable-line @typescript-eslint/no-explicit-any
-    freights: { used: 0, limit: 0, remaining: 0 },
-    marketplace: { used: 0, limit: 0, remaining: 0 }
-  });
-  const [alertMsg, setAlertMsg] = useState<string | null>(null);
-  const [alertType, setAlertType] = useState<'success' | 'error'>('success');
 
-  const userRole = (() => {
-    const userData = localStorage.getItem('@ChamaFrete:user');
-    if (!userData) return 'driver';
-    const user = JSON.parse(userData);
-    return user.role || user.account_type || 'driver';
-  })();
-
-  const isDriver = userRole === 'driver';
-  const isCompany = userRole === 'company';
-
-  const showAlert = (msg: string, type: 'success' | 'error' = 'success') => {
-    setAlertMsg(msg);
-    setAlertType(type);
-    setTimeout(() => setAlertMsg(null), 4000);
-  };
-
-  const AlertToast = () => {
-    if (!alertMsg) return null;
-    const colors = {
-      success: 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:border-emerald-800',
-      error: 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800',
-    };
-    return (
-      <div className={`fixed top-6 right-6 z-[60] flex items-center gap-2 px-4 py-3 rounded-2xl border shadow-lg animate-in slide-in-from-right-4 duration-300 ${colors[alertType]}`}>
-        {alertType === 'success' ? <Check size={18} /> : <AlertCircle size={18} />}
-        <span className="font-bold text-sm">{alertMsg}</span>
-      </div>
-    );
-  };
-
-  const { getModuleStatus, getModuleRules, getSubscriptionPlans, getActivePlanIdForModule } = useModuleData({
-    pricingRules,
-    plans,
-    userModules,
-    isDriver,
-    isCompany,
-    driverHasContracted,
-    companyVerificationStatus,
-    transactions,
-  });
+  const userRole = isDriver ? 'driver' : 'company';
 
   const allModules: ModuleInfo[] = [
     { key: 'freights', name: 'Logística', icon: <Truck size={24} />, requiresApproval: false, description: 'Publique fretes e encontre motoristas', showFor: ['company'] },
@@ -138,81 +45,6 @@ export default function PlansPage() {
 
   const modules = allModules.filter(m => m.showFor.includes(userRole as 'company' | 'driver'));
 
-  useEffect(() => { loadData(); }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      const promises = [
-        api.get('/pricing/rules').catch(() => ({ data: { success: false } })),
-        api.get('/plans').catch(() => ({ data: { success: false } })),
-        api.get('/user/modules').catch(() => ({ data: { success: false } })),
-      ];
-
-      if (isDriver) promises.push(api.get('/driver/verification/status').catch(() => ({ data: { success: false } })));
-      if (isCompany) promises.push(api.get('/company/verification/status').catch(() => ({ data: { success: false } })));
-
-      const results = await Promise.all(promises);
-
-      if (results[0].data?.success) setPricingRules(results[0].data.data || []);
-      if (results[1].data?.success) setPlans(results[1].data.plans || results[1].data.data || []);
-      if (results[2].data?.success) setUserModules(results[2].data.data?.modules || []);
-
-      const moduleIndex = 3;
-      if (isDriver && results[moduleIndex]?.data?.success) {
-        const statusData = results[moduleIndex].data.data;
-        setDriverHasContracted(statusData.is_verified || false);
-        const txStatus = statusData.last_transaction_status;
-        if (txStatus === 'awaiting_review') setDriverVerificationStatus({ status: 'pending_docs', rejection_reason: null });
-        else if (txStatus === 'approved' || statusData.is_verified) setDriverVerificationStatus({ status: 'approved', rejection_reason: null });
-        else if (txStatus === 'rejected') setDriverVerificationStatus({ status: 'rejected', rejection_reason: statusData.rejection_reason || null });
-        else setDriverVerificationStatus({ status: txStatus || null, rejection_reason: statusData.rejection_reason || null });
-      }
-
-      if (isCompany && results[moduleIndex + (isDriver ? 1 : 0)]?.data?.success) {
-        const statusData = results[moduleIndex + (isDriver ? 1 : 0)].data.data;
-        setCompanyVerificationStatus({
-          is_verified: statusData.is_verified || false,
-          has_pending: statusData.has_pending || false,
-          verification: statusData.verification || null
-        });
-      }
-
-      try {
-        const [txRes, walletRes] = await Promise.all([
-          api.get('/my-transactions').catch(() => ({ data: { success: false } })),
-          api.get('/wallet/balance').catch(() => ({ data: { success: false } }))
-        ]);
-
-        if (txRes.data?.success) {
-          setTransactions(txRes.data.data || []);
-        }
-
-        if (walletRes.data?.success) {
-          setWalletBalance(walletRes.data.data?.balance || 0);
-        }
-
-        try {
-          const usageRes = await api.get('/user/usage').catch(() => ({ data: { success: false } }));
-          if (usageRes.data?.success) {
-            setUsageStats(usageRes.data.data || {
-              freights: { used: 0, limit: 0, remaining: 0 },
-              marketplace: { used: 0, limit: 0, remaining: 0 }
-            });
-          }
-        } catch (e) {
-          console.error("Erro ao carregar usage:", e);
-        }
-      } catch (e) {
-        console.error("Erro ao carregar transações/saldo:", e);
-      }
-    } catch (e) {
-      console.error("Erro ao carregar dados:", e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleModuleClick = (mod: ModuleInfo) => {
     const status = getModuleStatus(mod.key);
 
@@ -222,12 +54,10 @@ export default function PlansPage() {
     }
 
     if (mod.key === 'advertiser') {
-      if (status.isActive) {
-        setSelectedModule(mod.key);
-      } else {
+      if (!status.isActive) {
         setRequestModal({ isOpen: true, moduleKey: mod.key, moduleName: mod.name });
+        return;
       }
-      return;
     }
 
     if (mod.key === 'company_pro') {
@@ -235,261 +65,24 @@ export default function PlansPage() {
       return;
     }
 
-    setSelectedModule(mod.key);
-  };
-
-  const handlePurchase = async (moduleKey: string, feature: PricingRule, currentBalance?: number) => {
-    console.log("handlePurchase chamado:", moduleKey, feature.feature_key);
-    try {
-      setPurchasing(`${moduleKey}-${feature.feature_key}`);
-      const isDriverVerification = moduleKey === 'driver' && feature.feature_key === 'document_verification';
-      const isCompanyVerification = moduleKey === 'company_pro' && feature.feature_key === 'identity_verification';
-
-      if (isDriverVerification || isCompanyVerification) {
-        let res;
-        if (isDriverVerification) res = await api.post('/driver/verification/purchase');
-        else res = await api.post('/company/verification/purchase');
-
-        if (res.data?.success) {
-          if (res.data.payment_method === 'wallet') {
-            showAlert(`Verificação Adquirida! Saldo restante: R$ ${parseFloat(res.data.new_balance).toFixed(2).replace('.', ',')}`, 'success');
-            setWalletBalance(parseFloat(res.data.new_balance));
-          } else if (res.data.url) {
-            window.location.href = res.data.url;
-          }
-          loadData();
-        } else {
-          showAlert(res.data?.message || 'Erro ao processar', 'error');
-        }
-        setPurchasing(null);
-        return;
-      }
-
-      const amount = Number(feature.price_per_use) || 0;
-      const balance = currentBalance ?? walletBalance;
-
-      const result = await Swal.fire({
-        title: `Adquirir: ${feature.feature_name}`,
-        html: `
-          <div class="text-left space-y-4">
-            <div class="bg-slate-50 rounded-xl p-4">
-              <p class="text-sm text-slate-600">Valor do recurso:</p>
-              <p class="text-2xl font-black text-slate-900">R$ ${amount.toFixed(2).replace('.', ',')}</p>
-            </div>
-
-            <div class="space-y-2">
-              <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-all payment-option" onclick="selectPayment('wallet')">
-                <input type="radio" name="payment" value="wallet" class="w-5 h-5 text-emerald-600" ${balance >= amount ? 'checked' : ''}>
-                <div class="flex-1">
-                  <p class="font-bold text-slate-900">Usar Saldo da Carteira</p>
-                  <p class="text-xs text-slate-500">Saldo disponível: R$ ${balance.toFixed(2).replace('.', ',')}</p>
-                </div>
-                ${balance >= amount ? '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">✓</span>' : '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">Saldo insuficiente</span>'}
-              </label>
-
-              ${balance < amount && balance > 0 ? `
-              <label class="flex items-center gap-3 p-3 border-2 border-emerald-200 bg-emerald-50 rounded-xl cursor-pointer hover:bg-emerald-100 transition-all" onclick="selectPayment('partial')">
-                <input type="radio" name="payment" value="partial" class="w-5 h-5 text-emerald-600">
-                <div class="flex-1">
-                  <p class="font-bold text-emerald-800">Usar Saldo + Complementar</p>
-                  <p class="text-xs text-emerald-600">Usar R$ ${balance.toFixed(2).replace('.', ',')} do saldo + R$ ${(amount - balance).toFixed(2).replace('.', ',')} via MP</p>
-                </div>
-                <span class="text-xs bg-emerald-200 text-emerald-800 px-2 py-1 rounded-full font-bold">Recomendado</span>
-              </label>
-              ` : ''}
-
-              <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" onclick="selectPayment('mercadopago')">
-                <input type="radio" name="payment" value="mercadopago" class="w-5 h-5 text-blue-600" ${balance < amount ? 'checked' : ''}>
-                <div class="flex-1">
-                  <p class="font-bold text-slate-900">Pagar com Mercado Pago</p>
-                  <p class="text-xs text-slate-500">Cartão, PIX ou boleto</p>
-                </div>
-              </label>
-
-              ${balance > 0 ? `
-              <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" onclick="selectPayment('recharge')">
-                <input type="radio" name="payment" value="recharge" class="w-5 h-5 text-amber-600">
-                <div class="flex-1">
-                  <p class="font-bold text-slate-900">Recarregar Carteira</p>
-                  <p class="text-xs text-slate-500">Adicionar mais saldo</p>
-                </div>
-              </label>
-              ` : ''}
-            </div>
-          </div>
-        `,
-        showCancelButton: true,
-        confirmButtonText: 'Confirmar',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#059669',
-        didOpen: () => {
-          (window as any).selectPayment = (value: string) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-            const radios = document.querySelectorAll('input[name="payment"]') as NodeListOf<HTMLInputElement>;
-            radios.forEach(r => r.checked = r.value === value);
-          };
-        }
-      });
-
-      if (!result.isConfirmed) {
-        setPurchasing(null);
-        return;
-      }
-
-      const paymentChoice = (document.querySelector('input[name="payment"]:checked') as HTMLInputElement)?.value || 'mercadopago';
-
-      if (paymentChoice === 'recharge') {
-        navigate('/dashboard/wallet');
-        setPurchasing(null);
-        return;
-      }
-
-      if (paymentChoice === 'partial') {
-        try {
-          const partialRes = await api.post('/module/purchase-partial', {
-            module_key: moduleKey,
-            feature_key: feature.feature_key,
-            wallet_amount: balance
-          });
-
-          if (partialRes.data?.success) {
-            const remaining = amount - balance;
-            const mpRes = await api.post('/module/purchase-per-use', {
-              module_key: moduleKey,
-              feature_key: feature.feature_key,
-              payment_method: 'mercadopago',
-              amount_to_charge: remaining,
-              wallet_amount_used: balance
-            });
-
-            if (mpRes.data?.success && mpRes.data?.url) {
-              setWalletBalance(0);
-              window.location.href = mpRes.data.url;
-            } else if (mpRes.data?.success && mpRes.data?.payment_method === 'wallet') {
-              showAlert(`Recurso Adquirido! Saldo restante: R$ ${parseFloat(mpRes.data.new_balance).toFixed(2).replace('.', ',')}`, 'success');
-              setWalletBalance(parseFloat(mpRes.data.new_balance));
-              loadData();
-            }
-          }
-        } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-          showAlert(e.response?.data?.message || 'Erro ao processar', 'error');
-        }
-        setPurchasing(null);
-        return;
-      }
-
-      const res = await api.post('/module/purchase-per-use', {
-        module_key: moduleKey,
-        feature_key: feature.feature_key,
-        payment_method: paymentChoice
-      });
-
-      console.log("Resposta purchasePerUse:", res.data);
-
-      if (res.data?.success) {
-        if (res.data.payment_method === 'wallet') {
-          showAlert(`Recurso Adquirido! Saldo restante: R$ ${parseFloat(res.data.new_balance).toFixed(2).replace('.', ',')}`, 'success');
-          setWalletBalance(parseFloat(res.data.new_balance));
-          loadData();
-        } else if (res.data.url) {
-          window.location.href = res.data.url;
-        }
-      } else {
-        showAlert(res.data?.message || 'Não foi possível processar', 'error');
-      }
-    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      console.error("Erro no handlePurchase:", e);
-      const message = e.response?.data?.message || e.message || 'Erro ao processar';
-      if (e.response?.data?.requires_module_activation) {
-        setRequestModal({ isOpen: true, moduleKey, moduleName: allModules.find(m => m.key === moduleKey)?.name || moduleKey });
-      } else {
-        showAlert(message, 'error');
-      }
-    } finally {
-      setPurchasing(null);
-    }
-  };
-
-  const handlePlanSelect = async (plan: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-    const categoryToModule: Record<string, string> = {
-      'freight_subscription': 'freights',
-      'marketplace_subscription': 'marketplace',
-      'advertising': 'advertiser',
-    };
-    const moduleKey = categoryToModule[plan.category] || plan.category;
-
-    const currentPlanId = getActivePlanIdForModule(moduleKey);
-    if (currentPlanId === plan.id) {
-      showAlert('Este plano já está ativo na sua conta.', 'error');
-      return;
-    }
-
-    if (Number(plan.price) === 0) {
-      try {
-        const res = await api.post('/plans/subscribe', { plan_id: plan.id });
-        if (res.data?.success) {
-          showAlert('Plano Ativado!', 'success');
-          loadData();
-        } else {
-          showAlert(res.data?.message || 'Erro ao ativar plano', 'error');
-        }
-      } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-        console.error("Erro ao ativar plano:", e);
-        showAlert(e.response?.data?.message || e.message || 'Erro ao ativar plano', 'error');
-      }
-      return;
-    }
-
-    try {
-      const result = await Swal.fire({
-        title: `Assinar Plano: ${plan.name}`,
-        text: `Valor: R$ ${Number(plan.price).toFixed(2).replace('.', ',')}/mês`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ir para Pagamento',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#059669'
-      });
-
-      if (result.isConfirmed) {
-        console.log("Plano selecionado:", plan.id, plan.name);
-
-        const res = await api.post('/plans/subscribe', { plan_id: plan.id });
-        console.log("Resposta API:", res.data);
-
-        if (res.data?.success) {
-          if (res.data.url) {
-            console.log("Redirecionando para:", res.data.url);
-            window.location.href = res.data.url;
-          } else {
-            showAlert('Plano Ativado!', 'success');
-            loadData();
-          }
-        } else {
-          showAlert(res.data?.message || 'Não foi possível assinar', 'error');
-        }
-      }
-    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      console.error("Erro ao processar assinatura:", e);
-      showAlert(e.response?.data?.message || e.message || 'Erro ao processar assinatura', 'error');
-    }
+    navigate(`/dashboard/planos/${mod.key}`);
   };
 
   const handleRequestSuccess = () => {
     setRequestModal({ isOpen: false, moduleKey: '', moduleName: '' });
-    loadData();
+    window.location.reload();
   };
 
-  const toggleAdvertiser = async (activate: boolean) => {
-    setTogglingAdvertiser(true);
-    try {
-      const res = await api.post('/user/modules', { module_key: 'advertiser', action: activate ? 'activate' : 'deactivate' });
-      if (res.data.success) {
-        await loadData();
-        showAlert(activate ? 'Publicidade ativada!' : 'Publicidade desativada', 'success');
-      }
-    } catch (e: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
-      showAlert(e.response?.data?.message || 'Erro', 'error');
-    } finally { setTogglingAdvertiser(false); }
+  const getModuleIcon = (iconKey: string) => {
+    switch (iconKey) {
+      case 'truck': return <Truck size={16} className="text-orange-500" />;
+      case 'shopping-bag': return <ShoppingBag size={16} className="text-purple-500" />;
+      case 'megaphone': return <Megaphone size={16} className="text-amber-500" />;
+      case 'user': return <User size={16} className="text-blue-500" />;
+      case 'file-text': return <FileText size={16} className="text-slate-500" />;
+      case 'credit-card': return <CreditCard size={16} className="text-emerald-500" />;
+      default: return <CreditCard size={16} className="text-slate-400" />;
+    }
   };
 
   if (loading) {
@@ -514,254 +107,171 @@ export default function PlansPage() {
     );
   }
 
-  const getModuleIcon = (iconKey: string) => {
-    switch (iconKey) {
-      case 'truck': return <Truck size={16} className="text-orange-500" />;
-      case 'shopping-bag': return <ShoppingBag size={16} className="text-purple-500" />;
-      case 'megaphone': return <Megaphone size={16} className="text-amber-500" />;
-      case 'user': return <User size={16} className="text-blue-500" />;
-      case 'file-text': return <FileText size={16} className="text-slate-500" />;
-      case 'credit-card': return <CreditCard size={16} className="text-emerald-500" />;
-      default: return <CreditCard size={16} className="text-slate-400" />;
-    }
-  };
-
-  const TransactionHistory = () => {
-    if (transactions.length === 0) return null;
-
-    return (
-      <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <History size={20} className="text-slate-400 dark:text-slate-500" />
-            <h3 className="font-black uppercase text-sm text-slate-600 dark:text-slate-300">Histórico de Transações</h3>
-          </div>
-          <button
-            onClick={() => setShowHistory(!showHistory)}
-            className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
-          >
-            {showHistory ? 'Ocultar' : 'Ver Todas'}
-          </button>
-        </div>
-
-        {showHistory && (
-          <div className="space-y-2">
-            {transactions.slice(0, 10).map((tx: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
-              <div key={tx.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-700/50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className={`w-2 h-2 rounded-full ${tx.status === 'approved' ? 'bg-emerald-500' : tx.status === 'pending' ? 'bg-amber-500' : 'bg-slate-300'}`}></div>
-                  <div className="flex items-center gap-2">
-                    <div className="p-2 bg-slate-100 dark:bg-slate-600 rounded-lg">
-                      {getModuleIcon(tx.module_icon || 'credit-card')}
-                    </div>
-                    <div>
-                      <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{tx.display_name}</p>
-                      <p className="text-xs text-slate-400 dark:text-slate-400">{tx.category_label}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="font-bold text-sm dark:text-slate-100">
-                    {parseFloat(tx.amount) === 0 ? 'Grátis' : `R$ ${parseFloat(tx.amount).toFixed(2).replace('.', ',')}`}
-                  </p>
-                  <p className={`text-xs font-bold uppercase ${
-                    tx.status === 'approved' ? 'text-emerald-600 dark:text-emerald-400' :
-                    tx.status === 'pending' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'
-                  }`}>
-                    {tx.status === 'approved' ? 'Aprovado' : tx.status === 'pending' ? 'Pendente' : tx.status}
-                  </p>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  if (!selectedModule) {
-    return (
-      <>
-        <AlertToast />
-
-        <DashboardShell
-          title="Planos & Recursos"
-          description={isDriver ? 'Recursos para destacar seu perfil e vender no marketplace' : 'Selecione um módulo para ver os recursos disponíveis'}
-          actions={
-            <Button
-              onClick={() => navigate('/dashboard/wallet')}
-              variant="outline"
-            >
-              <CreditCard size={16} />
-              R$ {walletBalance.toFixed(2).replace('.', ',')}
-            </Button>
-          }
-        >
-          {/* Medidor de Uso */}
-          {(usageStats.freights?.limit > 0 || isCompany) && (
-            <div className="grid grid-cols-2 gap-4">
-              {isCompany && (
-                <>
-                  <div className={`bg-white dark:bg-slate-800 rounded-2xl p-4 ${usageStats.freights?.remaining === 0 ? 'border-2 border-red-300 dark:border-red-600' : 'border border-slate-200 dark:border-slate-700'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <Truck size={18} className="text-orange-500" />
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Fretes</span>
-                      </div>
-                      <span className={`text-xs font-bold ${usageStats.freights?.remaining === 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                        {usageStats.freights?.remaining === 0 ? 'Limite atingido' : `${usageStats.freights?.remaining} restantes`}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${usageStats.freights?.remaining === 0 ? 'bg-red-500' : 'bg-orange-500'}`}
-                        style={{ width: `${usageStats.freights?.limit > 0 ? (usageStats.freights?.used / usageStats.freights?.limit) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1 text-center">
-                      {usageStats.freights?.used || 0} / {usageStats.freights?.limit || 0} publicados neste mês
-                    </p>
-                  </div>
-
-                  <div className={`bg-white dark:bg-slate-800 rounded-2xl p-4 ${usageStats.marketplace?.remaining === 0 ? 'border-2 border-red-300 dark:border-red-600' : 'border border-slate-200 dark:border-slate-700'}`}>
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <ShoppingBag size={18} className="text-purple-500" />
-                        <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Marketplace</span>
-                      </div>
-                      <span className={`text-xs font-bold ${usageStats.marketplace?.remaining === 0 ? 'text-red-500' : 'text-emerald-500'}`}>
-                        {usageStats.marketplace?.remaining === 0 ? 'Limite atingido' : `${usageStats.marketplace?.remaining} restantes`}
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
-                      <div
-                        className={`h-2 rounded-full ${usageStats.marketplace?.remaining === 0 ? 'bg-red-500' : 'bg-purple-500'}`}
-                        style={{ width: `${usageStats.marketplace?.limit > 0 ? (usageStats.marketplace?.used / usageStats.marketplace?.limit) * 100 : 0}%` }}
-                      ></div>
-                    </div>
-                    <p className="text-xs text-slate-500 mt-1 text-center">
-                      {usageStats.marketplace?.used || 0} / {usageStats.marketplace?.limit || 0} publicados neste mês
-                    </p>
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* Histórico de Transações */}
-          <TransactionHistory />
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {modules.map((mod) => {
-              const status = getModuleStatus(mod.key);
-              const rules = getModuleRules(mod.key);
-              const activePlanId = getActivePlanIdForModule(mod.key);
-              const activePlan = activePlanId ? plans.find((p: any) => p.id === activePlanId) : null; // eslint-disable-line @typescript-eslint/no-explicit-any
-              return (
-                <ModuleCard
-                  key={mod.key}
-                  module={mod}
-                  status={status}
-                  rulesCount={rules.length}
-                  onClick={() => handleModuleClick(mod)}
-                  disabled={rules.length === 0 && mod.key !== 'quotes'}
-                  activePlanName={activePlan?.name}
-                />
-              );
-            })}
-          </div>
-
-          <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex items-start gap-3">
-            <CreditCard size={20} className="text-blue-500 shrink-0 mt-0.5" />
-            <div>
-              <p className="text-xs font-black text-blue-800 dark:text-blue-300 uppercase italic">Recursos: Carteira ou Mercado Pago</p>
-              <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">
-                Recursos avulsos usam saldo da carteira. Se não tiver saldo, pode pagar via Mercado Pago. Planos usam Mercado Pago.
-              </p>
-            </div>
-          </div>
-
-          <RequestModal
-            isOpen={requestModal.isOpen}
-            onClose={() => setRequestModal({ isOpen: false, moduleKey: '', moduleName: '' })}
-            moduleName={requestModal.moduleName}
-            moduleKey={requestModal.moduleKey}
-            onSuccess={handleRequestSuccess}
-          />
-        </DashboardShell>
-      </>
-    );
-  }
-
-  const currentModule = allModules.find(m => m.key === selectedModule)!;
-  const status = getModuleStatus(selectedModule);
-
   return (
     <>
-      <AlertToast />
-
       <DashboardShell
-        title={currentModule?.name || 'Módulo'}
-        description={`Gerenciar ${currentModule?.name?.toLowerCase() || 'módulo'}`}
+        title="Planos & Recursos"
+        description={isDriver ? 'Recursos para destacar seu perfil e vender no marketplace' : 'Selecione um módulo para ver os recursos disponíveis'}
         actions={
-          <Button variant="ghost" onClick={() => setSelectedModule(null)}>
-            <ArrowLeft size={16} /> Voltar
+          <Button
+            onClick={() => navigate('/dashboard/wallet')}
+            variant="outline"
+          >
+            <CreditCard size={16} />
+            R$ {walletBalance.toFixed(2).replace('.', ',')}
           </Button>
         }
       >
-        {selectedModule === 'freights' && (
-          <FreightModule
-            plans={getSubscriptionPlans('freight_subscription')}
-            rules={getModuleRules('freights')}
-            isActive={status.isActive}
-            onBack={() => setSelectedModule(null)}
-            onPlanSelect={handlePlanSelect}
-            onPurchase={handlePurchase}
-            purchasing={purchasing}
-            currentPlanId={getActivePlanIdForModule('freights')}
-          />
+        {/* Medidor de Uso */}
+        {(usageStats.freights?.limit > 0 || isCompany) && (
+          <div className="grid grid-cols-2 gap-4">
+            {isCompany && (
+              <>
+                <div className={`bg-white dark:bg-slate-800 rounded-2xl p-4 ${usageStats.freights?.remaining === 0 ? 'border-2 border-red-300 dark:border-red-600' : 'border border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Truck size={18} className="text-orange-500" />
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Fretes</span>
+                    </div>
+                    <span className={`text-xs font-bold ${usageStats.freights?.remaining === 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                      {usageStats.freights?.remaining === 0 ? 'Limite atingido' : `${usageStats.freights?.remaining} restantes`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${usageStats.freights?.remaining === 0 ? 'bg-red-500' : 'bg-orange-500'}`}
+                      style={{ width: `${usageStats.freights?.limit > 0 ? (usageStats.freights?.used / usageStats.freights?.limit) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 text-center">
+                    {usageStats.freights?.used || 0} / {usageStats.freights?.limit || 0} publicados neste mês
+                  </p>
+                </div>
+
+                <div className={`bg-white dark:bg-slate-800 rounded-2xl p-4 ${usageStats.marketplace?.remaining === 0 ? 'border-2 border-red-300 dark:border-red-600' : 'border border-slate-200 dark:border-slate-700'}`}>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <ShoppingBag size={18} className="text-purple-500" />
+                      <span className="text-xs font-bold text-slate-600 dark:text-slate-300">Marketplace</span>
+                    </div>
+                    <span className={`text-xs font-bold ${usageStats.marketplace?.remaining === 0 ? 'text-red-500' : 'text-emerald-500'}`}>
+                      {usageStats.marketplace?.remaining === 0 ? 'Limite atingido' : `${usageStats.marketplace?.remaining} restantes`}
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full ${usageStats.marketplace?.remaining === 0 ? 'bg-red-500' : 'bg-purple-500'}`}
+                      style={{ width: `${usageStats.marketplace?.limit > 0 ? (usageStats.marketplace?.used / usageStats.marketplace?.limit) * 100 : 0}%` }}
+                    />
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1 text-center">
+                    {usageStats.marketplace?.used || 0} / {usageStats.marketplace?.limit || 0} publicados neste mês
+                  </p>
+                </div>
+              </>
+            )}
+          </div>
         )}
 
-        {selectedModule === 'marketplace' && (
-          <MarketplaceModule
-            plans={getSubscriptionPlans('marketplace_subscription')}
-            rules={getModuleRules('marketplace')}
-            isActive={status.isActive}
-            onBack={() => setSelectedModule(null)}
-            onPlanSelect={handlePlanSelect}
-            onPurchase={handlePurchase}
-            purchasing={purchasing}
-            currentPlanId={getActivePlanIdForModule('marketplace')}
-          />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {modules.map((mod) => {
+            const status = getModuleStatus(mod.key);
+            const rules = getModuleRules(mod.key);
+            const activePlanId = getActivePlanIdForModule(mod.key);
+            const activePlan = activePlanId ? plans.find((p: any) => p.id === activePlanId) : null; // eslint-disable-line @typescript-eslint/no-explicit-any
+            return (
+              <ModuleCard
+                key={mod.key}
+                module={mod}
+                status={status}
+                rulesCount={rules.length}
+                onClick={() => handleModuleClick(mod)}
+                disabled={rules.length === 0 && mod.key !== 'quotes'}
+                activePlanName={activePlan?.name}
+              />
+            );
+          })}
+        </div>
+
+        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 flex items-start gap-3">
+          <CreditCard size={20} className="text-blue-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-xs font-black text-blue-800 dark:text-blue-300 uppercase italic">Recursos: Carteira ou Mercado Pago</p>
+            <p className="text-[10px] text-blue-600 dark:text-blue-400 mt-1">
+              Recursos avulsos usam saldo da carteira. Se não tiver saldo, pode pagar via Mercado Pago. Planos usam Mercado Pago.
+            </p>
+          </div>
+        </div>
+
+        {/* Histórico de Transações */}
+        {transactions.length > 0 && (
+          <TransactionHistoryBlock transactions={transactions} showHistory={showHistory} setShowHistory={setShowHistory} getModuleIcon={getModuleIcon} />
         )}
 
-        {selectedModule === 'advertiser' && (
-          <AdvertiserModule
-            plans={getSubscriptionPlans('advertising')}
-            rules={getModuleRules('advertiser')}
-            isActive={status.isActive}
-            onBack={() => setSelectedModule(null)}
-            onToggle={toggleAdvertiser}
-            onPlanSelect={handlePlanSelect}
-            onPurchase={handlePurchase}
-            purchasing={purchasing}
-            toggling={togglingAdvertiser}
-            currentPlanId={getActivePlanIdForModule('advertiser')}
-          />
-        )}
-
-        {selectedModule === 'driver' && (
-          <DriverModule
-            rules={getModuleRules('driver')}
-            onBack={() => setSelectedModule(null)}
-            verificationStatus={driverVerificationStatus}
-            hasContracted={driverHasContracted}
-            onPurchase={handlePurchase}
-            purchasing={purchasing}
-            walletBalance={walletBalance}
-          />
-        )}
+        <RequestModal
+          isOpen={requestModal.isOpen}
+          onClose={() => setRequestModal({ isOpen: false, moduleKey: '', moduleName: '' })}
+          moduleName={requestModal.moduleName}
+          moduleKey={requestModal.moduleKey}
+          onSuccess={handleRequestSuccess}
+        />
       </DashboardShell>
     </>
+  );
+}
+
+function TransactionHistoryBlock({ transactions, showHistory, setShowHistory, getModuleIcon }: {
+  transactions: any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
+  showHistory: boolean;
+  setShowHistory: (v: boolean) => void;
+  getModuleIcon: (key: string) => React.ReactNode;
+}) {
+  return (
+    <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-6 mb-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <History size={20} className="text-slate-400 dark:text-slate-500" />
+          <h3 className="font-black uppercase text-sm text-slate-600 dark:text-slate-300">Histórico de Transações</h3>
+        </div>
+        <button
+          onClick={() => setShowHistory(!showHistory)}
+          className="text-xs font-bold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"
+        >
+          {showHistory ? 'Ocultar' : 'Ver Todas'}
+        </button>
+      </div>
+
+      {showHistory && (
+        <div className="space-y-2">
+          {transactions.slice(0, 10).map((tx: any) => ( // eslint-disable-line @typescript-eslint/no-explicit-any
+            <div key={tx.id} className="flex items-center justify-between p-3 bg-white dark:bg-slate-700/50 rounded-xl">
+              <div className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${tx.status === 'approved' ? 'bg-emerald-500' : tx.status === 'pending' ? 'bg-amber-500' : 'bg-slate-300'}`} />
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-slate-100 dark:bg-slate-600 rounded-lg">
+                    {getModuleIcon(tx.module_icon || 'credit-card')}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-slate-800 dark:text-slate-100">{tx.display_name}</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-400">{tx.category_label}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-sm dark:text-slate-100">
+                  {parseFloat(tx.amount) === 0 ? 'Grátis' : `R$ ${parseFloat(tx.amount).toFixed(2).replace('.', ',')}`}
+                </p>
+                <p className={`text-xs font-bold uppercase ${
+                  tx.status === 'approved' ? 'text-emerald-600 dark:text-emerald-400' :
+                  tx.status === 'pending' ? 'text-amber-600 dark:text-amber-400' : 'text-slate-400 dark:text-slate-500'
+                }`}>
+                  {tx.status === 'approved' ? 'Aprovado' : tx.status === 'pending' ? 'Pendente' : tx.status}
+                </p>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

@@ -17,9 +17,9 @@ const Header = () => {
     { name: "Fretes", href: "/fretes" },
     { name: "Marketplace", href: "/marketplace" },
     { name: "Artigos", href: "/artigos" },
-    { name: "Comunidades", href: "/comunidade" },
+    { name: "Comunidade", href: "/comunidade" },
     { name: "Como Funciona", href: "/como-funciona" },
-    { name: "SEJA VISTO", href: "/seja-visto" }
+    { name: "Seja Visto", href: "/seja-visto" }
   ];
 
   // Auth state

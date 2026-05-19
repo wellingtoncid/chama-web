@@ -4,13 +4,15 @@ import {
   Globe, MapPin, MessageCircle, Copy, ExternalLink, ImageIcon,
   LayoutDashboard, User, Building2, Briefcase, Lock, Eye, EyeOff,
   Search, CheckCircle2, XCircle, AtSign, Hash, Smartphone,
-  UserCircle, FileText, Instagram, Link2, ChevronRight
+  UserCircle, FileText, Instagram, Link2, ChevronRight, Tag, Truck, ShoppingBag, Megaphone, Headphones,
+  Users, ArrowRight,
 } from 'lucide-react';
 import { api } from '../../api/api';
 import Swal from 'sweetalert2';
 
 import DriverFields from '../../components/driver/DriverFields';
 import CompanyFields from '../../components/company/CompanyFields';
+import DashboardShell from '@/components/layout/DashboardShell';
 
 interface MyProfileProps {
   user: any;
@@ -46,12 +48,8 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
   const [coverFile, setCoverFile] = useState<File | null>(null);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
 
-  const [marketplaceEnabled, setMarketplaceEnabled] = useState(false);
+  const [userModules, setUserModules] = useState<any[]>([]);
   const [identityConfirmed, setIdentityConfirmed] = useState(false);
-
-  const [cnpjData, setCnpjData] = useState<any>(null);
-  const [cnpjInput, setCnpjInput] = useState('');
-  const [verifyingCnpj, setVerifyingCnpj] = useState(false);
 
   const [cepInput, setCepInput] = useState('');
   const [cepLoading, setCepLoading] = useState(false);
@@ -110,28 +108,23 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
 
   useEffect(() => {
     loadModules();
-    if (isCompany) loadCnpjData();
-  }, [isCompany]);
+  }, []);
+
+  const MODULE_LABELS: Record<string, { label: string; icon: React.ReactNode }> = {
+    freights: { label: 'Fretes', icon: <Truck size={16} /> },
+    marketplace: { label: 'Marketplace', icon: <ShoppingBag size={16} /> },
+    advertiser: { label: 'Publicidade', icon: <Megaphone size={16} /> },
+  };
 
   const loadModules = async () => {
     try {
       const res = await api.get('/user/modules');
       if (res.data?.success) {
         const modules = res.data.data?.modules || [];
-        setMarketplaceEnabled(!!modules.find((m: any) => m.key === 'marketplace')?.is_active);
+        setUserModules(modules);
         setIdentityConfirmed(!!modules.find((m: any) => m.key === 'identity_verification')?.is_active);
       }
     } catch (e) { console.error("Erro ao carregar módulos:", e); }
-  };
-
-  const loadCnpjData = async () => {
-    try {
-      const res = await api.get('/get-cnpj-data');
-      if (res.data?.success && res.data?.data) {
-        setCnpjData(res.data.data);
-        setCnpjInput(res.data.data.cnpj || '');
-      }
-    } catch (e) { console.error("Erro ao carregar dados do CNPJ:", e); }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
@@ -153,20 +146,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         setPasswordError((err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Erro ao alterar senha');
       else setPasswordError('Erro ao alterar senha');
     } finally { setChangingPassword(false); }
-  };
-
-  const verifyCnpj = async () => {
-    const cleanCnpj = cnpjInput.replace(/\D/g, '');
-    if (cleanCnpj.length !== 14) { Swal.fire({ icon: 'warning', title: 'CNPJ inválido', text: 'O CNPJ deve ter 14 dígitos.' }); return; }
-    setVerifyingCnpj(true);
-    try {
-      const res = await api.post('/verify-cnpj', { cnpj: cleanCnpj });
-      if (res.data.success) {
-        setCnpjData(res.data.data);
-        Swal.fire({ icon: 'success', title: 'CNPJ verificado!', text: res.data.is_active ? 'Sua empresa está ativa.' : 'Atenção: Empresa inativa.' });
-      }
-    } catch (e: any) { Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || 'Erro ao verificar CNPJ.' }); }
-    finally { setVerifyingCnpj(false); }
   };
 
   useEffect(() => {
@@ -268,39 +247,24 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
-  const showPasswordField = showPasswordSection;
-
   return (
-    <div className="min-h-screen bg-slate-50/80 dark:bg-slate-950 pb-32">
-
-      {/* TOP HEADER */}
-      <div className="bg-white dark:bg-slate-900">
-        <div className="max-w-6xl mx-auto px-4 md:px-6">
-          <div className="flex items-center justify-between h-16 md:h-20">
-            <div className="flex items-center gap-4">
-              <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${theme.gradient} flex items-center justify-center shadow-lg`}>
-                {isDriver ? <User size={20} className="text-white" /> : <Building2 size={20} className="text-white" />}
-              </div>
-              <div>
-                <h1 className="text-sm md:text-base font-black uppercase italic text-slate-900 dark:text-white leading-tight">Editar Perfil</h1>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{isDriver ? 'Motorista' : 'Empresa'}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border ${profileStatus.className} hidden sm:inline-flex items-center gap-1.5`}>
-                <StatusIcon size={12} /> {profileStatus.text}
-              </span>
-              <a href={`/perfil/${formData.slug}`} target="_blank" rel="noreferrer"
-                className="text-[10px] font-black uppercase text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 flex items-center gap-1 transition-colors">
-                Ver <ExternalLink size={12} />
-              </a>
-            </div>
-          </div>
+    <DashboardShell
+      title="Editar Perfil"
+      description={profileStatus.text}
+      actions={
+        <div className="flex items-center gap-2">
+          <span className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-full border ${profileStatus.className} flex items-center gap-1 hidden sm:flex`}>
+            <StatusIcon size={12} /> {profileStatus.text}
+          </span>
+          <a href={`/perfil/${formData.slug}`} target="_blank" rel="noreferrer" className="flex items-center gap-2 px-4 py-2 rounded-xl border-2 border-slate-200 dark:border-slate-700 font-bold text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all">
+            <ExternalLink size={14} /> Ver Perfil
+          </a>
         </div>
-
-        {/* SECTION TABS */}
-        <nav className="border-b border-slate-200 dark:border-slate-800">
-          <div className="max-w-6xl mx-auto px-4 md:px-6 flex gap-1 overflow-x-auto scrollbar-none">
+      }
+    >
+      {/* SECTION TABS */}
+      <nav className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden shadow-sm">
+        <div className="flex gap-1 overflow-x-auto scrollbar-none px-5 lg:px-6">
             {SECTIONS.map(s => {
               const Icon = s.icon;
               const isActive = activeSection === s.id;
@@ -318,11 +282,8 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
             })}
           </div>
         </nav>
-      </div>
 
-      <div className="max-w-6xl mx-auto px-4 md:px-6 pt-8 space-y-8">
-
-        {/* PROGRESS CARD */}
+      {/* PROGRESS CARD */}
         <div className="bg-white dark:bg-slate-900 rounded-2xl p-5 md:p-6 border border-slate-200 dark:border-slate-800 shadow-sm">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-4">
@@ -416,10 +377,10 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         </div>
 
         {/* MAIN GRID */}
-        <div className="grid lg:grid-cols-5 gap-8">
+        <div className="grid lg:grid-cols-5 gap-5 lg:gap-6">
 
           {/* LEFT — 3/5 */}
-          <div className="lg:col-span-3 space-y-8">
+          <div className="lg:col-span-3 space-y-5 lg:space-y-6">
 
             {/* SECTION: INFOS PROFISSIONAIS */}
             <div id="section-bio" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
@@ -455,40 +416,6 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                   <span className="text-[10px] font-bold text-amber-500 flex items-center gap-1"><AlertCircle size={10} /> Mínimo 20 caracteres</span>
                 )}
               </div>
-            </div>
-
-            {/* SECTION: SECURITY */}
-            <div id="section-security" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
-              <div className="flex items-center gap-3 mb-8">
-                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
-                <Lock size={18} className="text-slate-400" />
-                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Segurança</h3>
-              </div>
-
-              {!showPasswordSection ? (
-                <button onClick={() => setShowPasswordSection(true)}
-                  className="w-full py-4 px-5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-2">
-                  <Lock size={16} /> Alterar Senha
-                </button>
-              ) : (
-                <form onSubmit={handleChangePassword} className="space-y-5">
-                  <div className="grid sm:grid-cols-3 gap-4">
-                    <PasswordField label="Senha Atual" value={currentPassword} onChange={setCurrentPassword} visible={showPasswords.current} onToggle={() => setShowPasswords(p => ({ ...p, current: !p.current }))} />
-                    <PasswordField label="Nova Senha" value={newPassword} onChange={setNewPassword} visible={showPasswords.new} onToggle={() => setShowPasswords(p => ({ ...p, new: !p.new }))} placeholder="Mínimo 6 caracteres" />
-                    <PasswordField label="Confirmar" value={confirmPassword} onChange={setConfirmPassword} visible={showPasswords.confirm} onToggle={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} />
-                  </div>
-                  {passwordError && <p className="text-red-500 text-xs font-bold flex items-center gap-1"><XCircle size={12} /> {passwordError}</p>}
-                  {passwordSuccess && <p className="text-green-600 text-xs font-bold flex items-center gap-1"><CheckCircle2 size={12} /> {passwordSuccess}</p>}
-                  <div className="flex gap-3">
-                    <button type="button" onClick={() => { setShowPasswordSection(false); setPasswordError(null); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
-                      className="flex-1 py-3 border border-slate-300 dark:border-slate-600 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancelar</button>
-                    <button type="submit" disabled={changingPassword}
-                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95">
-                      {changingPassword ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} Salvar
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
 
             {/* SECTION: LOCATION */}
@@ -548,7 +475,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
           </div>
 
           {/* RIGHT — 2/5 */}
-          <div className="lg:col-span-2 space-y-8">
+          <div className="lg:col-span-2 space-y-5 lg:space-y-6">
 
             {/* SECTION: DIGITAL PRESENCE */}
             <div id="section-social" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
@@ -563,6 +490,57 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                 <Field icon={Link2} label="LinkedIn" placeholder="linkedin.com/in/seu-perfil" value={formData.linkedin} onChange={v => setFormData({ ...formData, linkedin: v })} />
                 <Field icon={Globe} label="Site Oficial" placeholder="www.site.com" value={formData.website} onChange={v => setFormData({ ...formData, website: v })} />
               </div>
+            </div>
+
+            {/* EQUIPE CARD */}
+            {isCompany && (
+              <a href="/dashboard/equipe"
+                className="block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm hover:shadow-md transition-all group">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-xl ${theme.light} flex items-center justify-center`}>
+                    <Users size={24} className={theme.subtle} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-black uppercase italic text-sm text-slate-900 dark:text-white">Equipe</h3>
+                    <p className="text-[10px] font-bold text-slate-400 truncate">Gerenciar membros e convites</p>
+                  </div>
+                  <ArrowRight size={18} className="text-slate-300 group-hover:text-slate-500 transition-colors shrink-0" />
+                </div>
+              </a>
+            )}
+
+            {/* SECTION: SECURITY */}
+            <div id="section-security" className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm scroll-mt-36 lg:scroll-mt-40">
+              <div className="flex items-center gap-3 mb-8">
+                <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
+                <Lock size={18} className="text-slate-400" />
+                <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Segurança</h3>
+              </div>
+
+              {!showPasswordSection ? (
+                <button onClick={() => setShowPasswordSection(true)}
+                  className="w-full py-4 px-5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-xl font-bold text-sm text-slate-700 dark:text-slate-300 transition-colors flex items-center justify-center gap-2">
+                  <Lock size={16} /> Alterar Senha
+                </button>
+              ) : (
+                <form onSubmit={handleChangePassword} className="space-y-5">
+                  <div className="flex flex-col gap-4">
+                    <PasswordField label="Senha Atual" value={currentPassword} onChange={setCurrentPassword} visible={showPasswords.current} onToggle={() => setShowPasswords(p => ({ ...p, current: !p.current }))} />
+                    <PasswordField label="Nova Senha" value={newPassword} onChange={setNewPassword} visible={showPasswords.new} onToggle={() => setShowPasswords(p => ({ ...p, new: !p.new }))} placeholder="Mínimo 6 caracteres" />
+                    <PasswordField label="Confirmar" value={confirmPassword} onChange={setConfirmPassword} visible={showPasswords.confirm} onToggle={() => setShowPasswords(p => ({ ...p, confirm: !p.confirm }))} />
+                  </div>
+                  {passwordError && <p className="text-red-500 text-xs font-bold flex items-center gap-1"><XCircle size={12} /> {passwordError}</p>}
+                  {passwordSuccess && <p className="text-green-600 text-xs font-bold flex items-center gap-1"><CheckCircle2 size={12} /> {passwordSuccess}</p>}
+                  <div className="flex gap-3">
+                    <button type="button" onClick={() => { setShowPasswordSection(false); setPasswordError(null); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
+                      className="flex-1 py-3 border border-slate-300 dark:border-slate-600 rounded-xl font-bold text-xs text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">Cancelar</button>
+                    <button type="submit" disabled={changingPassword}
+                      className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2 active:scale-95">
+                      {changingPassword ? <Loader2 size={14} className="animate-spin" /> : <Lock size={14} />} Salvar
+                    </button>
+                  </div>
+                </form>
+              )}
             </div>
 
             {/* IDENTITY CARD */}
@@ -584,47 +562,52 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
               </div>
             )}
 
-            {/* MARKETPLACE STATUS */}
+            {/* MÓDULOS */}
             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-6 md:p-8 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
                 <LayoutDashboard size={18} className="text-slate-400" />
                 <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Módulos</h3>
               </div>
-              <div className="space-y-4">
-                {!marketplaceEnabled && (
-                  <div className="flex items-center gap-3 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
-                    <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl flex items-center justify-center shrink-0">
-                      <LayoutDashboard size={18} className="text-slate-400" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-black uppercase text-slate-500">Marketplace</p>
-                      <p className="text-[9px] text-slate-400 truncate">Ative para vender produtos</p>
-                    </div>
-                    <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-50 dark:bg-amber-500/10 px-2.5 py-1 rounded-lg">Inativo</span>
-                  </div>
-                )}
-                {marketplaceEnabled && (
-                  <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/10 rounded-xl">
-                    <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-800/30 rounded-xl flex items-center justify-center shrink-0">
-                      <LayoutDashboard size={18} className="text-emerald-600" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">Marketplace</p>
-                      <p className="text-[9px] text-emerald-500 truncate">Você pode anunciar produtos</p>
-                    </div>
-                    <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-100 dark:bg-emerald-800/30 px-2.5 py-1 rounded-lg">Ativo</span>
-                  </div>
-                )}
+              <div className="space-y-3">
+                {userModules
+                  .filter(m => m.key !== 'identity_verification')
+                  .map(mod => {
+                    const info = MODULE_LABELS[mod.key];
+                    if (!info) return null;
+                    const isActive = mod.is_active;
+                    return (
+                      <div key={mod.key} className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
+                        isActive ? 'bg-emerald-50 dark:bg-emerald-900/10' : 'bg-slate-50 dark:bg-slate-800/50'
+                      }`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
+                          isActive ? 'bg-emerald-100 dark:bg-emerald-800/30 text-emerald-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
+                        }`}>
+                          {info.icon}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className={`text-[10px] font-black uppercase ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
+                            {info.label}
+                          </p>
+                        </div>
+                        <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg ${
+                          isActive
+                            ? 'text-emerald-600 bg-emerald-100 dark:bg-emerald-800/30'
+                            : 'text-amber-500 bg-amber-50 dark:bg-amber-500/10'
+                        }`}>
+                          {isActive ? 'Ativo' : 'Inativo'}
+                        </span>
+                      </div>
+                    );
+                  })}
               </div>
             </div>
           </div>
         </div>
-      </div>
 
       {/* STICKY SAVE BAR */}
       <div className="fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-200 dark:border-slate-800 shadow-2xl">
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-4 flex items-center justify-between gap-4">
+        <div className="max-w-[1280px] mx-auto px-6 lg:px-10 py-4 flex items-center justify-between gap-4">
           <div className="hidden md:flex items-center gap-3 text-slate-400">
             <div className="p-2 bg-emerald-500/10 rounded-xl text-emerald-500"><ShieldCheck size={18} /></div>
             <div>
@@ -639,7 +622,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
           </button>
         </div>
       </div>
-    </div>
+    </DashboardShell>
   );
 };
 

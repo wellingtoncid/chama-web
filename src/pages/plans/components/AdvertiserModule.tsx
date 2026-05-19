@@ -1,37 +1,11 @@
-import { useState } from 'react';
-import { Megaphone, Loader2, Check, Star } from 'lucide-react';
+import { ArrowLeft, Megaphone, Loader2, Check, Star } from 'lucide-react';
 import Swal from 'sweetalert2';
-import ModuleDetailLayout from './ModuleDetailLayout';
+import { useNavigate } from 'react-router-dom';
+import { usePlans } from '../../../context/PlansContext';
+import DashboardShell from '../../../components/layout/DashboardShell';
+import { Button } from '../../../components/ui/Button';
 
-interface PricingRule {
-  id: number;
-  module_key: string;
-  feature_key: string;
-  feature_name: string;
-  pricing_type: string;
-  free_limit: number;
-  price_per_use: number;
-  price_monthly: number;
-  price_daily: number;
-  duration_days: number;
-  is_active: number;
-}
-
-interface AdvertiserModuleProps {
-  plans: any[];
-  rules: PricingRule[];
-  isActive: boolean;
-  onBack: () => void;
-  onToggle: (activate: boolean) => Promise<void>;
-  onPlanSelect: (plan: any) => void;
-  onPurchase: (moduleKey: string, feature: PricingRule, walletBalance?: number) => Promise<void>;
-  purchasing: string | null;
-  toggling: boolean;
-  walletBalance?: number;
-  currentPlanId?: number | null;
-}
-
-const formatPrice = (value: any) => {
+const formatPrice = (value: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
   const num = Number(value) || 0;
   return num > 0 ? `R$ ${num.toFixed(2).replace('.', ',')}` : 'Grátis';
 };
@@ -43,19 +17,20 @@ const formatDuration = (days: number) => {
   return `${days} dias`;
 };
 
-export default function AdvertiserModule({
-  plans,
-  rules,
-  isActive,
-  onBack,
-  onToggle,
-  onPlanSelect,
-  onPurchase,
-  purchasing,
-  toggling,
-  walletBalance = 0,
-  currentPlanId = null,
-}: AdvertiserModuleProps) {
+export default function AdvertiserModule() {
+  const navigate = useNavigate();
+  const {
+    pricingRules, purchasing, walletBalance,
+    getSubscriptionPlans, getActivePlanIdForModule,
+    handlePlanSelect, handlePurchase, toggleAdvertiser, togglingAdvertiser,
+    getModuleStatus,
+  } = usePlans();
+
+  const subscriptionPlans = getSubscriptionPlans('advertising');
+  const rules = pricingRules.filter(r => r.module_key === 'advertiser');
+  const currentPlanId = getActivePlanIdForModule('advertiser');
+  const status = getModuleStatus('advertiser');
+  const isActive = status.isActive;
 
   const handleToggle = (newStatus: boolean) => {
     const action = newStatus ? 'ativar' : 'desativar';
@@ -70,38 +45,61 @@ export default function AdvertiserModule({
       cancelButtonText: 'Cancelar'
     }).then((result) => {
       if (result.isConfirmed) {
-        onToggle(newStatus);
+        toggleAdvertiser(newStatus);
       }
     });
   };
 
   return (
-    <ModuleDetailLayout
+    <DashboardShell
       title="Publicidade"
-      icon={<Megaphone size={24} />}
       description="Destaque sua empresa e anúncios"
-      isActive={isActive}
-      onBack={onBack}
-      toggle={{
-        isActive,
-        onToggle: handleToggle,
-        toggling,
-        label: 'Publicidade',
-        subtitle: 'Seus anúncios aparecerão nas posições selecionadas',
-        inactiveText: 'Anúncios desativados ficam ocultos para outros usuários.',
-        color: 'from-amber-600 to-amber-500'
-      }}
+      actions={
+        <Button variant="ghost" onClick={() => navigate('/dashboard/planos')}>
+          <ArrowLeft size={16} /> Voltar
+        </Button>
+      }
     >
+      {/* Toggle Publicidade */}
+      <div className="bg-slate-100 dark:bg-slate-800 rounded-2xl p-6 border border-slate-200 dark:border-slate-700">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${isActive ? 'bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400' : 'bg-slate-200 dark:bg-slate-700 text-slate-500'}`}>
+              <Megaphone size={24} />
+            </div>
+            <div>
+              <h3 className="font-black uppercase italic text-lg text-slate-900 dark:text-slate-100">
+                {isActive ? 'Publicidade Ativo' : 'Publicidade Inativo'}
+              </h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                {isActive ? 'Seus anúncios aparecerão nas posições selecionadas' : 'Seus anúncios ficarão ocultos para outros usuários.'}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => handleToggle(!isActive)}
+            disabled={togglingAdvertiser}
+            className={`relative w-16 h-8 rounded-full p-1 transition-all duration-300 ${
+              isActive ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'
+            } disabled:opacity-50`}
+          >
+            <div className={`absolute top-0.5 w-7 h-7 bg-white rounded-full shadow-lg transition-all duration-300 ${
+              isActive ? 'left-8' : 'left-0.5'
+            }`} />
+          </button>
+        </div>
+      </div>
+
       {/* Planos de Publicidade */}
-      {plans.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-[2rem] border-2 border-slate-100 dark:border-slate-700 overflow-hidden">
-          <div className="bg-gradient-to-r from-amber-600 to-amber-500 p-4">
-            <h3 className="font-black uppercase italic text-white">Planos de Publicidade</h3>
-            <p className="text-amber-200 text-xs">Escolha um plano com posições exclusivas</p>
+      {subscriptionPlans.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 p-4">
+            <h3 className="font-black uppercase italic text-slate-900 dark:text-slate-100">Planos de Publicidade</h3>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">Escolha um plano com posições exclusivas</p>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 p-4">
-            {plans.map((plan) => {
+            {subscriptionPlans.map((plan: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
               const isCurrentPlan = currentPlanId === plan.id;
               const isHighlighted = Boolean(plan.is_highlighted);
               const planFeatures = Array.isArray(plan.features) 
@@ -111,12 +109,12 @@ export default function AdvertiserModule({
               return (
                 <div
                   key={plan.id}
-                  onClick={() => onPlanSelect(plan)}
+                  onClick={() => handlePlanSelect(plan)}
                   className={`p-4 rounded-xl border-2 relative cursor-pointer transition-all ${
                     isCurrentPlan
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-400 dark:shadow-lg dark:shadow-emerald-900/20'
                       : isHighlighted
-                      ? 'border-amber-400 bg-amber-50 dark:bg-amber-950/40 dark:border-amber-500 dark:shadow-amber-900/20'
+                      ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/40 dark:border-orange-500 dark:shadow-orange-900/20'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 dark:bg-slate-800/50'
                   }`}
                 >
@@ -126,7 +124,7 @@ export default function AdvertiserModule({
                     </div>
                   )}
                   {isHighlighted && !isCurrentPlan && (
-                    <div className="absolute -top-2 -right-2 bg-amber-500 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase z-10">
+                    <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase z-10">
                       Destaque
                     </div>
                   )}
@@ -156,7 +154,7 @@ export default function AdvertiserModule({
 
       {/* Recursos Avulsos */}
       {rules.length > 0 && (
-        <div className="bg-white dark:bg-slate-800 rounded-[2rem] border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
           <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 p-4">
             <h3 className="font-black uppercase italic text-slate-900 dark:text-slate-100">Recursos Adicionais</h3>
             <p className="text-[10px] text-slate-500 dark:text-slate-400">Contrate posições avulsas</p>
@@ -188,7 +186,7 @@ export default function AdvertiserModule({
                     )}
 
                     <button
-                      onClick={() => onPurchase('advertiser', feature, walletBalance)}
+                      onClick={() => handlePurchase('advertiser', feature, walletBalance)}
                       disabled={isPurchasing}
                       className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
                         isPurchasing
@@ -209,6 +207,6 @@ export default function AdvertiserModule({
           </div>
         </div>
       )}
-    </ModuleDetailLayout>
+    </DashboardShell>
   );
 }

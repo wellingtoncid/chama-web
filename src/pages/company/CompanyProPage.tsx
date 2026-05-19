@@ -6,6 +6,8 @@ import {
   FileText, Clock, CheckCircle, XCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import DashboardShell from '@/components/layout/DashboardShell';
+import { Button } from '@/components/ui/Button';
 
 interface CnpjData {
   cnpj: string;
@@ -194,46 +196,28 @@ export default function CompanyProPage() {
 
   if (loading) {
     return (
-      <div className="p-20 flex flex-col items-center justify-center animate-pulse">
-        <Loader2 className="animate-spin text-orange-500 mb-4" size={48} />
-        <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
-      </div>
+      <DashboardShell title="Company Pro" description="Recursos exclusivos para empresas">
+        <div className="flex flex-col items-center justify-center py-20 animate-pulse">
+          <Loader2 className="animate-spin text-orange-500 mb-4" size={48} />
+          <span className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400">Carregando...</span>
+        </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
-      {/* Header */}
-      <div className="bg-gradient-to-r from-slate-900 to-slate-800 rounded-[2rem] p-6 text-white relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-48 h-48 bg-orange-500/10 rounded-full blur-3xl"></div>
-        
-        <div className="relative z-10 flex items-center gap-4">
-          <button
-            onClick={() => window.history.back()}
-            className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
-          >
-            <ArrowLeft size={20} />
-          </button>
-          
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-emerald-500">
-              <Building2 size={24} />
-            </div>
-            <div>
-              <h2 className="text-2xl font-black uppercase italic">Company Pro</h2>
-              <p className="text-slate-300 text-sm font-medium">
-                Recursos exclusivos para empresas
-              </p>
-            </div>
-          </div>
-
-          {verificationStatus?.is_verified && (
-            <span className="ml-auto text-[10px] font-black px-3 py-1.5 rounded-lg uppercase bg-emerald-500/20 text-emerald-300 flex items-center gap-1">
-              <CheckCircle size={14} /> Verificado
-            </span>
-          )}
-        </div>
+    <DashboardShell title="Company Pro" description="Recursos exclusivos para empresas" actions={
+      <div className="flex items-center gap-2">
+        <Button variant="ghost" onClick={() => window.history.back()}>
+          <ArrowLeft size={16} /> Voltar
+        </Button>
+        {verificationStatus?.is_verified && (
+          <span className="text-[10px] font-black px-3 py-1.5 rounded-lg uppercase bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+            <CheckCircle size={14} /> Verificado
+          </span>
+        )}
       </div>
+    }>
 
       {/* Status Messages */}
       {verificationStatus?.is_verified && (
@@ -496,6 +480,6 @@ export default function CompanyProPage() {
           </ul>
         </div>
       </div>
-    </div>
+    </DashboardShell>
   );
 }

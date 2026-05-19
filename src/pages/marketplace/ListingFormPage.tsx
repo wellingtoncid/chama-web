@@ -8,6 +8,7 @@ import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import { AdImage } from '../../components/AdImage';
 import { Button } from '../../components/ui/Button';
+import DashboardShell from '../../components/layout/DashboardShell';
 
 const MARKETPLACE_CONFIG = {
   maxImages: 5,
@@ -115,6 +116,7 @@ export default function ListingFormPage() {
       }
     } catch (error) {
       console.error('Erro ao verificar acesso de afiliado:', error);
+      setRequestsEnabled(false);
     } finally {
       setCheckingAffiliate(false);
     }
@@ -401,7 +403,7 @@ export default function ListingFormPage() {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-5 lg:p-8 animate-in fade-in duration-500">
+      <DashboardShell title="Novo Anúncio" description="Crie um anúncio para o marketplace">
         <div className="max-w-4xl mx-auto space-y-6 animate-pulse">
           <div className="flex items-center gap-4 mb-6">
             <div className="w-10 h-10 bg-slate-200 dark:bg-slate-700 rounded-xl" />
@@ -421,14 +423,14 @@ export default function ListingFormPage() {
             </div>
           </div>
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   const totalImages = images.length + existingImages.length;
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-5 lg:p-8 animate-in fade-in duration-500">
+    <DashboardShell title="Novo Anúncio" description="Crie um anúncio para o marketplace">
       <AlertToast />
 
       <div className="max-w-4xl mx-auto">
@@ -907,6 +909,6 @@ export default function ListingFormPage() {
           </div>
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }

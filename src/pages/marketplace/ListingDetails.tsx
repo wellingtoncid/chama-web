@@ -3,7 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../api/api';
 import { 
   ArrowLeft, MapPin, Calendar, Share2, Loader2, User, Building2, 
-  Phone, Lock, Star, AlertTriangle, Info, TrendingUp, ShieldCheck
+  Phone, Lock, Star, AlertTriangle, Info, ShieldCheck, Flag
 } from 'lucide-react';
 import Header from '../../components/shared/Header';
 import Footer from '../../components/shared/Footer';
@@ -51,6 +51,7 @@ export default function ListingDetails() {
   
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState<'WHATSAPP' | 'CHAT' | null>(null);
+
   const [authState, setAuthState] = useState({
     isAuthenticated: !!localStorage.getItem('@ChamaFrete:token'),
     user: JSON.parse(localStorage.getItem('@ChamaFrete:user') || '{}')
@@ -388,6 +389,17 @@ export default function ListingDetails() {
                       <span className="text-[9px] opacity-80 font-bold">Inicie agora mesmo</span>
                     </button>
                   </div>
+
+                  {listing.user_id && (
+                    <div className="text-center pt-2">
+                      <Link
+                        to={`/denunciar/anuncio/${slug}`}
+                        className="text-[10px] text-slate-400 hover:text-red-500 font-bold uppercase tracking-widest transition-colors inline-flex items-center gap-1"
+                      >
+                        <Flag size={11} /> Denunciar
+                      </Link>
+                    </div>
+                  )}
 
                   {/* Sobre o Anunciante */}
                   <div className="mt-8 pt-8 border-t border-slate-100 text-left">

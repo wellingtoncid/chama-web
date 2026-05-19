@@ -1,63 +1,41 @@
-// useState removed 'react';
-import { ShoppingBag, Check, Star } from 'lucide-react';
-import ModuleDetailLayout from './ModuleDetailLayout';
+import { ArrowLeft, Check, Star } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { usePlans } from '../../../context/PlansContext';
+import DashboardShell from '../../../components/layout/DashboardShell';
+import { Button } from '../../../components/ui/Button';
 
-interface PricingRule {
-  id: number;
-  module_key: string;
-  feature_key: string;
-  feature_name: string;
-  pricing_type: string;
-  free_limit: number;
-  price_per_use: number;
-  price_monthly: number;
-  price_daily: number;
-  duration_days: number;
-  is_active: number;
-}
+export default function MarketplaceModule() {
+  const navigate = useNavigate();
+  const {
+    pricingRules,
+    getSubscriptionPlans, getActivePlanIdForModule,
+    handlePlanSelect,
+  } = usePlans();
 
-interface MarketplaceModuleProps {
-  plans: any[];
-  rules: PricingRule[];
-  isActive: boolean;
-  onBack: () => void;
-  onPlanSelect: (plan: any) => void;
-  onPurchase: (moduleKey: string, feature: PricingRule, walletBalance?: number) => Promise<void>;
-  purchasing: string | null;
-  walletBalance?: number;
-  currentPlanId?: number | null;
-  }
-
-export default function MarketplaceModule({
-  plans,
-  rules,
-  isActive,
-  onBack,
-  onPlanSelect,
-  onPurchase,
-  purchasing,
-  walletBalance = 0,
-  currentPlanId = null,
-}: MarketplaceModuleProps) {
+  const subscriptionPlans = getSubscriptionPlans('marketplace_subscription');
+  const rules = pricingRules.filter(r => r.module_key === 'marketplace');
+  const currentPlanId = getActivePlanIdForModule('marketplace');
 
   return (
-    <ModuleDetailLayout
+    <DashboardShell
       title="Marketplace"
-      icon={<ShoppingBag size={24} />}
       description="Venda produtos e peças"
-      isActive={isActive}
-      onBack={onBack}
+      actions={
+        <Button variant="ghost" onClick={() => navigate('/dashboard/planos')}>
+          <ArrowLeft size={16} /> Voltar
+        </Button>
+      }
     >
       {/* Planos de Assinatura */}
-      {plans.length > 0 && (
-        <div className="bg-white rounded-[2rem] border-2 border-slate-100 overflow-hidden">
-          <div className="bg-gradient-to-r from-purple-700 to-purple-600 p-4">
-            <h3 className="font-black uppercase italic text-white">Planos Mensais</h3>
-            <p className="text-purple-200 text-xs">Escolha um plano com benefícios exclusivos</p>
+      {subscriptionPlans.length > 0 && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 p-4">
+            <h3 className="font-black uppercase italic text-slate-900 dark:text-slate-100">Planos de Assinatura</h3>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">Escolha o melhor para sua operação</p>
           </div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 p-4">
-            {plans.map((plan) => {
+            {subscriptionPlans.map((plan: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
               const isCurrentPlan = currentPlanId === plan.id;
               const isHighlighted = Boolean(plan.is_highlighted);
               const planFeatures = Array.isArray(plan.features) 
@@ -67,12 +45,12 @@ export default function MarketplaceModule({
               return (
                 <div
                   key={plan.id}
-                  onClick={() => onPlanSelect(plan)}
+                  onClick={() => handlePlanSelect(plan)}
                   className={`p-4 rounded-xl border-2 relative cursor-pointer transition-all ${
                     isCurrentPlan
                       ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 dark:border-emerald-400 dark:shadow-lg dark:shadow-emerald-900/20'
                       : isHighlighted
-                      ? 'border-purple-400 bg-purple-50 dark:bg-purple-950/40 dark:border-purple-500 dark:shadow-purple-900/20'
+                      ? 'border-orange-400 bg-orange-50 dark:bg-orange-950/40 dark:border-orange-500 dark:shadow-orange-900/20'
                       : 'border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600 dark:bg-slate-800/50'
                   }`}
                 >
@@ -82,7 +60,7 @@ export default function MarketplaceModule({
                     </div>
                   )}
                   {isHighlighted && !isCurrentPlan && (
-                    <div className="absolute -top-2 -right-2 bg-purple-500 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase z-10">
+                    <div className="absolute -top-2 -right-2 bg-orange-500 text-white text-[8px] font-black px-2 py-1 rounded-full uppercase z-10">
                       Popular
                     </div>
                   )}
@@ -112,13 +90,13 @@ export default function MarketplaceModule({
 
       {/* Info sobre Recursos Avulsos */}
       {rules.length > 0 && (
-        <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800">
-          <h4 className="font-bold text-purple-900 dark:text-purple-300 text-sm">Quer destacar seus anúncios?</h4>
-          <p className="text-xs text-purple-700 dark:text-purple-400 mt-1">
+        <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
+          <h4 className="font-bold text-blue-900 dark:text-blue-300 text-sm">Quer destacar seus anúncios?</h4>
+          <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
             Na página de cada anúncio, você encontrará opções para destacar, bump ou adicionar mais visibilidade ao seu produto.
           </p>
         </div>
       )}
-    </ModuleDetailLayout>
+    </DashboardShell>
   );
 }

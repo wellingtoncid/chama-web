@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useNotificationBell } from '@/hooks/useNotifications';
 import { Bell, Check, CheckCheck, X, AlertTriangle, Users, Truck, MessageCircle } from 'lucide-react';
 
@@ -19,6 +20,7 @@ const TYPE_COLORS: Record<string, string> = {
 };
 
 export default function NotificationBell() {
+  const navigate = useNavigate();
   const { notifications, unreadCount, loading, isOpen, open, close, markAsRead, markAllAsRead } = useNotificationBell();
   const [showAll, setShowAll] = useState(false);
 
@@ -113,7 +115,7 @@ export default function NotificationBell() {
                           markAsRead(notification.id);
                         }
                         if (notification.link) {
-                          window.location.href = notification.link;
+                          navigate(notification.link);
                         }
                       }}
                       className={`px-4 py-3 hover:bg-slate-50 dark:hover:bg-slate-800/50 cursor-pointer border-l-4 ${

@@ -1,8 +1,9 @@
 import {
-  LayoutDashboard, Truck, Megaphone, ShoppingBag,
-  User, CreditCard, MessageSquare,
+  Truck, Megaphone, ShoppingBag,
+  User, CreditCard,
   Wallet, Users, PlusCircle, Tag, HelpCircle, FileText,
-  Shield, LayoutGrid, Star, Flag, BookOpen, UserPlus, Settings, Mail, Headphones, ShieldCheck, UserCog
+  Shield, LayoutGrid, Star, Flag, BookOpen, UserPlus, Settings, Mail, Headphones, ShieldCheck,
+  UsersRound
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -35,19 +36,22 @@ export function buildMenuSections(
   const hasMarketplace = hasModule('marketplace') || isSuperAdmin;
   const hasQuotes = hasModule('quotes') || isSuperAdmin;
   const hasFinancial = hasModule('financial') || isSuperAdmin;
-  const hasGroups = hasModule('groups') || isSuperAdmin;
   const hasPlans = hasModule('plans') || isSuperAdmin;
   const hasSupport = hasModule('support') || isSuperAdmin;
   const hasAdvertiser = hasModule('advertiser') || isSuperAdmin;
 
+  const navegarItems: MenuItem[] = [
+    { label: 'Fretes', icon: <Truck size={20} />, path: '/fretes', visible: true },
+    { label: 'Marketplace', icon: <ShoppingBag size={20} />, path: '/marketplace', visible: true },
+    { label: 'Comunidade', icon: <UsersRound size={20} />, path: '/comunidade', visible: true },
+    { label: 'Artigos', icon: <BookOpen size={20} />, path: '/artigos', visible: true },
+  ];
+
   return [
     {
-      title: "Principal",
-      visible: isExternal,
-      items: [
-        { label: 'Início', icon: <LayoutDashboard size={20} />, path: '/dashboard', visible: true },
-        { label: 'Mensagens', icon: <MessageSquare size={20} />, path: '/dashboard/chat', visible: true },
-      ],
+      title: "Navegar",
+      visible: true,
+      items: navegarItems,
     },
     {
       title: "Administração",
@@ -90,20 +94,19 @@ export function buildMenuSections(
       items: [
         { label: 'Anunciar Carga', icon: <PlusCircle size={20} />, path: '/novo-frete', visible: isCompany && hasFreights, highlight: true },
         { label: 'Meus Fretes', icon: <Truck size={20} />, path: '/dashboard/logistica', visible: isCompany && hasFreights },
-        { label: 'Meus Anúncios', icon: <ShoppingBag size={20} />, path: '/dashboard/anunciante', visible: (isCompany || role === 'advertiser') && hasAdvertiser },
-        { label: 'Equipe', icon: <Users size={20} />, path: '/dashboard/equipe', visible: isCompany },
       ],
     },
     {
       title: "Ecossistema",
       visible: isExternal,
       items: [
-        { label: 'Cotações', icon: <FileText size={20} />, path: '/dashboard/cotacoes', visible: isCompany && hasQuotes },
         { label: 'Marketplace', icon: <ShoppingBag size={20} />, path: '/dashboard/vendas', visible: hasMarketplace },
+        { label: 'Anúncios', icon: <Megaphone size={20} />, path: '/dashboard/anunciante', visible: (isCompany || role === 'advertiser') && hasAdvertiser },
         { label: 'Financeiro', icon: <CreditCard size={20} />, path: '/dashboard/financeiro', visible: hasFinancial || isDriver },
         { label: 'Planos', icon: <Tag size={20} />, path: '/dashboard/planos', visible: hasPlans },
         { label: 'Suporte', icon: <HelpCircle size={20} />, path: '/dashboard/suporte', visible: hasSupport },
         { label: 'Meus Artigos', icon: <BookOpen size={20} />, path: '/dashboard/meus-artigos', visible: isAuthor || isInternal || hasModule('articles') || role === 'author' },
+        { label: 'Equipe', icon: <Users size={20} />, path: '/dashboard/equipe', visible: isCompany },
         { label: 'Meu Perfil', icon: <User size={20} />, path: '/dashboard/profile', visible: true },
       ],
     },

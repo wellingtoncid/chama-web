@@ -17,7 +17,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
   const navLinks = [
     { name: "Fretes", href: "/fretes" },
     { name: "Marketplace", href: "/marketplace" },
-    { name: "Comunidades", href: "/comunidade" }
+    { name: "Comunidade", href: "/comunidade" },
+    { name: "Artigos", href: "/artigos" },
   ];
   const displayName = user?.name ?? user?.email ?? 'Usuário';
 

@@ -11,6 +11,7 @@ const GroupsList = lazy(() => import('../pages/GroupsList'));
 const GroupDetail = lazy(() => import('../pages/GroupDetail'));
 const ProfileView = lazy(() => import('../pages/public/ProfileView'));
 const ReviewsPage = lazy(() => import('../pages/public/ReviewsPage'));
+const ReportPage = lazy(() => import('../pages/public/ReportPage'));
 const AdvertisingLandingPage = lazy(() => import('../pages/AdvertisingLandingPage'));
 const PublicidadePage = lazy(() => import('../pages/PublicidadePage'));
 const HowItWorks = lazy(() => import('../pages/HowItWorks'));
@@ -31,8 +32,7 @@ const ArticlesPage = lazy(() => import('../pages/ArticlesPage'));
 const ArticleDetailPage = lazy(() => import('../pages/ArticleDetailPage'));
 const ArticleSubmitPage = lazy(() => import('../pages/ArticleSubmitPage'));
 const AuthorRequestPage = lazy(() => import('../pages/AuthorRequestPage'));
-const ChatList = lazy(() => import('../pages/chat/ChatList'));
-const ChatRoom = lazy(() => import('../pages/chat/ChatRoom'));
+const ChatPage = lazy(() => import('../pages/chat/ChatPage'));
 const PaymentSuccess = lazy(() => import('../pages/checkout/PaymentSuccess'));
 const PaymentFailure = lazy(() => import('../pages/checkout/PaymentFailure'));
 const UsersManager = lazy(() => import('../components/admin/UsersManagerView'));
@@ -78,6 +78,7 @@ export default function AppRoutes() {
       <Route path="/company/:slug" element={<ProfileView />} />
       <Route path="/perfil/:slug" element={<ProfileView />} />
       <Route path="/avaliacoes/:slug" element={<ReviewsPage />} />
+      <Route path="/denunciar/:type/:slug" element={<ReportPage />} />
       <Route path="/anuncie" element={<AdvertisingLandingPage />} />
       <Route path="/seja-visto" element={<AdvertisingLandingPage />} />
       <Route path="/publicidade" element={<PublicidadePage />} />
@@ -103,8 +104,8 @@ export default function AppRoutes() {
           <Route path="/dashboard/admin/usuarios/:id" element={<UserEditorPage />} />
 
           {/* CHAT */}
-          <Route path="/chat" element={<ChatList />} />
-          <Route path="/chat/:roomId" element={<ChatRoom />} />
+          <Route path="/chat" element={<ChatPage />} />
+          <Route path="/chat/:roomId" element={<ChatPage />} />
 
           {/* CRIAR/EDITAR FRETE */}
           <Route path="/novo-frete" element={<CreateFreight />} />

@@ -180,6 +180,11 @@ export default function ProfileView() {
     { value: 'fake', label: 'Perfil falso' },
     { value: 'fraud', label: 'Fraude ou golpe' },
     { value: 'inappropriate', label: 'Comportamento inadequado' },
+    { value: 'suspicious_payment', label: 'Solicitou pagamento suspeito' },
+    { value: 'external_deal', label: 'Quer negociar fora da plataforma' },
+    { value: 'meet_in_person', label: 'Quer encontro presencial suspeito' },
+    { value: 'fake_documents', label: 'Enviou documentos falsos' },
+    { value: 'third_party', label: 'Usando dados de terceiros' },
     { value: 'other', label: 'Outro motivo' },
   ];
   const { trackEvent } = useTracker();

@@ -6,6 +6,7 @@ import { getStates, getCitiesByState } from '../../services/location';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
 import WelcomeOnboarding from '../../components/profile/WelcomeOnboarding';
 import { Button } from '../../components/ui/Button';
+import DashboardShell from '../../components/layout/DashboardShell';
 
 function parseJsonArray(value: any): string[] {
   if (Array.isArray(value)) return value;
@@ -153,7 +154,7 @@ export default function CreateFreight() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-5 lg:p-8">
+    <DashboardShell title={formData.id ? 'Editar Carga' : 'Nova Carga'} description="Preencha os dados do frete para publicar">
       <AlertToast />
 
       {needsOnboarding && (
@@ -178,16 +179,6 @@ export default function CreateFreight() {
         </Button>
 
         <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg overflow-hidden border border-slate-200 dark:border-slate-700">
-          <div className={`p-8 lg:p-10 text-white flex justify-between items-center relative ${isAdminOrManager ? 'bg-blue-600' : 'bg-slate-900 dark:bg-slate-900'}`}>
-            <div className="relative z-10">
-              <h1 className="text-2xl lg:text-3xl font-black flex items-center gap-3">
-                <Package className="text-orange-500" size={28} />
-                {formData.id ? 'Editar Carga' : 'Nova Carga'}
-              </h1>
-              <p className="text-xl text-white/70 mt-1">Preencha os dados do frete para publicar</p>
-            </div>
-            <ShieldCheck size={80} className="absolute -right-2 -bottom-2 text-white/10 rotate-12" />
-          </div>
 
           <div className="p-8 lg:p-12 space-y-8">
             {isAdminOrManager && (
@@ -350,6 +341,6 @@ export default function CreateFreight() {
           </div>
         </form>
       </div>
-    </div>
+    </DashboardShell>
   );
 }

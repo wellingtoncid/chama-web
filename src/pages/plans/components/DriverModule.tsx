@@ -1,35 +1,10 @@
-import { User, Loader2, Check, Clock, AlertTriangle } from 'lucide-react';
-// Swal removed 'sweetalert2';
-import ModuleDetailLayout from './ModuleDetailLayout';
+import { ArrowLeft, Loader2, Check, Clock, AlertTriangle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { usePlans } from '../../../context/PlansContext';
+import DashboardShell from '../../../components/layout/DashboardShell';
+import { Button } from '../../../components/ui/Button';
 
-interface PricingRule {
-  id: number;
-  module_key: string;
-  feature_key: string;
-  feature_name: string;
-  pricing_type: string;
-  free_limit: number;
-  price_per_use: number;
-  price_monthly: number;
-  price_daily: number;
-  duration_days: number;
-  is_active: number;
-}
-
-interface DriverModuleProps {
-  rules: PricingRule[];
-  onBack: () => void;
-  verificationStatus: {
-    status: string | null;
-    rejection_reason: string | null;
-  };
-  hasContracted: boolean;
-  onPurchase: (moduleKey: string, feature: PricingRule, walletBalance?: number) => Promise<void>;
-  purchasing: string | null;
-  walletBalance?: number;
-}
-
-const formatPrice = (value: any) => {
+const formatPrice = (value: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
   const num = Number(value) || 0;
   return num > 0 ? `R$ ${num.toFixed(2).replace('.', ',')}` : 'Grátis';
 };
@@ -42,17 +17,18 @@ const formatDuration = (days: number) => {
   return `${days} dias`;
 };
 
-export default function DriverModule({
-  rules,
-  onBack,
-  verificationStatus,
-  hasContracted,
-  onPurchase,
-  purchasing,
-  walletBalance = 0,
-}: DriverModuleProps) {
+export default function DriverModule() {
+  const navigate = useNavigate();
+  const {
+    purchasing, walletBalance,
+    driverVerificationStatus, driverHasContracted,
+    handlePurchase, getModuleRules,
+  } = usePlans();
+
+  const rules = getModuleRules('driver');
+
   const getStatusBadge = () => {
-    if (hasContracted) {
+    if (driverHasContracted) {
       return (
         <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-4 flex items-center gap-3">
           <Check size={20} className="text-emerald-500" />
@@ -64,7 +40,7 @@ export default function DriverModule({
       );
     }
 
-    if (verificationStatus.status === 'awaiting_review' || verificationStatus.status === 'pending_docs') {
+    if (driverVerificationStatus.status === 'awaiting_review' || driverVerificationStatus.status === 'pending_docs') {
       return (
         <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-center gap-3">
           <Clock size={20} className="text-amber-500" />
@@ -76,14 +52,14 @@ export default function DriverModule({
       );
     }
 
-    if (verificationStatus.status === 'rejected' || verificationStatus.status === 'needs_resend') {
+    if (driverVerificationStatus.status === 'rejected' || driverVerificationStatus.status === 'needs_resend') {
       return (
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 flex items-start gap-3">
           <AlertTriangle size={20} className="text-red-500 shrink-0 mt-0.5" />
           <div>
             <p className="text-xs font-black text-red-800 uppercase">Documentos Rejeitados</p>
-            {verificationStatus.rejection_reason && (
-              <p className="text-[10px] text-red-600 mt-1 whitespace-pre-line">{verificationStatus.rejection_reason}</p>
+            {driverVerificationStatus.rejection_reason && (
+              <p className="text-[10px] text-red-600 mt-1 whitespace-pre-line">{driverVerificationStatus.rejection_reason}</p>
             )}
           </div>
         </div>
@@ -94,25 +70,27 @@ export default function DriverModule({
   };
 
   return (
-    <ModuleDetailLayout
+    <DashboardShell
       title="Driver Pro"
-      icon={<User size={24} />}
       description="Recursos exclusivos para motoristas"
-      isActive={hasContracted}
-      onBack={onBack}
+      actions={
+        <Button variant="ghost" onClick={() => navigate('/dashboard/planos')}>
+          <ArrowLeft size={16} /> Voltar
+        </Button>
+      }
     >
       {/* Status */}
       {getStatusBadge()}
 
       {/* Recursos */}
       {rules.length > 0 && (
-        <div className="bg-white rounded-[2rem] border border-slate-100 overflow-hidden">
-          <div className="bg-slate-50 border-b border-slate-100 p-4">
-            <h3 className="font-black uppercase italic text-slate-900">Recursos Exclusivos</h3>
-            <p className="text-[10px] text-slate-500">Destaque seu perfil e ganhe mais visibilidade</p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="bg-slate-50 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 p-4">
+            <h3 className="font-black uppercase italic text-slate-900 dark:text-slate-100">Recursos Exclusivos</h3>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">Destaque seu perfil e ganhe mais visibilidade</p>
           </div>
 
-          <div className="divide-y divide-slate-50">
+          <div className="divide-y divide-slate-100 dark:divide-slate-700">
             {rules.map((feature) => {
               const isPurchasing = purchasing === `driver-${feature.feature_key}`;
 
@@ -132,28 +110,28 @@ export default function DriverModule({
               return (
                 <div key={feature.id} className="p-4 flex items-center justify-between">
                   <div>
-                    <h4 className="font-bold text-slate-900">{feature.feature_name}</h4>
+                    <h4 className="font-bold text-slate-900 dark:text-slate-100">{feature.feature_name}</h4>
                     {feature.duration_days > 0 && priceInfo.label === '' && (
-                      <p className="text-[10px] text-slate-500">Validade: {formatDuration(feature.duration_days)}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Validade: {formatDuration(feature.duration_days)}</p>
                     )}
                     {priceInfo.label === '/mês' && (
-                      <p className="text-[10px] text-slate-500">Validade: {formatDuration(feature.duration_days || 30)}</p>
+                      <p className="text-[10px] text-slate-500 dark:text-slate-400">Validade: {formatDuration(feature.duration_days || 30)}</p>
                     )}
                   </div>
 
                   <div className="flex items-center gap-4">
                     {priceInfo.price > 0 && (
-                      <span className="font-black text-emerald-600">
+                      <span className="font-black text-emerald-600 dark:text-emerald-400">
                         {formatPrice(priceInfo.price)}{priceInfo.label}
                       </span>
                     )}
 
                     <button
-                      onClick={() => onPurchase('driver', feature, walletBalance)}
+                      onClick={() => handlePurchase('driver', feature, walletBalance)}
                       disabled={isPurchasing}
                       className={`px-4 py-2 rounded-lg font-bold text-xs uppercase transition-all ${
                         isPurchasing
-                          ? 'bg-slate-100 text-slate-400'
+                          ? 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500'
                           : 'bg-orange-500 hover:bg-orange-600 text-white'
                       }`}
                     >
@@ -170,6 +148,6 @@ export default function DriverModule({
           </div>
         </div>
       )}
-    </ModuleDetailLayout>
+    </DashboardShell>
   );
 }
