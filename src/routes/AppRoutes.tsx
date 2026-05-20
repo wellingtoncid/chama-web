@@ -32,6 +32,9 @@ const ArticlesPage = lazy(() => import('../pages/ArticlesPage'));
 const ArticleDetailPage = lazy(() => import('../pages/ArticleDetailPage'));
 const ArticleSubmitPage = lazy(() => import('../pages/ArticleSubmitPage'));
 const AuthorRequestPage = lazy(() => import('../pages/AuthorRequestPage'));
+const AboutPage = lazy(() => import('../pages/public/AboutPage'));
+const PrivacyPage = lazy(() => import('../pages/public/PrivacyPage'));
+const TermsPage = lazy(() => import('../pages/public/TermsPage'));
 const ChatPage = lazy(() => import('../pages/chat/ChatPage'));
 const PaymentSuccess = lazy(() => import('../pages/checkout/PaymentSuccess'));
 const PaymentFailure = lazy(() => import('../pages/checkout/PaymentFailure'));
@@ -85,6 +88,10 @@ export default function AppRoutes() {
       <Route path="/como-funciona" element={<HowItWorks />} />
       <Route path="/como-funciona/empresas" element={<HowItWorksCompanies />} />
       <Route path="/como-funciona/motoristas" element={<HowItWorksDrivers />} />
+
+      <Route path="/sobre" element={<AboutPage />} />
+      <Route path="/privacidade" element={<PrivacyPage />} />
+      <Route path="/termos" element={<TermsPage />} />
 
       {/* --- ARTIGOS (PÚBLICOS) --- */}
       <Route path="/artigos" element={<ArticlesPage />} />

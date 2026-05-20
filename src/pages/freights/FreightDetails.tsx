@@ -212,7 +212,7 @@ export default function FreightDetails() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      <main className="max-w-6xl mx-auto pt-32 pb-20 px-4">
+      <main className="max-w-7xl mx-auto pt-32 pb-20 px-4">
         
         {/* NAVEGAÇÃO */}
         <div className="flex items-center justify-between mb-8">
@@ -296,7 +296,9 @@ export default function FreightDetails() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="spotlight" variant="ecommerce" city={freight.origin_city} state={freight.origin_state} />
+            <div className="max-w-4xl mx-auto">
+              <AdCard position="spotlight" variant="ecommerce" city={freight.origin_city} state={freight.origin_state} />
+            </div>
 
             {/* Fretes Similares (Correção Visual) */}
             {relatedFreights.length > 0 && (

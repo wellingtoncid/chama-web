@@ -25,7 +25,7 @@ export default function HowItWorks() {
 
         {/* Escolha seu perfil */}
         <section className="py-20">
-          <div className="max-w-6xl mx-auto px-4">
+          <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter text-center mb-16">
               Escolha seu <span className="text-blue-600">Perfil</span>
             </h2>
@@ -108,7 +108,7 @@ export default function HowItWorks() {
 
         {/* Recursos em comum */}
         <section className="py-20 bg-slate-50 dark:bg-slate-900">
-          <div className="max-w-6xl mx-auto px-4">
+          <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter text-center mb-16">
               Para <span className="text-emerald-600">Todos</span>
             </h2>

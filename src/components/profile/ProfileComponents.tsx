@@ -36,9 +36,9 @@ export const StatCard = memo(function StatCard({ label, value, icon }: { label: 
 
 export const ProfileInfoItem = memo(function ProfileInfoItem({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 pb-3">
+    <div className="flex flex-col gap-0.5 border-b border-slate-200 dark:border-slate-700 pb-3">
       <span className="text-[10px] font-black text-slate-400 uppercase">{label}</span>
-      <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase italic truncate max-w-[60%]">
+      <span className="text-xs font-black text-slate-800 dark:text-slate-200 uppercase italic">
         {value}
       </span>
     </div>

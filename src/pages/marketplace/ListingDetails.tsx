@@ -185,7 +185,7 @@ export default function ListingDetails() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      <main className="max-w-6xl mx-auto pt-32 pb-20 px-4">
+      <main className="max-w-7xl mx-auto pt-32 pb-20 px-4">
         
         {/* NAVEGAÇÃO */}
         <div className="flex items-center justify-between mb-8">
@@ -303,7 +303,9 @@ export default function ListingDetails() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="spotlight" variant="ecommerce" city={listing.location_city} state={listing.location_state} />
+            <div className="max-w-4xl mx-auto">
+              <AdCard position="spotlight" variant="ecommerce" city={listing.location_city} state={listing.location_state} />
+            </div>
 
             {/* Anúncios Relacionados */}
             {listing.related && listing.related.length > 0 && (

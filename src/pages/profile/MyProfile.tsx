@@ -361,7 +361,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                 </h2>
                 <div className="flex items-center gap-2 mt-2">
                   <span className={`${theme.bg} text-white text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider`}>
-                    {isDriver ? 'Motorista Autônomo' : 'Empresa / Embarcador'}
+                    {isDriver ? 'Motorista Autônomo' : 'Empresa'}
                   </span>
                   <span className="text-slate-400 text-[10px] font-bold uppercase flex items-center gap-1">
                     <MapPin size={11} /> {formData.city || '---'}, {formData.state || 'UF'}
@@ -571,31 +571,23 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
               </div>
               <div className="space-y-3">
                 {userModules
-                  .filter(m => m.key !== 'identity_verification')
+                  .filter(m => m.key !== 'identity_verification' && m.is_active)
                   .map(mod => {
                     const info = MODULE_LABELS[mod.key];
                     if (!info) return null;
                     const isActive = mod.is_active;
                     return (
-                      <div key={mod.key} className={`flex items-center gap-3 p-3 rounded-xl transition-all ${
-                        isActive ? 'bg-emerald-50 dark:bg-emerald-900/10' : 'bg-slate-50 dark:bg-slate-800/50'
-                      }`}>
-                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
-                          isActive ? 'bg-emerald-100 dark:bg-emerald-800/30 text-emerald-600' : 'bg-slate-200 dark:bg-slate-700 text-slate-400'
-                        }`}>
+                      <div key={mod.key} className="flex items-center gap-3 p-3 rounded-xl transition-all bg-emerald-50 dark:bg-emerald-900/10">
+                        <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-emerald-100 dark:bg-emerald-800/30 text-emerald-600">
                           {info.icon}
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`text-[10px] font-black uppercase ${isActive ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500'}`}>
+                          <p className="text-[10px] font-black uppercase text-emerald-700 dark:text-emerald-400">
                             {info.label}
                           </p>
                         </div>
-                        <span className={`text-[9px] font-black uppercase px-2.5 py-1 rounded-lg ${
-                          isActive
-                            ? 'text-emerald-600 bg-emerald-100 dark:bg-emerald-800/30'
-                            : 'text-amber-500 bg-amber-50 dark:bg-amber-500/10'
-                        }`}>
-                          {isActive ? 'Ativo' : 'Inativo'}
+                        <span className="text-[9px] font-black uppercase px-2.5 py-1 rounded-lg text-emerald-600 bg-emerald-100 dark:bg-emerald-800/30">
+                          Ativo
                         </span>
                       </div>
                     );

@@ -167,9 +167,12 @@ export default function FreightPage() {
         <div className="max-w-7xl mx-auto px-4">
           
           <header className="mb-10">
-            <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.85] mb-8">
+            <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.85] mb-4">
               Portal de <span className="text-blue-600">Cargas</span>
             </h1>
+            <p className="text-slate-500 dark:text-slate-400 text-lg font-medium mb-8">
+              Milhares de fretes disponíveis em todo o Brasil para você encontrar a melhor carga.
+            </p>
 
             <div className="relative group">
               <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-blue-600" size={28} />
@@ -301,7 +304,7 @@ export default function FreightPage() {
           </header>
 
           {/* SECTION DO CARROSSEL */}
-          <section className="mb-10 relative">
+          <section className="max-w-4xl mx-auto mb-10 relative">
             <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
               <AdCarousel searchTerm={searchTerm} />
             </div>
@@ -334,8 +337,7 @@ export default function FreightPage() {
                       <React.Fragment key={`${item.id}-${index}`}>
                         <FreightCard data={item} onView={() => handleViewTracking(item.id, 'freight')} />
                         {index === 3 && (
-                          <div 
-                            onClick={() => setIsBusinessModalOpen(true)} 
+                          <div onClick={() => setIsBusinessModalOpen(true)} 
                             className="group cursor-pointer bg-slate-900 dark:bg-slate-800 rounded-[2rem] p-8 text-white flex flex-col justify-between h-[420px] relative overflow-hidden shadow-xl hover:translate-y-[-4px] transition-all border border-slate-700"
                           >
                             <Building2 className="absolute -right-4 -bottom-4 text-amber-500/10 group-hover:scale-110 transition-transform duration-700" size={180} />
@@ -351,10 +353,8 @@ export default function FreightPage() {
                             </button>
                           </div>
                         )}
-                        {index >= 4 && (index + 1) % 8 === 0 && (
-                          <div className="h-[280px]">
-                            <AdCard position="infeed_compact" variant="ecommerce" search={searchTerm} city={item.origin_city} />
-                          </div>
+                        {index > 0 && index % 8 === 0 && (
+                          <AdCard position="freight_list" variant="card" search={searchTerm} />
                         )}
                       </React.Fragment>
                     ))}
@@ -374,6 +374,11 @@ export default function FreightPage() {
               </div>
             )}
           </section>
+
+          {/* Anúncio */}
+          <div className="max-w-4xl mx-auto mb-10">
+            <AdCard position="freight_list" variant="ecommerce" search={searchTerm} />
+          </div>
         </div>
       </main>
 

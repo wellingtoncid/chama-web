@@ -421,7 +421,7 @@ export default function MarketplaceExplorer() {
       )}
 
       {/* CAROUSEL DE ANÚNCIOS */}
-      <section className="my-6 relative">
+      <section className="max-w-4xl mx-auto my-6 relative">
         <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
           <AdCarousel searchTerm={debouncedSearch} state={selectedState} city={selectedCity} />
         </div>
@@ -511,11 +511,8 @@ export default function MarketplaceExplorer() {
                   </div>
                 )}
 
-                {/* In-Feed Ad a cada 8 items (após primeiros 3) */}
-                {index >= 3 && (index + 1) % 8 === 0 && (
-                  <div className="col-span-full min-h-[280px]">
-                    <AdCard position="infeed_compact" variant="ecommerce" state={item.location_state} search={debouncedSearch} />
-                  </div>
+                {index > 0 && index % 8 === 0 && (
+                  <AdCard position="marketplace_list" variant="card" search={debouncedSearch} />
                 )}
               </React.Fragment>
             ))}
@@ -531,6 +528,11 @@ export default function MarketplaceExplorer() {
           )}
         </div>
       )}
+
+      {/* Anúncio */}
+      <div className="max-w-4xl mx-auto mb-10">
+        <AdCard position="marketplace_list" variant="ecommerce" search={debouncedSearch} />
+      </div>
 
       <BusinessModal 
         isOpen={isBusinessModalOpen} 

@@ -32,7 +32,7 @@ const CTA = () => {
 
   return (
     <section className="py-24 px-4 bg-white dark:bg-slate-950 transition-colors">
-      <div className="container mx-auto max-w-6xl">
+      <div className="container mx-auto max-w-7xl">
         <div className="bg-[#0F172A] rounded-[4rem] p-10 md:p-24 relative overflow-hidden border border-slate-800 shadow-2xl">
           
           {/* Efeito de Profundidade */}

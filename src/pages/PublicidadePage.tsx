@@ -88,7 +88,7 @@ export default function PublicidadePage() {
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {positions
-                .filter(pos => pos.price_monthly > 0)
+                .filter(pos => Number(pos.is_public))
                 .map((pos) => {
                 const Icon = getIcon(pos.icon_key);
                 const colorClass = getColor(pos.feature_key);

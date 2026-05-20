@@ -1,11 +1,43 @@
 import { Mail, Phone } from "lucide-react";
 import { FaInstagram, FaLinkedin, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
+import { useState, useEffect } from 'react';
 import AdCard from "../shared/AdCard"; 
+import { api } from '../../api/api';
+import { BusinessModal } from '../modals/BusinessModal';
+
+const DEFAULT_AD = {
+  id: 0,
+  title: "Sua Marca Aqui",
+  description: "Conecte-se com o ecossistema logístico que mais cresce no Brasil.",
+  image_url: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1470&auto=format&fit=crop",
+  category: "BUSINESS",
+};
 
 const Footer = () => {
+  const [footerAds, setFooterAds] = useState<any[]>([DEFAULT_AD, DEFAULT_AD, DEFAULT_AD]);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await api.get('/ads', { params: { position: 'footer' } });
+        const ads = res.data?.data || (Array.isArray(res.data) ? res.data : []);
+        const shuffled = [...ads].sort(() => Math.random() - 0.5);
+        setFooterAds([
+          shuffled[0] || DEFAULT_AD,
+          shuffled[1] || DEFAULT_AD,
+          shuffled[2] || DEFAULT_AD,
+        ]);
+      } catch {
+        setFooterAds([DEFAULT_AD, DEFAULT_AD, DEFAULT_AD]);
+      }
+    };
+    load();
+  }, []);
+
   return (
     <footer className="bg-slate-50 dark:bg-slate-950 pt-16 pb-12 border-t border-slate-200 dark:border-slate-800 transition-colors duration-300">
-      <div className="container mx-auto px-4">
+      <div className="max-w-7xl mx-auto px-4">
         
         {/* --- SEÇÃO DE ANÚNCIOS (FOOTER ADS) --- */}
         <div className="mb-20">
@@ -15,9 +47,9 @@ const Footer = () => {
             <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <AdCard position="footer" variant="footer" />
-            <AdCard position="footer" variant="footer" />
-            <AdCard position="footer" variant="footer" />
+            <AdCard position="footer" variant="footer" forcedAd={footerAds[0]} />
+            <AdCard position="footer" variant="footer" forcedAd={footerAds[1]} />
+            <AdCard position="footer" variant="footer" forcedAd={footerAds[2]} />
           </div>
         </div>
 
@@ -32,7 +64,7 @@ const Footer = () => {
             </a>
             <p className="text-slate-500 dark:text-slate-400 text-sm font-medium leading-relaxed max-w-sm">
               A plataforma líder em conexão logística no Brasil. Transformando a quilometragem em lucro para motoristas e empresas desde 2017. 
-              Conectando as melhores empresas e os melhores profissionais.
+              Conectando as melhores empresas e os melhores profissionais através das melhores oportunidades de negócios.
             </p>
             <div className="flex gap-4">
               {[
@@ -59,20 +91,22 @@ const Footer = () => {
           <div className="lg:col-span-2 space-y-6">
             <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Plataforma</h4>
             <ul className="space-y-4 text-sm font-bold text-slate-500 dark:text-slate-400">
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Buscar Fretes</a></li>
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Para Motoristas</a></li>
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Para Empresas</a></li>
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Planos Premium</a></li>
+              <li><a href="/fretes" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Buscar Fretes</a></li>
+              <li><a href="/como-funciona/motoristas" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Para Motoristas</a></li>
+              <li><a href="/como-funciona/empresas" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Para Empresas</a></li>
+              <li><a href="#" onClick={(e) => { e.preventDefault(); setIsPlanModalOpen(true); }} className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight cursor-pointer">Planos Premium</a></li>
+              <li><a href="/artigos" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Artigos</a></li>
             </ul>
           </div>
 
           <div className="lg:col-span-2 space-y-6">
-            <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Institucional</h4>
+            <h4 className="font-black text-xs uppercase tracking-[0.2em] text-slate-900 dark:text-slate-100">Sobre</h4>
             <ul className="space-y-4 text-sm font-bold text-slate-500 dark:text-slate-400">
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Sobre Nós</a></li>
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Blog e Notícias</a></li>
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Carreiras</a></li>
-              <li><a href="#" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Contato</a></li>
+              <li><a href="/sobre" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Sobre Chama Frete</a></li>
+              <li><a href="https://www.linkedin.com/company/chamafrete" target="_blank" rel="noopener noreferrer" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Carreiras</a></li>
+              <li><a href="/dashboard/suporte" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Central de Ajuda</a></li>
+              <li><a href="/privacidade" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Privacidade</a></li>
+              <li><a href="/termos" className="hover:text-orange-500 dark:hover:text-orange-400 transition-colors tracking-tight">Termos de Uso</a></li>
             </ul>
           </div>
 
@@ -84,7 +118,7 @@ const Footer = () => {
                 <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-950 flex items-center justify-center group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 group-hover:text-orange-500 transition-colors">
                   <Mail size={16}/>
                 </div>
-                <span className="text-sm font-bold tracking-tight group-hover:text-slate-900 dark:group-hover:text-white">suporte@chamafrete.com.br</span>
+                <span className="text-sm font-bold tracking-tight group-hover:text-slate-900 dark:group-hover:text-white">oi@chamafrete.com.br</span>
               </div>
               <div className="flex items-center gap-3 text-slate-500 dark:text-slate-400 group cursor-pointer">
                 <div className="w-8 h-8 rounded-lg bg-slate-50 dark:bg-slate-950 flex items-center justify-center group-hover:bg-orange-50 dark:group-hover:bg-orange-900/20 group-hover:text-orange-500 transition-colors">
@@ -103,12 +137,14 @@ const Footer = () => {
             Chama Frete — A Lognetz IT Platform
             © 2026 Lognetz. All rights reserved.
           </p>
-          <div className="flex gap-8 text-[11px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Privacidade</a>
-            <a href="#" className="hover:text-slate-900 dark:hover:text-white transition-colors">Termos de Uso</a>
-          </div>
         </div>
       </div>
+
+      <BusinessModal
+        isOpen={isPlanModalOpen}
+        onClose={() => setIsPlanModalOpen(false)}
+        initialSubject="Quero saber sobre Planos Premium"
+      />
     </footer>
   );
 };

@@ -3,6 +3,7 @@ import { api } from '../api/api';
 import { 
   Layout, Home, FileText, Bell, AlertTriangle, 
   Star as StarIcon, Maximize2, Repeat, Smartphone, Monitor, Truck,
+  ShoppingBag, MessageCircle, Users,
   type LucideIcon
 } from 'lucide-react';
 
@@ -18,6 +19,9 @@ export const AD_ICON_MAP: Record<string, LucideIcon> = {
   smartphone: Smartphone,
   monitor: Monitor,
   truck: Truck,
+  'shopping-bag': ShoppingBag,
+  'message-circle': MessageCircle,
+  users: Users,
 };
 
 export const AD_COLOR_MAP: Record<string, string> = {
@@ -25,8 +29,14 @@ export const AD_COLOR_MAP: Record<string, string> = {
   footer: 'from-emerald-500 to-teal-600',
   spotlight: 'from-amber-500 to-yellow-600',
   infeed_wide: 'from-pink-500 to-rose-600',
-  infeed_compact: 'from-orange-500 to-red-600',
   freight_list: 'from-green-500 to-emerald-600',
+  marketplace_list: 'from-violet-500 to-purple-600',
+  groups_list: 'from-indigo-500 to-blue-600',
+  chat_header: 'from-cyan-500 to-teal-600',
+  popup: 'from-orange-500 to-red-600',
+  header: 'from-sky-500 to-blue-600',
+  strategic_partners: 'from-purple-500 to-violet-600',
+  media_network: 'from-rose-500 to-pink-600',
 };
 
 export interface AdPosition {

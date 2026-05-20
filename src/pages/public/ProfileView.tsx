@@ -309,10 +309,10 @@ export default function ProfileView() {
 
   const displayName = profile.trade_name || profile.corporate_name || profile.name || 'Usuário Chama Frete';
   const roleLabel: Record<string, string> = {
-    DRIVER: 'Motorista',
+    DRIVER: 'Profissional',
     ADVERTISER: 'Parceiro Anunciante',
-    COMPANY: 'Transportadora',
-    SHIPPER: 'Embarcador',
+    COMPANY: 'Empresa',
+    SHIPPER: 'Empresa',
   };
   const displayRole = roleLabel[userType] || 'Empresa';
   
@@ -385,7 +385,7 @@ export default function ProfileView() {
           </button>
         </div>
 
-        <div className="max-w-6xl mx-auto px-4 -mt-24 relative z-10 pb-20">
+        <div className="max-w-7xl mx-auto px-4 -mt-24 relative z-10 pb-20">
           {/* CARD PRINCIPAL DE IDENTIDADE */}
           <div className="bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-[3rem] shadow-2xl border border-white/20 dark:border-slate-700/50 p-8 md:p-12">
             <div className="flex flex-col md:flex-row items-center md:items-start gap-8">
@@ -639,7 +639,7 @@ export default function ProfileView() {
           </div>
 
           {/* SPOTLIGHT AD */}
-          <div className="mt-12">
+          <div className="mt-12 max-w-4xl mx-auto">
             <AdCard position="spotlight" variant="ecommerce" state={profile.state} city={profile.city} />
           </div>
 

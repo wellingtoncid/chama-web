@@ -67,7 +67,7 @@ export default function HowItWorksCompanies() {
 
         {/* Passo a Passo */}
         <section className="py-20">
-          <div className="max-w-6xl mx-auto px-4">
+          <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter text-center mb-16">
               Comece em <span className="text-blue-600">4 Passos</span>
             </h2>
@@ -93,7 +93,7 @@ export default function HowItWorksCompanies() {
 
         {/* Funcionalidades */}
         <section className="py-20 bg-slate-50 dark:bg-slate-900">
-          <div className="max-w-6xl mx-auto px-4">
+          <div className="max-w-7xl mx-auto px-4">
             <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white uppercase italic tracking-tighter text-center mb-16">
               Tudo que você <span className="text-blue-600"> Precisa</span>
             </h2>

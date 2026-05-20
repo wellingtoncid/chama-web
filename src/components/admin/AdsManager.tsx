@@ -1,5 +1,4 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import {
   Trash2, Loader2, Plus, X,
@@ -7,9 +6,11 @@ import {
   Play, Pause, RotateCcw, AlertTriangle, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { StatsGrid, StatCard, PageShell } from '@/components/admin';
+import AdEditorModal from '@/components/advertiser/AdEditorModal';
 
 export default function AdsManager() {
-  const navigate = useNavigate();
+  const user = JSON.parse(localStorage.getItem('@ChamaFrete:user') || '{}');
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [ads, setAds] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('');
@@ -184,6 +185,7 @@ export default function AdsManager() {
   };
 
   return (
+    <>
     <PageShell
       title="Publicidade"
       description="Gerencie anúncios publicitários do sistema"
@@ -193,7 +195,7 @@ export default function AdsManager() {
             <Download size={16} /> Exportar
           </button>
           <button 
-            onClick={() => navigate('/novo-anuncio')}
+            onClick={() => setShowCreateModal(true)}
             className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs uppercase hover:bg-blue-700 transition-colors"
           >
             <Plus size={16} /> Novo Anúncio
@@ -417,5 +419,14 @@ export default function AdsManager() {
         )}
       </div>
     </PageShell>
+
+      {showCreateModal && (
+        <AdEditorModal 
+          userId={user.id} 
+          onClose={() => setShowCreateModal(false)} 
+          onSuccess={loadAds} 
+        />
+      )}
+    </>
   );
 }

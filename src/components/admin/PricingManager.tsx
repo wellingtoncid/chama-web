@@ -24,6 +24,7 @@ interface PricingRule {
   price_daily: number;
   duration_days: number;
   is_active: number;
+  is_public: number;
 }
 
 export default function PricingManager() {
@@ -52,7 +53,8 @@ export default function PricingManager() {
     price_monthly: 0,
     price_daily: 0,
     duration_days: 30,
-    is_active: 1
+    is_active: 1,
+    is_public: 1
   });
 
   const modules = [
@@ -282,7 +284,7 @@ export default function PricingManager() {
       description="Configure preços por módulo, limites grátis e valores"
       actions={
         <button 
-          onClick={() => { setRuleData({ id: null, module_key: 'freights', feature_key: '', feature_name: '', pricing_type: 'free_limit', free_limit: 0, price_per_use: 0, price_monthly: 0, price_daily: 0, duration_days: 30, is_active: 1 }); setShowModal(true); }}
+          onClick={() => { setRuleData({ id: null, module_key: 'freights', feature_key: '', feature_name: '', pricing_type: 'free_limit', free_limit: 0, price_per_use: 0, price_monthly: 0, price_daily: 0, duration_days: 30, is_active: 1, is_public: 1 }); setShowModal(true); }}
           className="bg-orange-500 hover:bg-orange-600 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-all"
         >
           <Plus size={18} /> Nova Regra
@@ -351,6 +353,7 @@ export default function PricingManager() {
                 <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Por Uso</th>
                 <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Mensal</th>
                 <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Duração</th>
+                <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Público</th>
                 <th className="px-5 py-4 text-center text-[10px] font-bold uppercase text-slate-400">Status</th>
                 <th className="px-5 py-4 text-right text-[10px] font-bold uppercase text-slate-400">Ações</th>
               </tr>
@@ -397,6 +400,11 @@ export default function PricingManager() {
                     </td>
                     <td className="px-5 py-4 text-center font-bold text-slate-600 dark:text-slate-300 text-sm">
                       {rule.duration_days || 30} dias
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase ${Number(rule.is_public) ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'}`}>
+                        {Number(rule.is_public) ? 'Sim' : 'Não'}
+                      </span>
                     </td>
                     <td className="px-5 py-4 text-center">
                       <button
@@ -616,6 +624,16 @@ export default function PricingManager() {
                   className="w-5 h-5 rounded"
                 />
                 <label htmlFor="is_active" className="font-bold text-sm text-slate-600">Regra ativa</label>
+              </div>
+              <div className="flex items-center gap-3 pt-6">
+                <input 
+                  type="checkbox" 
+                  id="is_public"
+                  checked={Boolean(ruleData.is_public)}
+                  onChange={(e) => setRuleData({...ruleData, is_public: e.target.checked ? 1 : 0})}
+                  className="w-5 h-5 rounded"
+                />
+                <label htmlFor="is_public" className="font-bold text-sm text-slate-600">Visível para usuários</label>
               </div>
             </div>
           </div>

@@ -423,7 +423,7 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                   onChange={(e) => setFormData({ ...formData, position: e.target.value })}
                   className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm"
                 >
-                  {positions.filter(pos => pos.price_monthly > 0).map(pos => {
+                  {positions.filter(pos => Number(pos.is_public)).map(pos => {
                     const Icon = getIcon(pos.icon_key);
                     return (
                       <option key={pos.feature_key} value={pos.feature_key}>

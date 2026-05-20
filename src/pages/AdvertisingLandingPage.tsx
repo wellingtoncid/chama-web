@@ -54,7 +54,8 @@ const AdvertisingLandingPage = () => {
     spotlight: { desc: 'Posição premium na página de detalhes', badge: 'Premium', mockup: 'details' },
     footer: { desc: 'Visibilidade na parte inferior das páginas', badge: 'Constante', mockup: 'footer' },
     infeed_wide: { desc: 'Banner largo entre os resultados de busca', badge: 'Alta Conversão', mockup: 'feed' },
-    infeed_compact: { desc: 'Banner compacto entre cards de anúncios', badge: 'Alta Conversão', mockup: 'footer' },
+    marketplace_list: { desc: 'Anúncio entre os classificados do marketplace', badge: 'Segmentado', mockup: 'feed' },
+    groups_list: { desc: 'Presença na lista de grupos WhatsApp', badge: 'Acessível', mockup: 'feed' },
   };
 
   return (

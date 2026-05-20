@@ -82,54 +82,49 @@ const ArticlesPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#020617]">
+    <div className="min-h-screen bg-[#F8FAFC] dark:bg-[#020617] flex flex-col font-sans transition-colors duration-300">
       <Header />
       
-      {/* Hero Section */}
-      <div className="bg-gradient-to-r from-[#1f4ead] to-blue-600 text-white pt-36 pb-16">
-        <div className="container mx-auto px-4">
-          <h1 className="text-3xl md:text-4xl font-black text-center mb-4">
-            Artigos & Conteúdo
-          </h1>
-          <p className="text-center text-white/80 max-w-2xl mx-auto">
-            Dicas, notícias e insights sobre o mercado de transporte e logística
-          </p>
-        </div>
-      </div>
+      <main className="flex-grow pt-32">
+        <div className="max-w-7xl mx-auto px-4">
 
-      {/* Categories Filter */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-wrap gap-2 justify-center">
-            <button
-              onClick={() => setActiveCategory('all')}
-              className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                activeCategory === 'all'
-                  ? 'bg-[#1f4ead] text-white'
-                  : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
-              }`}
-            >
-              Todos
-            </button>
-            {categories.map(cat => (
+          <header className="mb-10">
+            <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.85] mb-4">
+              Artigos & <span className="text-[#1f4ead]">Conteúdo</span>
+            </h1>
+            <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl">
+              Dicas, notícias e insights sobre o mercado de transporte e logística
+            </p>
+          </header>
+
+          {/* Categories Filter */}
+          <div className="mb-8">
+            <div className="flex flex-wrap gap-2">
               <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.slug)}
+                onClick={() => setActiveCategory('all')}
                 className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                  activeCategory === cat.slug
+                  activeCategory === 'all'
                     ? 'bg-[#1f4ead] text-white'
-                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
+                    : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
                 }`}
               >
-                {cat.name}
+                Todos
               </button>
-            ))}
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.slug)}
+                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
+                    activeCategory === cat.slug
+                      ? 'bg-[#1f4ead] text-white'
+                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
         {/* Featured Article */}
         {featuredArticle && (
           <div className="mb-12">
@@ -299,6 +294,7 @@ const ArticlesPage = () => {
           </div>
         </div>
       </div>
+      </main>
 
       <Footer />
     </div>

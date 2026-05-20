@@ -125,7 +125,7 @@ export default function GroupsList() {
     setSelectedCategory('todos');
   };
 
-  // Construir items do grid com CTAs intercalados corretamente
+  // Construir items do grid com CTAs e anúncios intercalados
   const gridItems: GridItem[] = [];
   let groupCount = 0;
   let itemCount = 0;
@@ -146,9 +146,10 @@ export default function GroupsList() {
       itemCount++;
     }
 
-    // AdCard infeed a cada 8 items (após os primeiros 3 grupos)
-    if (itemCount > 8 && (itemCount - 8) % 8 === 0) {
-      gridItems.push({ type: 'ad', key: `ad-${itemCount}` });
+    // AdCard a cada 6 grupos
+    if (groupCount > 0 && groupCount % 6 === 0) {
+      gridItems.push({ type: 'ad', key: `ad-${groupCount}` });
+      itemCount++;
     }
   });
 
@@ -222,21 +223,17 @@ export default function GroupsList() {
         </div>
       );
 
-      case 'ad':
-        return (
-          <div key={item.key} className="h-[280px]">
-            <AdCard position="infeed_compact" variant="ecommerce" search={searchTerm} />
-          </div>
-        );
-
        case 'group':
-         return <GroupCard key={item.key} group={item.group!} onView={() => {
-           // Track view for group card - use useTracker directly
-           if (!trackedItems.current.has(item.group.id)) {
-             trackedItems.current.add(item.group.id);
-             trackEvent(item.group.id, 'GROUP', 'VIEW');
-           }
-         }} />;
+          return <GroupCard key={item.key} group={item.group!} onView={() => {
+            // Track view for group card - use useTracker directly
+            if (!trackedItems.current.has(item.group.id)) {
+              trackedItems.current.add(item.group.id);
+              trackEvent(item.group.id, 'GROUP', 'VIEW');
+            }
+          }} />;
+
+      case 'ad':
+        return <AdCard key={item.key} position="groups_list" variant="card" search={searchTerm} />;
     }
   };
 
@@ -363,7 +360,7 @@ export default function GroupsList() {
           </header>
 
           {/* AD CAROUSEL */}
-          <section className="mb-10">
+          <section className="max-w-4xl mx-auto mb-10">
             <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
               <AdCarousel searchTerm={searchTerm} />
             </div>
@@ -401,6 +398,11 @@ export default function GroupsList() {
               </div>
             )}
           </section>
+
+          {/* Anúncio */}
+          <div className="max-w-4xl mx-auto mb-10">
+            <AdCard position="groups_list" variant="ecommerce" search={searchTerm} />
+          </div>
         </div>
       </main>
 

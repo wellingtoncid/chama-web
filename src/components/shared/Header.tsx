@@ -54,7 +54,7 @@ const Header = () => {
 
       {/* 2. MENU PRINCIPAL */}
       <div className="bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-100 dark:border-slate-800">
-        <div className="container mx-auto px-4 lg:px-6">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-16 lg:h-18">
             
           {/* Logo */}

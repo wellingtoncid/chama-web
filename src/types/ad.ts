@@ -1,12 +1,18 @@
 export type AdPositionType = 
   | 'freight_list' 
   | 'infeed_wide' 
-  | 'infeed_compact' 
   | 'footer' 
   | 'sidebar' 
-  | 'spotlight';
+  | 'spotlight'
+  | 'marketplace_list' 
+  | 'groups_list' 
+  | 'chat_header' 
+  | 'popup' 
+  | 'header'
+  | 'strategic_partners'
+  | 'media_network';
 
-export type AdVariant = 'banner-wide' | 'banner-compact' | 'vertical' | 'bar';
+export type AdVariant = 'banner-wide' | 'banner-compact' | 'vertical' | 'bar' | 'card' | 'ecommerce' | 'footer' | 'sidebar' | 'notice';
 
 export interface Ad {
   id: number;

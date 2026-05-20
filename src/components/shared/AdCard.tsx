@@ -15,7 +15,7 @@ const DEFAULT_AD = {
 
 interface AdCardProps {
   position: string;
-  variant?: 'banner-wide' | 'banner-compact' | 'vertical' | 'bar' | 'ecommerce' | 'footer' | 'sidebar' | 'notice';
+  variant?: 'banner-wide' | 'banner-compact' | 'vertical' | 'bar' | 'ecommerce' | 'footer' | 'sidebar' | 'notice' | 'card';
   city?: string;
   state?: string;
   search?: string;
@@ -292,7 +292,7 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
       <div 
         ref={containerRef} 
         onClick={handleAction} 
-        className="group relative overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer aspect-[4/5] w-full"
+        className="group relative overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer aspect-[3/4] lg:aspect-[1/2] w-full"
       >
         <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
         {hasText && (
@@ -333,6 +333,43 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
             </>
           )}
           <ArrowRight size={8} className="group-hover:translate-x-1 transition-transform opacity-70" />
+        </div>
+      </div>
+    );
+  }
+
+  // ===== VARIANT: card (mimics FreightCard/ListingCard/GroupCard) =====
+  if (variant === 'card') {
+    return withModal(
+      <div 
+        ref={containerRef}
+        onClick={handleAction}
+        className="group cursor-pointer w-full bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-700 transition-all hover:shadow-lg h-[420px] flex flex-col"
+      >
+        <div className="relative h-52 overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0">
+          <AdImage url={adToShow.image_url} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+          <span className="absolute top-3 left-3 text-[8px] font-black bg-black/60 text-white px-2 py-1 rounded uppercase tracking-wider">Publicidade</span>
+          {locationText && (
+            <span className="absolute top-3 right-3 text-[8px] font-medium bg-black/40 text-white px-2 py-1 rounded flex items-center gap-1 backdrop-blur-sm">
+              <MapPin size={8} /> {locationText}
+            </span>
+          )}
+        </div>
+        <div className="p-4 flex flex-col flex-1 min-h-0">
+          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+            {showVerified && (
+              <span className="text-[10px] font-bold text-green-600 flex items-center gap-1">
+                <ShieldCheck size={10} /> Verificado
+              </span>
+            )}
+          </div>
+          <h4 className="font-bold text-slate-800 dark:text-slate-100 text-sm leading-tight mb-1 line-clamp-2">{adToShow.title}</h4>
+          <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-3">{adToShow.description}</p>
+          <div className="mt-auto pt-2">
+            <div className={`w-full py-3 rounded-xl font-bold uppercase text-xs tracking-wider flex items-center justify-center gap-2 transition-all group-hover:scale-[1.02] ${isWhatsappAction ? 'bg-[#25D366] text-white hover:bg-[#20BA5C]' : 'bg-blue-600 text-white hover:bg-blue-700'}`}>
+              {ctaText} {ctaIcon}
+            </div>
+          </div>
         </div>
       </div>
     );

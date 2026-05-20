@@ -133,10 +133,20 @@ export default function GroupDetail() {
       return;
     }
     
+    openWhatsApp();
+  };
+
+  const openWhatsApp = () => {
+    if (!group) return;
     if (group.invite_link && group.invite_link !== 'locked') {
       trackEvent(group.id, 'GROUP', 'WHATSAPP_CLICK');
       window.open(group.invite_link, '_blank');
     }
+  };
+
+  const handleAuthSuccess = () => {
+    setIsAuthModalOpen(false);
+    setTimeout(() => openWhatsApp(), 500);
   };
 
   const parseOtherAdmins = (): string[] => {
@@ -168,7 +178,7 @@ export default function GroupDetail() {
   return (
     <div className="min-h-screen bg-slate-50">
       <Header />
-      <main className="max-w-6xl mx-auto pt-32 pb-20 px-4">
+      <main className="max-w-7xl mx-auto pt-32 pb-20 px-4">
         
         {/* NAVEGAÇÃO */}
         <div className="flex items-center justify-between mb-8">
@@ -255,7 +265,9 @@ export default function GroupDetail() {
             </div>
 
             {/* Anúncio Horizontal */}
-            <AdCard position="spotlight" variant="ecommerce" />
+            <div className="max-w-4xl mx-auto">
+              <AdCard position="spotlight" variant="ecommerce" />
+            </div>
 
             {/* Grupos Relacionados */}
             {relatedGroups.length > 0 && (
@@ -467,7 +479,7 @@ export default function GroupDetail() {
         </div>
       </main> 
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />
       <Footer />
     </div>
   );
