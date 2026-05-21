@@ -4,9 +4,9 @@ import { api } from '@/api/api';
 import { useAuth } from '@/context/AuthContext';
 import { 
   FileText, Plus, Pencil, Trash2, 
-  Loader2, Eye, AlertCircle, CheckCircle, XCircle,
-  Clock, Send
+  Loader2, Eye, AlertCircle, Clock, Send
 } from 'lucide-react';
+import DashboardShell from '@/components/layout/DashboardShell';
 
 interface Article {
   id: number;
@@ -168,7 +168,7 @@ export default function MyArticlesPage() {
   // Se não é autor aprovado, mostra mensagem de bloqueio
   if (!authorStatus?.is_author) {
     return (
-      <div className="p-6">
+      <DashboardShell title="Meus Artigos" description="Gerencie seus artigos submetidos">
         <div className="max-w-2xl mx-auto">
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-2xl p-8 text-center">
             <h2 className="text-xl font-bold text-yellow-800 dark:text-yellow-300 mb-4">
@@ -184,41 +184,33 @@ export default function MyArticlesPage() {
             ) : (
               <Link 
                 to="/artigos/ser-autor" 
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#1f4ead] text-white rounded-xl font-bold hover:bg-[#1a3d8a]"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors"
               >
                 Solicitar Acesso de Autor
               </Link>
             )}
           </div>
         </div>
-      </div>
+      </DashboardShell>
     );
   }
 
   return (
-    <div className="p-6">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-3">
-            <FileText className="text-[#1f4ead]" size={28} />
-            Meus Artigos
-          </h1>
-          <p className="text-slate-500 dark:text-slate-400 mt-1">
-            Gerencie seus artigos submetidos
-          </p>
-        </div>
+    <DashboardShell
+      title="Meus Artigos"
+      description="Gerencie seus artigos submetidos"
+      actions={
         <Link
           to="/artigos/submeter"
-          className="flex items-center gap-2 px-4 py-2 bg-[#1f4ead] text-white rounded-xl font-bold hover:bg-[#1a3d8a] transition-colors"
+          className="flex items-center gap-2 bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-bold uppercase text-xs tracking-wide transition-colors"
         >
-          <Plus size={20} />
+          <Plus size={16} />
           Novo Artigo
         </Link>
-      </div>
-
+      }
+    >
       {/* Filters */}
-      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 mb-6 border border-slate-200 dark:border-slate-800">
+      <div className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800">
         <div className="flex gap-2 overflow-x-auto">
           {(['all', 'pending', 'published', 'rejected', 'draft'] as const).map((f) => (
             <button
@@ -226,7 +218,7 @@ export default function MyArticlesPage() {
               onClick={() => setFilter(f)}
               className={`px-4 py-2 rounded-lg text-sm font-bold whitespace-nowrap transition-colors ${
                 filter === f
-                  ? 'bg-[#1f4ead] text-white'
+                  ? 'bg-orange-500 text-white'
                   : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
               }`}
             >
@@ -238,7 +230,7 @@ export default function MyArticlesPage() {
 
       {/* Error */}
       {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 flex items-center gap-3">
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-center gap-3">
           <AlertCircle className="text-red-500" size={20} />
           <p className="text-red-700 dark:text-red-400">{error}</p>
         </div>
@@ -247,7 +239,7 @@ export default function MyArticlesPage() {
       {/* Loading */}
       {loading && (
         <div className="flex items-center justify-center py-12">
-          <Loader2 className="animate-spin text-[#1f4ead]" size={32} />
+          <Loader2 className="animate-spin text-orange-500" size={32} />
         </div>
       )}
 
@@ -265,17 +257,17 @@ export default function MyArticlesPage() {
               </p>
               <Link
                 to="/artigos/submeter"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-[#1f4ead] text-white rounded-xl font-bold hover:bg-[#1a3d8a] transition-colors"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-xl font-bold hover:bg-orange-600 transition-colors"
               >
-                <Plus size={20} />
-                Submitter Primeiro Artigo
+                <Plus size={16} />
+                Submeter Primeiro Artigo
               </Link>
             </div>
           ) : (
             filteredArticles.map((article) => (
               <div 
                 key={article.id}
-                className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 hover:border-[#1f4ead]/30 transition-colors"
+                className="bg-white dark:bg-slate-900 rounded-xl p-4 border border-slate-200 dark:border-slate-800 hover:border-orange-500/30 transition-colors"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -340,7 +332,7 @@ export default function MyArticlesPage() {
                         href={`/artigos/${article.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-2 text-slate-500 hover:text-[#1f4ead] transition-colors"
+                        className="p-2 text-slate-500 hover:text-orange-500 transition-colors"
                         title="Visualizar"
                       >
                         <Eye size={18} />
@@ -350,7 +342,7 @@ export default function MyArticlesPage() {
                     {article.status === 'draft' && (
                       <Link
                         to={`/artigos/submeter?edit=${article.id}`}
-                        className="p-2 text-slate-500 hover:text-[#1f4ead] transition-colors"
+                        className="p-2 text-slate-500 hover:text-orange-500 transition-colors"
                         title="Editar"
                       >
                         <Pencil size={18} />
@@ -360,7 +352,7 @@ export default function MyArticlesPage() {
                     {article.status === 'rejected' && article.rejection_count < 3 && (
                       <Link
                         to={`/artigos/submeter?edit=${article.id}`}
-                        className="p-2 text-slate-500 hover:text-[#1f4ead] transition-colors"
+                        className="p-2 text-slate-500 hover:text-orange-500 transition-colors"
                         title="Reenviar"
                       >
                         <Send size={18} />
@@ -386,6 +378,6 @@ export default function MyArticlesPage() {
           )}
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }

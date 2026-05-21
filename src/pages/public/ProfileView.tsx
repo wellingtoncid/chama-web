@@ -47,6 +47,7 @@ import {
   Flag,
   X,
   Megaphone,
+  Loader2,
 } from 'lucide-react';
 import { api } from '../../api/api';
 import { useTracker } from '../../services/useTracker';
@@ -56,6 +57,7 @@ import Swal from 'sweetalert2';
 import Header from '../../components/shared/Header';
 import Footer from '../../components/shared/Footer';
 import AdCard from '../../components/shared/AdCard';
+import ArticleCard from '../../components/shared/ArticleCard';
 import { ReviewsExpandable } from '../../components/reviews';
 
 import FreightRow from '../../components/shared/FreightRow';
@@ -132,6 +134,11 @@ export default function ProfileView() {
   const [freights, setFreights] = useState<PostItem[]>([]);
   const [marketplaceItems, setMarketplaceItems] = useState<PostItem[]>([]);
   const [adItems, setAdItems] = useState<PostItem[]>([]);
+  const [articles, setArticles] = useState<any[]>([]);
+  const [articlesLoading, setArticlesLoading] = useState(false);
+  const [articlesTotal, setArticlesTotal] = useState(0);
+  const [articlesPage, setArticlesPage] = useState(0);
+  const ARTICLES_PER_PAGE = 10;
   const [loading, setLoading] = useState(true);
   const [showReportForm, setShowReportForm] = useState(false);
   const [reportReason, setReportReason] = useState('');
@@ -240,6 +247,8 @@ export default function ProfileView() {
           setFreights([]);
           setMarketplaceItems([]);
         }
+
+        fetchArticles(data.id, 0);
       }
     } catch (e) {
       console.error('Erro ao carregar perfil:', e);
@@ -251,6 +260,24 @@ export default function ProfileView() {
   useEffect(() => {
     if (slug) fetchFullData();
   }, [slug, fetchFullData]);
+
+  const fetchArticles = async (userId: number, page: number) => {
+    try {
+      setArticlesLoading(true);
+      const res = await api.get(`/articles/user/${userId}`, {
+        params: { limit: ARTICLES_PER_PAGE, offset: page * ARTICLES_PER_PAGE },
+      });
+      if (res.data?.success) {
+        setArticles(res.data.data.articles || []);
+        setArticlesTotal(res.data.data.total || 0);
+        setArticlesPage(page);
+      }
+    } catch {
+      setArticles([]);
+    } finally {
+      setArticlesLoading(false);
+    }
+  };
 
   const calculateProfileScore = (p: ProfileData, isDriverProfile: boolean) => {
     if (!p) return 0;
@@ -642,6 +669,65 @@ export default function ProfileView() {
           <div className="mt-12 max-w-4xl mx-auto">
             <AdCard position="spotlight" variant="ecommerce" state={profile.state} city={profile.city} />
           </div>
+
+          {/* ARTIGOS DO AUTOR */}
+          {articlesTotal > 0 && (
+            <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
+                  Artigos Publicados
+                </h2>
+                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
+                  {articlesTotal} {articlesTotal === 1 ? 'artigo' : 'artigos'}
+                </span>
+              </div>
+
+              {articlesLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="animate-spin text-orange-500" size={28} />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {articles.map((article) => (
+                    <ArticleCard key={article.id} article={article} />
+                  ))}
+
+                  {/* Paginação */}
+                  {articlesTotal > ARTICLES_PER_PAGE && (
+                    <div className="flex items-center justify-center gap-2 pt-4">
+                      <button
+                        onClick={() => fetchArticles(profile.id, articlesPage - 1)}
+                        disabled={articlesPage === 0}
+                        className="px-4 py-2 rounded-xl text-xs font-bold uppercase bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        Anterior
+                      </button>
+                      {Array.from({ length: Math.ceil(articlesTotal / ARTICLES_PER_PAGE) }, (_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => fetchArticles(profile.id, i)}
+                          className={`w-9 h-9 rounded-xl text-xs font-bold transition-all ${
+                            i === articlesPage
+                              ? 'bg-orange-500 text-white'
+                              : 'bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                          }`}
+                        >
+                          {i + 1}
+                        </button>
+                      ))}
+                      <button
+                        onClick={() => fetchArticles(profile.id, articlesPage + 1)}
+                        disabled={(articlesPage + 1) * ARTICLES_PER_PAGE >= articlesTotal}
+                        className="px-4 py-2 rounded-xl text-xs font-bold uppercase bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                      >
+                        Próximo
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+          )}
 
             {/* LISTAGEM DE POSTS */}
           {hasFreights && (

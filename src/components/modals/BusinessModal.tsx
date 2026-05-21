@@ -6,6 +6,7 @@ import { Button } from "../ui/Button";
 interface BusinessModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onSuccess?: () => void;
   initialSubject?: string; // Ex: "Anúncio", "Marketplace", "Cadastro Empresa"
 }
 
@@ -25,6 +26,7 @@ export const BusinessModal = ({ isOpen, onClose, initialSubject }: BusinessModal
         description: formData.description
       });
       setShowSuccess(true);
+      onSuccess?.();
     } catch (error) {
       alert("Erro ao processar solicitação.");
     } finally {

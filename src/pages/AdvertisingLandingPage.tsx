@@ -1,44 +1,27 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Check, Eye, MousePointer2, BarChart3, Target, 
-  ArrowRight, Loader2, CheckCircle, TrendingUp, Shield, X, ChevronRight
+  ArrowRight, TrendingUp, Shield, ChevronRight
 } from 'lucide-react';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
-import { api } from '../api/api';
+import { BusinessModal } from '../components/modals/BusinessModal';
 import { useAdPositions } from '../hooks/useAdPositions';
 
 const AdvertisingLandingPage = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isSending, setIsSending] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [modalForm, setModalForm] = useState({ title: '', contact: '', description: '' });
+  const navigate = useNavigate();
+  const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
+  const [modalAction, setModalAction] = useState<'contact' | 'viewPlans' | null>(null);
   const { positions, loading } = useAdPositions();
-
-  const handleModalSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsSending(true);
-    try {
-      await api.post('admin-portal-requests', { 
-        type: 'advertising_lead', 
-        title: modalForm.title,
-        contact_info: modalForm.contact, 
-        description: modalForm.description
-      });
-      setShowSuccess(true);
-    } catch {
-      alert("Erro ao processar.");
-    } finally {
-      setIsSending(false);
-    }
-  };
 
   const handleRegister = () => {
     window.location.href = '/register?type=advertiser';
   };
 
   const handleViewPricing = () => {
-    window.location.href = '/publicidade';
+    setModalAction('viewPlans');
+    setIsBusinessModalOpen(true);
   };
 
   const benefits = [
@@ -93,7 +76,7 @@ const AdvertisingLandingPage = () => {
                 Cadastrar <ArrowRight size={18} />
               </button>
               <button 
-                onClick={() => setIsModalOpen(true)}
+                onClick={() => { setModalAction('contact'); setIsBusinessModalOpen(true); }}
                 className="px-10 py-5 bg-white/10 border-2 border-white/20 text-white rounded-xl font-black uppercase text-sm tracking-wider hover:bg-white/20 transition-all flex items-center gap-3"
               >
                 Falar com Equipe <ChevronRight size={18} />
@@ -243,102 +226,14 @@ const AdvertisingLandingPage = () => {
         </div>
       </section>
 
-      {/* MODAL */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-slate-950/98 backdrop-blur-2xl z-[100] flex items-center justify-center p-4 transition-all">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[3rem] overflow-hidden shadow-2xl relative flex flex-col md:flex-row border border-white/10">
-            
-            <button onClick={() => { setIsModalOpen(false); setShowSuccess(false); }} className="absolute top-6 right-6 text-slate-400 hover:text-red-500 z-50 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all">
-              <X size={24} />
-            </button>
-
-            <div className="md:w-[40%] bg-[#0F172A] p-12 text-white flex flex-col justify-between relative border-r border-white/5">
-              <div className="relative z-10">
-                <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mb-8 shadow-lg shadow-orange-500/20">
-                  <BarChart3 size={32} className="text-white" />
-                </div>
-                <h3 className="text-3xl font-[1000] uppercase italic leading-none tracking-tighter mb-8">
-                  Novos Negócios <br />& Mídia.
-                </h3>
-                
-                <div className="space-y-6">
-                  <div>
-                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Fale com Especialista</p>
-                    <p className="text-sm font-medium text-slate-300">Nossa equipe vai entrar em contato para entender suas necessidades.</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Planos Personalizados</p>
-                    <p className="text-sm font-medium text-slate-300">Soluções sob medida para seu orçamento e objetivos.</p>
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black text-orange-500 uppercase tracking-widest mb-2">Suporte Dedicado</p>
-                    <p className="text-sm font-medium text-slate-300">Acompanhamento do início ao fim da sua campanha.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="md:w-[60%] p-10 md:p-12 flex flex-col justify-center">
-              {showSuccess ? (
-                <div className="text-center py-12">
-                  <div className="w-20 h-20 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <CheckCircle size={40} className="text-white" />
-                  </div>
-                  <h3 className="text-2xl font-black uppercase italic mb-4">Solicitação Enviada!</h3>
-                  <p className="text-slate-500 font-bold mb-8">Nossa equipe entrará em contato em breve.</p>
-                  <button 
-                    onClick={() => { setIsModalOpen(false); setShowSuccess(false); }}
-                    className="px-8 py-4 bg-slate-900 text-white rounded-xl font-black uppercase text-sm hover:bg-slate-800 transition-all"
-                  >
-                    Fechar
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <h3 className="text-2xl font-black uppercase italic mb-8">Solicitar Contato</h3>
-                  <form onSubmit={handleModalSubmit} className="space-y-4">
-                    <input
-                      required
-                      placeholder="Nome da empresa ou projeto"
-                      value={modalForm.title}
-                      onChange={(e) => setModalForm(prev => ({ ...prev, title: e.target.value }))}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-orange-500 outline-none text-slate-900 dark:text-white font-bold placeholder:text-slate-400 transition-all"
-                    />
-                    <input
-                      required
-                      placeholder="WhatsApp ou E-mail para contato"
-                      value={modalForm.contact}
-                      onChange={(e) => setModalForm(prev => ({ ...prev, contact: e.target.value }))}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-orange-500 outline-none text-slate-900 dark:text-white font-bold placeholder:text-slate-400 transition-all"
-                    />
-                    <textarea
-                      required
-                      placeholder="Conte-nos sobre seu objetivo com anúncios..."
-                      rows={4}
-                      value={modalForm.description}
-                      onChange={(e) => setModalForm(prev => ({ ...prev, description: e.target.value }))}
-                      className="w-full p-4 bg-slate-50 dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 focus:border-orange-500 outline-none text-slate-900 dark:text-white font-bold placeholder:text-slate-400 transition-all resize-none"
-                    />
-                    <button
-                      type="submit"
-                      disabled={isSending}
-                      className="w-full py-5 bg-orange-500 text-white rounded-xl font-black uppercase text-sm tracking-wider hover:bg-orange-600 transition-all flex items-center justify-center gap-2 shadow-xl shadow-orange-500/20"
-                    >
-                      {isSending ? (
-                        <Loader2 size={18} className="animate-spin" />
-                      ) : (
-                        <>Enviar Solicitação <ArrowRight size={18} /></>
-                      )}
-                    </button>
-                  </form>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
       <Footer />
+
+      <BusinessModal
+        isOpen={isBusinessModalOpen}
+        onClose={() => { setIsBusinessModalOpen(false); setModalAction(null); }}
+        onSuccess={() => { if (modalAction === 'viewPlans') navigate('/publicidade'); }}
+        initialSubject="Publicidade"
+      />
     </div>
   );
 };

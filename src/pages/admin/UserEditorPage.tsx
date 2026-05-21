@@ -4,7 +4,9 @@ import { api } from '../../api/api';
 import {
   Save, Loader2, User, Building2, Truck, ShieldCheck,
   Calendar, CheckCircle,
-  ChevronLeft, Shield, Search
+  ChevronLeft, Shield, Search, Grid3X3, ToggleLeft, ToggleRight,
+  ShoppingBag, FileText, Megaphone, MessageCircle, CreditCard,
+  Users, Tag, HelpCircle
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -51,9 +53,17 @@ export default function UserEditorPage() {
   const [extraPermissions, setExtraPermissions] = useState<string[]>([]);
   const [loadingPerms, setLoadingPerms] = useState(false);
 
+  // Módulos
+  const [userModules, setUserModules] = useState<any[]>([]);
+  const [loadingModules, setLoadingModules] = useState(false);
+  const [savingModule, setSavingModule] = useState<string | null>(null);
+
   const tabs = useMemo(() => {
     const items = [{ label: 'Dados', icon: User }];
-    if (!isNew) items.push({ label: 'Permissões', icon: Shield });
+    if (!isNew) {
+      items.push({ label: 'Permissões', icon: Shield });
+      items.push({ label: 'Módulos', icon: Grid3X3 });
+    }
     return items;
   }, [isNew]);
 
@@ -65,6 +75,10 @@ export default function UserEditorPage() {
   useEffect(() => {
     if (userData?.role) fetchPermissions();
   }, [userData?.role, userData?.id]);
+
+  useEffect(() => {
+    if (!isNew && userData?.id) fetchUserModules();
+  }, [userData?.id]);
 
   useEffect(() => {
     if (!isNew && form.role && form.role !== userData?.role) {
@@ -138,7 +152,8 @@ export default function UserEditorPage() {
 
       if (userData?.id) {
         const upRes = await api.get(`/admin-user-permissions?user_id=${userData.id}`);
-        setExtraPermissions(upRes.data?.data || []);
+        const perms = upRes.data?.data;
+        setExtraPermissions(Array.isArray(perms) ? perms : []);
       }
     } catch { /* ignore */ }
     finally { setLoadingPerms(false); }
@@ -312,6 +327,34 @@ export default function UserEditorPage() {
       }
     } catch { /* ignore */ }
     finally { setLoadingPerms(false); }
+  };
+
+  const fetchUserModules = async () => {
+    try {
+      setLoadingModules(true);
+      const res = await api.get(`/user/modules?user_id=${userData.id}`);
+      if (res.data?.success) {
+        setUserModules(res.data.data.modules || []);
+      }
+    } catch { /* ignore */ }
+    finally { setLoadingModules(false); }
+  };
+
+  const toggleUserModule = async (moduleKey: string, activate: boolean) => {
+    try {
+      setSavingModule(moduleKey);
+      await api.post('/admin/user-modules', {
+        user_id: userData.id,
+        module_key: moduleKey,
+        action: activate ? 'activate' : 'deactivate',
+      });
+      setUserModules(prev =>
+        prev.map(m => m.key === moduleKey ? { ...m, is_active: activate, status: activate ? 'active' : 'inactive' } : m)
+      );
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Erro ao alternar módulo' });
+    }
+    finally { setSavingModule(null); }
   };
 
   const groupedPermissions = useMemo(() => {
@@ -598,6 +641,91 @@ export default function UserEditorPage() {
                 </div>
               )}
             </form>
+          )}
+
+          {/* TAB MÓDULOS */}
+          {activeTab === 2 && (
+            <div className="space-y-4 max-w-4xl">
+              {loadingModules ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="animate-spin text-indigo-500" size={24} />
+                </div>
+              ) : userModules.length === 0 ? (
+                <p className="text-slate-400 text-center py-8 text-sm font-medium">
+                  Nenhum módulo disponível para este tipo de usuário
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                  {userModules.map(mod => {
+                    const moduleIcons: Record<string, React.ReactNode> = {
+                      freights: <Truck size={20} />,
+                      marketplace: <ShoppingBag size={20} />,
+                      quotes: <FileText size={20} />,
+                      advertiser: <Megaphone size={20} />,
+                      chat: <MessageCircle size={20} />,
+                      financial: <CreditCard size={20} />,
+                      groups: <Users size={20} />,
+                      plans: <Tag size={20} />,
+                      support: <HelpCircle size={20} />,
+                      driver: <Shield size={20} />,
+                    };
+                    return (
+                      <div
+                        key={mod.key}
+                        className={`relative p-4 rounded-xl border-2 transition-all ${
+                          mod.is_active
+                            ? 'border-emerald-400 bg-emerald-50 dark:bg-emerald-900/20'
+                            : 'border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                            mod.is_active
+                              ? 'bg-emerald-100 dark:bg-emerald-800 text-emerald-600 dark:text-emerald-300'
+                              : 'bg-slate-100 dark:bg-slate-600 text-slate-400'
+                          }`}>
+                            {moduleIcons[mod.key] || <Grid3X3 size={20} />}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm text-slate-900 dark:text-white truncate">{mod.name}</p>
+                            <p className="text-[10px] text-slate-400 dark:text-slate-500 truncate">{mod.description}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded ${
+                            mod.is_active
+                              ? 'bg-emerald-100 dark:bg-emerald-800 text-emerald-600 dark:text-emerald-300'
+                              : 'bg-slate-100 dark:bg-slate-600 text-slate-400'
+                          }`}>
+                            {mod.is_active ? 'Ativo' : 'Inativo'}
+                          </span>
+                          <button
+                            onClick={() => toggleUserModule(mod.key, !mod.is_active)}
+                            disabled={savingModule === mod.key}
+                            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                              savingModule === mod.key
+                                ? 'opacity-50 cursor-not-allowed'
+                                : mod.is_active
+                                ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200'
+                                : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-200'
+                            }`}
+                          >
+                            {savingModule === mod.key ? (
+                              <Loader2 size={12} className="animate-spin" />
+                            ) : mod.is_active ? (
+                              <ToggleRight size={14} />
+                            ) : (
+                              <ToggleLeft size={14} />
+                            )}
+                            {mod.is_active ? 'Desativar' : 'Ativar'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           )}
 
           {/* TAB PERMISSÕES */}
