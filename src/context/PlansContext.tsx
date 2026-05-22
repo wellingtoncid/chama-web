@@ -20,6 +20,7 @@ interface PricingRule {
   price_daily: number;
   duration_days: number;
   is_active: number;
+  is_public: number;
 }
 
 interface UserModule {

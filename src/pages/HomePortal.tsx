@@ -5,8 +5,6 @@ import CommunityGroups from "../components/groups/CommunityGroups";
 import HowItWorks from "../components/home/HowItWorks";
 import ForDrivers from "../components/home/ForDrivers";
 import ForCompanies from "../components/home/ForCompanies";
-import Partners from "../components/home/Partners";
-import Supporters from "../components/home/Supporters";
 import AdCard from "../components/shared/AdCard";
 import CTA from "../components/home/CTA";
 import Footer from "../components/shared/Footer";
@@ -49,14 +47,9 @@ const Index = () => {
               <AdCard position="freight_list" variant="ecommerce" />
           </div>
           <CommunityGroups />
-          <Supporters />
-          <div className="max-w-4xl mx-auto">
-              <AdCard position="infeed_wide" variant="ecommerce" />
-          </div>
-        </section>
-        
-        <section id="ecossistema" className="bg-slate-50 dark:bg-slate-900/50">
-          <Partners />
+            <div className="max-w-4xl mx-auto">
+                <AdCard position="infeed_wide" variant="ecommerce" />
+            </div>
         </section>
         
         <section id="negocios">

@@ -17,6 +17,7 @@ import PlansPage from './plans/PlansPage';
 import FreightModule from './plans/components/FreightModule';
 import MarketplaceModule from './plans/components/MarketplaceModule';
 import AdvertiserModule from './plans/components/AdvertiserModule';
+import AvulsoPage from './plans/components/AvulsoPage';
 import DriverModule from './plans/components/DriverModule';
 import { PlansProvider } from '../context/PlansContext';
 import CompanyProPage from './company/CompanyProPage';
@@ -161,6 +162,7 @@ export default function DashboardPage() {
             <Route path="freights" element={<FreightModule />} />
             <Route path="marketplace" element={<MarketplaceModule />} />
             <Route path="advertiser" element={<AdvertiserModule />} />
+            <Route path="advertiser/avulso" element={<AvulsoPage />} />
             <Route path="driver" element={<DriverModule />} />
           </Route>
           <Route path="financeiro" element={<FinancialPage />} />

@@ -4,7 +4,7 @@ import { StatsGrid, StatCard } from '@/components/admin';
 import { 
   Plus, Edit3, Trash2, Star, X, Loader2, BadgeDollarSign, 
   CheckCircle2, Zap, Layout, ShieldCheck, Layers, List, LayoutGrid,
-  Search, ChevronLeft, ChevronRight
+  Search, ChevronLeft, ChevronRight, Crown, Heart
 } from 'lucide-react';
 import { PageShell } from '@/components/admin';
 
@@ -18,6 +18,32 @@ const PLAN_TYPES = [
   { id: 'featured', label: 'Destaque' },
 ];
 
+const ADVERTISER_TIERS = [
+  { value: 'none', label: 'Nenhum' },
+  { value: 'supporter_connect', label: 'Apoiador Connect', icon: Heart, color: 'text-emerald-500' },
+  { value: 'maintainer_premium', label: 'Mantenedor Premium', icon: Star, color: 'text-blue-500' },
+  { value: 'sponsor_master', label: 'Oferecimento Master', icon: Crown, color: 'text-amber-500' },
+];
+
+const AD_POSITIONS = [
+  { key: 'spotlight', label: 'Destaque Principal (Topo da Listagem)', group: 'Premium' },
+  { key: 'sidebar', label: 'Banner Lateral (Site Inteiro)', group: 'Premium' },
+  { key: 'freight_list', label: 'Banner na Lista de Fretes', group: 'Principais' },
+  { key: 'infeed_wide', label: 'Banner no Feed de Resultados', group: 'Principais' },
+  { key: 'marketplace_list', label: 'Banner no Marketplace', group: 'Principais' },
+  { key: 'groups_list', label: 'Banner em Grupos WhatsApp', group: 'Secundárias' },
+  { key: 'footer', label: 'Banner no Rodapé (Todas as Páginas)', group: 'Secundárias' },
+  { key: 'chat_header', label: 'Banner no Chat (Topo das Conversas)', group: 'Secundárias' },
+  { key: 'header', label: 'Banner Cabeçalho', group: 'Admin' },
+  { key: 'popup', label: 'Popup', group: 'Admin' },
+];
+
+const TIER_DEFAULT_POSITIONS: Record<string, string[]> = {
+  supporter_connect: ['sidebar'],
+  maintainer_premium: ['sidebar', 'freight_list', 'infeed_wide', 'marketplace_list', 'groups_list'],
+  sponsor_master: ['sidebar', 'freight_list', 'infeed_wide', 'marketplace_list', 'groups_list', 'footer', 'spotlight', 'chat_header', 'popup', 'header'],
+};
+
 export default function PlansManager() {
   const [plans, setPlans] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -30,8 +56,9 @@ export default function PlansManager() {
   const [pageSize, setPageSize] = useState(10);
   
   const [planData, setPlanData] = useState<any>({ 
-    id: null, name: '', price: '', duration_days: '', type: 'freight_list', category: 'freight_subscription', limit_monthly: 0, description: '', features: '', active: 1 
+    id: null, name: '', price: '', duration_days: '', type: 'freight_list', category: 'freight_subscription', limit_monthly: 0, description: '', features: '', active: 1, advertiser_tier: 'none' 
   });
+  const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
 
   const loadPlans = async () => {
     try {
@@ -75,7 +102,30 @@ export default function PlansManager() {
     if (!planData.name || planData.price === '') return alert("Preencha Nome e Preço");
     try {
       setSaving(true);
-      const res = await api.post('/admin-manage-plans', { ...planData, action: 'save' });
+
+      // Construir features JSON mesclando positions selecionadas com dados existentes
+      let featuresObj: any = {};
+      if (planData.features) {
+        try {
+          featuresObj = typeof planData.features === 'string'
+            ? JSON.parse(planData.features)
+            : planData.features;
+        } catch { featuresObj = {}; }
+      }
+      // Se for publicidade, salva positions no features
+      if (planData.category === 'advertising') {
+        featuresObj.positions = selectedPositions;
+      }
+      const featuresStr = Object.keys(featuresObj).length > 0 ? JSON.stringify(featuresObj) : '';
+
+      const payload = {
+        ...planData,
+        features: featuresStr,
+        action: 'save',
+        advertiser_tier: planData.category === 'advertising' ? (planData.advertiser_tier || 'none') : 'none',
+      };
+
+      const res = await api.post('/admin-manage-plans', payload);
       if (!res.data?.success) return alert(res.data?.message || 'Erro ao salvar');
       setShowDrawer(false);
       loadPlans();
@@ -107,13 +157,21 @@ export default function PlansManager() {
     }
   };
 
+  const parsePositionsFromFeatures = (features: any): string[] => {
+    if (!features) return [];
+    const parsed = typeof features === 'string' ? JSON.parse(features) : features;
+    return parsed?.positions || [];
+  };
+
   const openNew = () => {
-    setPlanData({ id: null, name: '', price: '', duration_days: '', type: 'featured', description: '', active: 1 });
+    setPlanData({ id: null, name: '', price: '', duration_days: '', type: 'featured', category: 'freight_subscription', description: '', active: 1, limit_monthly: 0, features: '', advertiser_tier: 'none' });
+    setSelectedPositions([]);
     setShowDrawer(true);
   };
 
   const openEdit = (plan: any) => {
     setPlanData(plan);
+    setSelectedPositions(parsePositionsFromFeatures(plan.features));
     setShowDrawer(true);
   };
 
@@ -185,6 +243,7 @@ export default function PlansManager() {
                 <tr>
                   <th className="px-5 py-4">Tipo</th>
                   <th className="px-5 py-4">Plano</th>
+                  <th className="px-5 py-4">Tier</th>
                   <th className="px-5 py-4">Valor</th>
                   <th className="px-5 py-4">Limite</th>
                   <th className="px-5 py-4">Ciclo</th>
@@ -193,12 +252,22 @@ export default function PlansManager() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
-                {paginatedPlans.map((plan) => (
-                  <tr key={plan.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${Number(plan.active) !== 1 && 'opacity-60'}`}>
+                {paginatedPlans.map((plan) => {
+                  const tierConfig = ADVERTISER_TIERS.find(t => t.value === plan.advertiser_tier);
+                  return (<tr key={plan.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${Number(plan.active) !== 1 && 'opacity-60'}`}>
                     <td className="px-5 py-4">{getPlanIcon(plan.type)}</td>
                     <td className="px-5 py-4">
                       <div className="font-bold text-slate-800 dark:text-white">{plan.name}</div>
                       <div className="text-xs text-slate-400">{plan.slug || plan.type}</div>
+                    </td>
+                    <td className="px-5 py-4">
+                      {tierConfig && plan.category === 'advertising' && tierConfig.value !== 'none' ? (
+                        <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase ${tierConfig.color}`}>
+                          <tierConfig.icon size={10} /> {tierConfig.label}
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-slate-400">—</span>
+                      )}
                     </td>
                     <td className="px-5 py-4 font-bold text-slate-800 dark:text-white">R$ {plan.price}</td>
                     <td className="px-5 py-4 text-sm text-slate-500">{plan.limit_monthly ?? '∞'}/mês</td>
@@ -216,8 +285,8 @@ export default function PlansManager() {
                         </button>
                       </div>
                     </td>
-                  </tr>
-                ))}
+                  </tr>);
+                })}
               </tbody>
             </table>
             {paginatedPlans.length === 0 && (
@@ -275,7 +344,9 @@ export default function PlansManager() {
               </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {paginatedPlans.map((plan) => (
+              {paginatedPlans.map((plan) => {
+                const tierConfig = ADVERTISER_TIERS.find(t => t.value === plan.advertiser_tier);
+                return (
                 <div key={plan.id} className={`bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700 transition-all group relative ${Number(plan.active) === 1 ? 'hover:border-blue-300 dark:hover:border-blue-700' : 'border-dashed border-slate-300 dark:border-slate-600 opacity-60'}`}>
                   <div className="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-all">
                     <button onClick={() => openEdit(plan)} className="p-2 bg-white dark:bg-slate-700 shadow-lg rounded-xl text-blue-600 dark:text-blue-400 hover:bg-blue-600 hover:text-white transition-colors"><Edit3 size={14}/></button>
@@ -285,6 +356,11 @@ export default function PlansManager() {
                   </div>
                   <div className="mb-4">{getPlanIcon(plan.type, 28)}</div>
                   <h4 className="font-bold text-slate-800 dark:text-white leading-tight mb-2">{plan.name}</h4>
+                  {tierConfig && plan.category === 'advertising' && tierConfig.value !== 'none' && (
+                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase ${tierConfig.color} mb-2`}>
+                      <tierConfig.icon size={10} /> {tierConfig.label}
+                    </span>
+                  )}
                   <div className="flex items-baseline gap-1 mb-4">
                     <span className="text-2xl font-bold text-slate-900 dark:text-white">R$ {plan.price}</span>
                     <span className="text-xs text-slate-400">/{plan.duration_days}d</span>
@@ -296,7 +372,8 @@ export default function PlansManager() {
                     </span>
                   </div>
                 </div>
-              ))}
+              );
+            })}
             </div>
             {totalPages > 1 && (
               <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-4 mt-4 flex items-center justify-between">
@@ -372,6 +449,58 @@ export default function PlansManager() {
                     <option value="groups">Grupos</option>
                   </select>
                 </div>
+                {/* TIER DE PUBLICIDADE - só aparece quando categoria = advertising */}
+                {planData.category === 'advertising' && (
+                  <>
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Tier de Publicidade</label>
+                      <select
+                        value={planData.advertiser_tier || 'none'}
+                        onChange={e => {
+                          const tier = e.target.value;
+                          setPlanData({...planData, advertiser_tier: tier});
+                          // Auto-preenche posições padrão do tier
+                          if (tier !== 'none' && TIER_DEFAULT_POSITIONS[tier]) {
+                            setSelectedPositions([...TIER_DEFAULT_POSITIONS[tier]]);
+                          }
+                        }}
+                        className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+                      >
+                        {ADVERTISER_TIERS.map(t => (
+                          <option key={t.value} value={t.value}>{t.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Posições Incluídas</label>
+                      <div className="space-y-1">
+                        {AD_POSITIONS.map(pos => {
+                          const isChecked = selectedPositions.includes(pos.key);
+                          return (
+                            <label key={pos.key} className="flex items-center gap-2 cursor-pointer py-1.5 px-2 rounded-lg hover:bg-slate-50 transition-colors">
+                              <input
+                                type="checkbox"
+                                checked={isChecked}
+                                onChange={() => {
+                                  setSelectedPositions(prev =>
+                                    isChecked
+                                      ? prev.filter(k => k !== pos.key)
+                                      : [...prev, pos.key]
+                                  );
+                                }}
+                                className="w-4 h-4 text-blue-600 rounded"
+                              />
+                              <span className="text-xs font-bold text-slate-600">{pos.label}</span>
+                              <span className="text-[8px] font-bold text-slate-400 ml-auto uppercase">{pos.group}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </>
+                )}
+
                 <div>
                   <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Limite Mensal</label>
                   <input type="number" value={planData.limit_monthly} onChange={e => setPlanData({...planData, limit_monthly: e.target.value})} placeholder="0 = ilimitado" className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500" />

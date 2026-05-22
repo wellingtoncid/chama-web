@@ -1,57 +1,18 @@
 import { Mail, Phone } from "lucide-react";
 import { FaInstagram, FaLinkedin, FaFacebook, FaYoutube, FaWhatsapp } from 'react-icons/fa';
-import { useState, useEffect } from 'react';
-import AdCard from "../shared/AdCard"; 
-import { api } from '../../api/api';
+import { useState } from 'react';
 import { BusinessModal } from '../modals/BusinessModal';
-
-const DEFAULT_AD = {
-  id: 0,
-  title: "Sua Marca Aqui",
-  description: "Conecte-se com o ecossistema logístico que mais cresce no Brasil.",
-  image_url: "https://images.unsplash.com/photo-1517048676732-d65bc937f952?q=80&w=1470&auto=format&fit=crop",
-  category: "BUSINESS",
-};
+import AdvertiserTiers from "./AdvertiserTiers";
+import AdCard from "./AdCard";
 
 const Footer = () => {
-  const [footerAds, setFooterAds] = useState<any[]>([DEFAULT_AD, DEFAULT_AD, DEFAULT_AD]);
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const res = await api.get('/ads', { params: { position: 'footer' } });
-        const ads = res.data?.data || (Array.isArray(res.data) ? res.data : []);
-        const shuffled = [...ads].sort(() => Math.random() - 0.5);
-        setFooterAds([
-          shuffled[0] || DEFAULT_AD,
-          shuffled[1] || DEFAULT_AD,
-          shuffled[2] || DEFAULT_AD,
-        ]);
-      } catch {
-        setFooterAds([DEFAULT_AD, DEFAULT_AD, DEFAULT_AD]);
-      }
-    };
-    load();
-  }, []);
 
   return (
     <footer className="bg-slate-50 dark:bg-slate-950 pt-16 pb-12 border-t border-slate-200 dark:border-slate-800 transition-colors duration-300">
       <div className="max-w-7xl mx-auto px-4">
-        
-        {/* --- SEÇÃO DE ANÚNCIOS (FOOTER ADS) --- */}
-        <div className="mb-20">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Parceiros Oficiais</span>
-            <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800"></div>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <AdCard position="footer" variant="footer" forcedAd={footerAds[0]} />
-            <AdCard position="footer" variant="footer" forcedAd={footerAds[1]} />
-            <AdCard position="footer" variant="footer" forcedAd={footerAds[2]} />
-          </div>
-        </div>
+
+        <AdvertiserTiers />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-12 mb-20">
           
@@ -128,6 +89,11 @@ const Footer = () => {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Banner Rodapé */}
+        <div className="mb-12">
+          <AdCard position="footer" variant="footer" />
         </div>
 
         {/* Direitos Autorais */}

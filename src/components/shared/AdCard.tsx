@@ -147,7 +147,19 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
       trackWhatsAppClick(adToShow.id, 'AD', cleanPhone);
     } else {
       trackEvent(adToShow.id, 'AD', 'CLICK');
-      const finalUrl = rawLink.startsWith('http') ? rawLink : `https://${rawLink}`;
+      let finalUrl = rawLink.startsWith('http') ? rawLink : `https://${rawLink}`;
+      // Auto-append UTM params for analytics tracking
+      try {
+        const utmUrl = new URL(finalUrl);
+        if (!utmUrl.searchParams.has('utm_source')) {
+          utmUrl.searchParams.set('utm_source', 'chamafrete');
+          utmUrl.searchParams.set('utm_medium', 'ad');
+          utmUrl.searchParams.set('utm_campaign', `banner-${position}`);
+        }
+        finalUrl = utmUrl.toString();
+      } catch (e) {
+        // Invalid URL, use as-is
+      }
       window.open(finalUrl, '_blank', 'noopener,noreferrer');
     }
   };
