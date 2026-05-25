@@ -5,9 +5,10 @@ import {
   Users, Truck, ShoppingBag, FileText, CreditCard,
   Package, Headphones, TrendingUp, RefreshCw, DollarSign,
   UserPlus, Building2, Megaphone, UserCheck, MessageSquare,
-  Flag, Mail, ArrowRight
+  Flag, Mail, ArrowRight, Wallet, Loader2
 } from 'lucide-react';
 import { AdminHeader, StatsGrid, StatCard } from '@/components/admin';
+import Swal from 'sweetalert2';
 
 interface HomeStats {
   users: { total: number; new_30d: number; pending: number };
@@ -236,6 +237,9 @@ export default function DashboardHome({ user }: { user: any }) {
         />
       </StatsGrid>
 
+      {/* MINHA CARTEIRA */}
+      <AdminWalletCard />
+
       {/* PENDING ITEMS */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
         <div className="p-5 border-b border-slate-100 dark:border-slate-700">
@@ -333,6 +337,81 @@ export default function DashboardHome({ user }: { user: any }) {
             ))}
           </div>
         )}
+      </div>
+    </div>
+  );
+}
+
+function AdminWalletCard() {
+  const [balance, setBalance] = useState<number | null>(null);
+  const [amount, setAmount] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [recharging, setRecharging] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoading(true);
+        const res = await api.get('/wallet/balance');
+        if (res.data?.success) setBalance(res.data.data.balance ?? 0);
+      } catch { /* */ }
+      finally { setLoading(false); }
+    })();
+  }, []);
+
+  const handleRecharge = async () => {
+    const v = parseFloat(amount.replace(',', '.'));
+    if (isNaN(v) || v < 0.01) {
+      Swal.fire({ icon: 'warning', title: 'Valor mínimo: R$ 0,01' });
+      return;
+    }
+    setRecharging(true);
+    try {
+      const res = await api.post('/wallet/recharge', { amount: v });
+      if (res.data?.success && res.data?.url) {
+        window.location.href = res.data.url;
+      } else {
+        Swal.fire({ icon: 'error', title: res.data?.message || 'Erro ao gerar PIX' });
+      }
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Erro ao processar recarga' });
+    } finally { setRecharging(false); }
+  };
+
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+      <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shrink-0">
+            <Wallet size={22} className="text-white" />
+          </div>
+          <div className="min-w-0">
+            <p className="font-bold text-sm text-slate-800 dark:text-white">Minha Carteira</p>
+            <p className="text-xs text-slate-400">
+              {loading
+                ? 'Carregando...'
+                : `Saldo: R$ ${(balance ?? 0).toFixed(2).replace('.', ',')}`
+              }
+            </p>
+          </div>
+        </div>
+        <div className="flex gap-2 flex-1 max-w-xs ml-auto">
+          <input
+            type="text"
+            value={amount}
+            onChange={e => setAmount(e.target.value.replace(/[^0-9,]/g, ''))}
+            placeholder="Valor"
+            className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500"
+          />
+          <button
+            onClick={handleRecharge}
+            disabled={recharging || !amount}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50 shrink-0"
+          >
+            {recharging ? <Loader2 size={14} className="animate-spin" /> : <DollarSign size={14} />}
+            Recarregar
+          </button>
+        </div>
       </div>
     </div>
   );

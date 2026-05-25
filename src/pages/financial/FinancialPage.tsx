@@ -2,8 +2,9 @@ import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
 import { Button } from '../../components/ui/Button';
 import { 
-  Eye, X, QrCode, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet
+  Eye, X, QrCode, RefreshCw, ArrowUpRight, ArrowDownLeft, Wallet, TicketCheck, Loader2
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import DashboardShell from '../../components/layout/DashboardShell';
 
 // ----- helpers -----
@@ -194,6 +195,29 @@ export default function FinancialPage() {
       .reduce((sum: number, r: any) => sum + Math.abs(parseFloat(r.amount) || 0), 0);
   }, [rows]);
 
+  const [couponCode, setCouponCode] = useState('');
+  const [redeeming, setRedeeming] = useState(false);
+
+  const handleRedeemCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) return;
+    setRedeeming(true);
+    try {
+      const res = await api.post('/coupons/redeem', { code });
+      if (res.data?.success) {
+        Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: res.data.message || 'Cupom resgatado!', showConfirmButton: false, timer: 2000 });
+        setCouponCode('');
+        load();
+      } else {
+        alert(res.data?.message || 'Erro ao resgatar cupom');
+      }
+    } catch (e: any) {
+      alert(e.response?.data?.message || 'Erro ao resgatar cupom');
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
   // ----- loading skeleton -----
 
   if (loading) return (
@@ -264,6 +288,39 @@ export default function FinancialPage() {
           <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-700 flex items-center gap-2 text-[10px] text-slate-400">
             <ArrowUpRight size={12} />
             Despesas aprovadas
+          </div>
+        </div>
+      </div>
+
+      {/* Cupom */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5">
+        <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-purple-100 text-purple-600 flex items-center justify-center">
+              <TicketCheck size={20} />
+            </div>
+            <div>
+              <p className="font-bold text-sm text-slate-800 dark:text-white">Resgatar Cupom</p>
+              <p className="text-[10px] text-slate-400">Insira um código para ganhar créditos</p>
+            </div>
+          </div>
+          <div className="flex gap-2 flex-1 max-w-md ml-auto">
+            <input
+              type="text"
+              value={couponCode}
+              onChange={e => setCouponCode(e.target.value.toUpperCase())}
+              placeholder="CÓDIGO"
+              className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-700 dark:text-white border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold uppercase outline-none focus:ring-2 focus:ring-purple-500 font-mono"
+            />
+            <Button
+              onClick={handleRedeemCoupon}
+              disabled={redeeming || !couponCode.trim()}
+              variant="secondary"
+              className="bg-purple-500 hover:bg-purple-600 text-white shrink-0"
+            >
+              {redeeming ? <Loader2 size={14} className="animate-spin" /> : <TicketCheck size={14} />}
+              Resgatar
+            </Button>
           </div>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import {
@@ -6,7 +6,7 @@ import {
   Calendar, CheckCircle,
   ChevronLeft, Shield, Search, Grid3X3, ToggleLeft, ToggleRight,
   ShoppingBag, FileText, Megaphone, MessageCircle, CreditCard,
-  Users, Tag, HelpCircle
+  Users, Tag, HelpCircle, Wallet, DollarSign
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -63,6 +63,7 @@ export default function UserEditorPage() {
     if (!isNew) {
       items.push({ label: 'Permissões', icon: Shield });
       items.push({ label: 'Módulos', icon: Grid3X3 });
+      items.push({ label: 'Carteira', icon: CreditCard });
     }
     return items;
   }, [isNew]);
@@ -728,6 +729,13 @@ export default function UserEditorPage() {
             </div>
           )}
 
+          {/* TAB CARTEIRA */}
+          {activeTab === 3 && (
+            <div className="space-y-6 max-w-4xl">
+              <WalletSection userId={userData?.id} />
+            </div>
+          )}
+
           {/* TAB PERMISSÕES */}
           {activeTab === 1 && (
             <div className="space-y-6 max-w-4xl">
@@ -782,6 +790,168 @@ export default function UserEditorPage() {
                 </div>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+const fmt = (v: number) =>
+  new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v);
+
+const fmtDate = (s: string) =>
+  s ? new Date(s).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+
+function WalletSection({ userId }: { userId: number | undefined }) {
+  const [balance, setBalance] = useState(0);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [amount, setAmount] = useState('');
+  const [reason, setReason] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [sending, setSending] = useState(false);
+
+  const loadBalance = useCallback(async () => {
+    if (!userId) return;
+    try {
+      setLoading(true);
+      const res = await api.get(`/wallet/balance?user_id=${userId}`);
+      if (res.data?.success) {
+        setBalance(res.data.data.balance ?? 0);
+        setTransactions(res.data.data.transactions || []);
+      }
+    } catch { /* */ }
+    finally { setLoading(false); }
+  }, [userId]);
+
+  useEffect(() => { loadBalance(); }, [loadBalance]);
+
+  const handleCredit = async () => {
+    const v = parseFloat(amount.replace(',', '.'));
+    if (!userId || isNaN(v) || v <= 0) {
+      Swal.fire({ icon: 'warning', title: 'Valor inválido' });
+      return;
+    }
+    setSending(true);
+    try {
+      const res = await api.post('/admin/add-credits', {
+        user_id: userId,
+        amount: v,
+        reason: reason || 'Crédito administrativo',
+      });
+      if (res.data?.success) {
+        Swal.fire({ icon: 'success', title: `R$ ${v.toFixed(2)} creditado!`, timer: 2000, showConfirmButton: false });
+        setAmount('');
+        setReason('');
+        loadBalance();
+      } else {
+        Swal.fire({ icon: 'error', title: res.data?.message || 'Erro ao creditar' });
+      }
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Erro ao creditar' });
+    }
+    finally { setSending(false); }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl">
+        <Loader2 className="animate-spin text-orange-500" size={20} />
+        <span className="text-xs font-medium text-slate-400">Carregando carteira...</span>
+      </div>
+    );
+  }
+
+  const walletTransactions = transactions.filter((t: any) =>
+    ['wallet_recharge', 'wallet_debit', 'wallet_refund'].includes(t.transaction_type)
+  );
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-2xl p-5 text-white">
+        <div className="flex items-center gap-2 text-orange-100 text-xs font-medium mb-1">
+          <Wallet size={14} /> Saldo da Carteira
+        </div>
+        <p className="text-3xl font-black tabular-nums">
+          {fmt(balance)}
+        </p>
+      </div>
+
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 space-y-4">
+        <p className="text-[10px] font-black uppercase text-slate-400">Creditar na Carteira</p>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            value={amount}
+            onChange={e => setAmount(e.target.value.replace(/[^0-9,]/g, ''))}
+            placeholder="Valor (R$)"
+            className="flex-1 px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-bold outline-none focus:ring-2 focus:ring-orange-500"
+          />
+          <button
+            onClick={handleCredit}
+            disabled={sending || !amount}
+            className="bg-orange-500 hover:bg-orange-600 text-white px-5 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 transition-all disabled:opacity-50"
+          >
+            {sending ? <Loader2 size={14} className="animate-spin" /> : <DollarSign size={14} />}
+            Creditar
+          </button>
+        </div>
+        <input
+          type="text"
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          placeholder="Motivo (opcional)"
+          className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-xs font-medium outline-none focus:ring-2 focus:ring-orange-500"
+        />
+      </div>
+
+      {/* Histórico */}
+      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-100">
+          <p className="text-[10px] font-black uppercase text-slate-400">Histórico de Movimentações</p>
+        </div>
+        {walletTransactions.length === 0 ? (
+          <div className="p-8 text-center">
+            <Wallet size={28} className="mx-auto mb-2 text-slate-200" />
+            <p className="text-xs text-slate-400 font-medium">Nenhuma movimentação</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-slate-50/50 border-b border-slate-100">
+                  <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase text-slate-400">Descrição</th>
+                  <th className="text-left px-4 py-2.5 text-[10px] font-black uppercase text-slate-400">Data</th>
+                  <th className="text-right px-4 py-2.5 text-[10px] font-black uppercase text-slate-400">Valor</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {walletTransactions.map((tx: any) => {
+                  const amt = parseFloat(tx.amount) || 0;
+                  const isCredit = amt > 0;
+                  const label =
+                    tx.transaction_type === 'wallet_recharge' ? 'Recarga' :
+                    tx.transaction_type === 'wallet_refund' ? 'Estorno' :
+                    tx.description || 'Débito';
+                  return (
+                    <tr key={tx.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-4 py-2.5">
+                        <p className="text-xs font-bold text-slate-700">{label}</p>
+                        {tx.description && tx.transaction_type !== 'wallet_recharge' && tx.transaction_type !== 'wallet_refund' && (
+                          <p className="text-[10px] text-slate-400">{tx.description}</p>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-[10px] text-slate-400">{fmtDate(tx.created_at)}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <span className={`text-xs font-black tabular-nums ${isCredit ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {isCredit ? '+' : '-'}{fmt(Math.abs(amt))}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

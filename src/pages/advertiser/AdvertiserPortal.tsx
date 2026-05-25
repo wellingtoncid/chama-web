@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { 
   Megaphone, PlusCircle, Loader2, X,
-  Image as ImageIcon, Pencil, Trash2
+  Image as ImageIcon, Pencil, Trash2, Crown, Star, Heart,
+  Check, Lock
 } from 'lucide-react';
 import { api, BASE_URL_API } from '../../api/api';
 import Swal from 'sweetalert2';
@@ -10,6 +11,13 @@ import { useAdPositions } from '../../hooks/useAdPositions';
 import DashboardShell from '../../components/layout/DashboardShell';
 import { Button } from '../../components/ui/Button';
 import ConfirmModal from '../../components/shared/ConfirmModal';
+import { AD_POSITION_LABEL } from '../../constants/adPositions';
+
+const TIER_MAP: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
+  sponsor_master: { icon: <Crown size={16} />, label: 'Oferecimento Master', color: 'text-yellow-600 dark:text-yellow-400' },
+  maintainer_premium: { icon: <Star size={16} />, label: 'Mantenedor Premium', color: 'text-blue-600 dark:text-blue-400' },
+  supporter_connect: { icon: <Heart size={16} />, label: 'Apoiador Connect', color: 'text-rose-600 dark:text-rose-400' },
+};
 
 const getImageUrl = (imageUrl: string) => {
   if (!imageUrl) return null;
@@ -38,6 +46,10 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
   
   const { positions, loading: positionsLoading, getIcon } = useAdPositions();
   
+  // Plan info
+  const [activePlan, setActivePlan] = useState<any>(null);
+  const [includedPositions, setIncludedPositions] = useState<string[]>([]);
+
   // Form
   const [formData, setFormData] = useState({
     title: '',
@@ -100,6 +112,45 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
       setLoading(false);
     }
   };
+
+  // Carregar plano ativo e posições incluídas
+  useEffect(() => {
+    const loadPlanInfo = async () => {
+      try {
+        const [plansRes, modsRes, pricingRes] = await Promise.all([
+          api.get('/plans').catch(() => ({ data: { success: false } })),
+          api.get('/user/modules').catch(() => ({ data: { success: false } })),
+          api.get('/pricing/rules').catch(() => ({ data: { success: false } })),
+        ]);
+
+        if (!plansRes.data?.success || !modsRes.data?.success) return;
+
+        const plans = plansRes.data.plans || plansRes.data.data || [];
+        const modules = modsRes.data.data?.modules || [];
+        const advertiserMod = modules.find((m: any) => m.key === 'advertiser');
+
+        if (advertiserMod?.plan_id) {
+          const plan = plans.find((p: any) => p.id === advertiserMod.plan_id);
+          if (plan) {
+            setActivePlan(plan);
+            const pos = plan.features?.positions;
+            setIncludedPositions(Array.isArray(pos) ? pos : []);
+          }
+        }
+
+        if (pricingRes.data?.success) {
+          const rules = pricingRes.data.data || [];
+          const chatRule = rules.find((r: any) => r.module_key === 'advertiser' && r.feature_key === 'chat_header');
+          if (chatRule && Number(chatRule.price_monthly) === 0 && Number(chatRule.price_per_use) === 0) {
+            setIncludedPositions(prev => prev.includes('chat_header') ? prev : [...prev, 'chat_header']);
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao carregar plano:', e);
+      }
+    };
+    if (hasAccess) loadPlanInfo();
+  }, [hasAccess]);
 
   useEffect(() => {
     const fetchStates = async () => {
@@ -307,6 +358,48 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
         </div>
       </div>
 
+      {/* Plano Ativo */}
+      {activePlan && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="p-5">
+            <div className="flex items-center justify-between gap-4 mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-emerald-100 dark:bg-emerald-900/40 flex items-center justify-center text-emerald-600">
+                  <Check size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-sm text-slate-900 dark:text-slate-100">
+                    Plano: {activePlan.name}
+                  </h3>
+                  {(() => {
+                    const tier = TIER_MAP[activePlan.advertiser_tier as string];
+                    return tier ? (
+                      <span className={`inline-flex items-center gap-1 text-xs font-bold ${tier.color}`}>
+                        {tier.icon} {tier.label}
+                      </span>
+                    ) : null;
+                  })()}
+                </div>
+              </div>
+              <span className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+                R$ {Number(activePlan.price).toFixed(2).replace('.', ',')}/mês
+              </span>
+            </div>
+
+            <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
+              <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Posições incluídas no seu plano:</p>
+              <div className="flex flex-wrap gap-2">
+                {includedPositions.map(pos => (
+                  <span key={pos} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-[10px] font-bold">
+                    <Check size={10} /> {AD_POSITION_LABEL[pos] || pos}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Lista de Anúncios */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden dark:bg-slate-900 dark:border-slate-800">
         {loading || positionsLoading ? (
@@ -424,14 +517,22 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                   className="w-full p-3 bg-slate-50 rounded-xl font-bold text-sm"
                 >
                   {positions.filter(pos => Number(pos.is_public)).map(pos => {
-                    const Icon = getIcon(pos.icon_key);
+                    const isIncluded = includedPositions.includes(pos.feature_key);
                     return (
                       <option key={pos.feature_key} value={pos.feature_key}>
-                        {pos.feature_name} - {formatPrice(pos.price_monthly)}/mês ({pos.ad_size || 'variável'})
+                        {pos.feature_name} — {isIncluded ? 'INCLUSO' : `${formatPrice(pos.price_monthly)}/mês`}
                       </option>
                     );
                   })}
                 </select>
+                {formData.position && !includedPositions.includes(formData.position) && (
+                  <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-2">
+                    <Lock size={12} className="text-amber-500 shrink-0" />
+                    <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                      Esta posição não está incluída no seu plano. Será cobrado valor avulso ao criar o anúncio.
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div>

@@ -173,35 +173,91 @@ export function PlansProvider({ children }: { children: ReactNode }) {
         } else {
           Swal.fire({ icon: 'error', title: 'Erro', text: res.data?.message || 'Erro ao ativar plano' });
         }
-    } catch (e: any) {
-      Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || e.message || 'Erro ao ativar plano' });
+      } catch (e: any) {
+        Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || e.message || 'Erro ao ativar plano' });
+      }
+      return;
     }
-    return;
-  }
+
+    const amount = Number(plan.price);
+    const balance = walletBalance;
+    let paymentChoice = balance >= amount ? 'wallet' : 'mercadopago';
+
+    const result = await Swal.fire({
+      title: `Assinar: ${plan.name}`,
+      html: `
+        <div class="text-left space-y-4">
+          <div class="bg-slate-50 rounded-xl p-4">
+            <p class="text-sm text-slate-600">Valor do plano:</p>
+            <p class="text-2xl font-black text-slate-900">R$ ${amount.toFixed(2).replace('.', ',')}/mês</p>
+          </div>
+          <div class="space-y-2">
+            <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-all payment-option" onclick="selectPayment('wallet')">
+              <input type="radio" name="payment" value="wallet" class="w-5 h-5 text-emerald-600" ${balance >= amount ? 'checked' : ''}>
+              <div class="flex-1">
+                <p class="font-bold text-slate-900">Usar Saldo da Carteira</p>
+                <p class="text-xs text-slate-500">Saldo disponível: R$ ${balance.toFixed(2).replace('.', ',')}</p>
+              </div>
+              ${balance >= amount ? '<span class="text-xs bg-emerald-100 text-emerald-700 px-2 py-1 rounded-full font-bold">✓</span>' : '<span class="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-bold">Saldo insuficiente</span>'}
+            </label>
+            <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" onclick="selectPayment('mercadopago')">
+              <input type="radio" name="payment" value="mercadopago" class="w-5 h-5 text-blue-600" ${balance < amount ? 'checked' : ''}>
+              <div class="flex-1">
+                <p class="font-bold text-slate-900">Pagar com Mercado Pago</p>
+                <p class="text-xs text-slate-500">Cartão, PIX ou boleto</p>
+              </div>
+            </label>
+            ${balance > 0 ? `
+            <label class="flex items-center gap-3 p-3 border-2 rounded-xl cursor-pointer hover:bg-slate-50 transition-all" onclick="selectPayment('recharge')">
+              <input type="radio" name="payment" value="recharge" class="w-5 h-5 text-amber-600">
+              <div class="flex-1">
+                <p class="font-bold text-slate-900">Recarregar Carteira</p>
+                <p class="text-xs text-slate-500">Adicionar mais saldo</p>
+              </div>
+            </label>
+            ` : ''}
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar',
+      cancelButtonText: 'Cancelar',
+      confirmButtonColor: '#059669',
+      didOpen: () => {
+        (window as any).selectPayment = (value: string) => {
+          const radios = document.querySelectorAll('input[name="payment"]') as NodeListOf<HTMLInputElement>;
+          radios.forEach(r => r.checked = r.value === value);
+        };
+      }
+    });
+
+    if (!result.isConfirmed) return;
+
+    paymentChoice = (document.querySelector('input[name="payment"]:checked') as HTMLInputElement)?.value || 'mercadopago';
+
+    if (paymentChoice === 'recharge') {
+      navigate('/dashboard/wallet');
+      return;
+    }
 
     try {
-      const result = await Swal.fire({
-        title: `Assinar Plano: ${plan.name}`,
-        text: `Valor: R$ ${Number(plan.price).toFixed(2).replace('.', ',')}/mês`,
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonText: 'Ir para Pagamento',
-        cancelButtonText: 'Cancelar',
-        confirmButtonColor: '#059669'
+      const res = await api.post('/plans/subscribe', {
+        plan_id: plan.id,
+        payment_method: paymentChoice,
       });
-
-      if (result.isConfirmed) {
-        const res = await api.post('/plans/subscribe', { plan_id: plan.id });
-        if (res.data?.success) {
-          if (res.data.url) {
-            window.location.href = res.data.url;
-          } else {
-            Swal.fire({ icon: 'success', title: 'Plano Ativado!', timer: 2000, showConfirmButton: false });
-            loadData();
-          }
+      if (res.data?.success) {
+        if (res.data.payment_method === 'wallet') {
+          Swal.fire({ icon: 'success', title: 'Plano Ativado!', text: `Saldo restante: R$ ${parseFloat(res.data.new_balance).toFixed(2).replace('.', ',')}`, timer: 3000, showConfirmButton: false });
+          setWalletBalance(parseFloat(res.data.new_balance));
+          loadData();
+        } else if (res.data.url) {
+          window.location.href = res.data.url;
         } else {
-          Swal.fire({ icon: 'error', title: 'Erro', text: res.data?.message || 'Não foi possível assinar' });
+          Swal.fire({ icon: 'success', title: 'Plano Ativado!', timer: 2000, showConfirmButton: false });
+          loadData();
         }
+      } else {
+        Swal.fire({ icon: 'error', title: 'Erro', text: res.data?.message || 'Não foi possível assinar' });
       }
     } catch (e: any) {
       Swal.fire({ icon: 'error', title: 'Erro', text: e.response?.data?.message || e.message || 'Erro ao processar assinatura' });

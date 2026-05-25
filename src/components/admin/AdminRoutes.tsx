@@ -33,6 +33,7 @@ import ReviewsManager from '@/components/admin/ReviewsManager';
 import ReportsManager from '@/components/admin/ReportsManager';
 import AffiliateManager from '@/components/admin/AffiliateManager';
 import AuditLogsView from '@/components/admin/AuditLogView';
+import CouponManager from '@/components/admin/CouponManager';
 
 export function getAdminRouteElements(user: User, isSuperAdmin: boolean) {
   return (
@@ -64,6 +65,7 @@ export function getAdminRouteElements(user: User, isSuperAdmin: boolean) {
       <Route path="admin/avaliacoes" element={<ReviewsManager />} />
       <Route path="admin/denuncias" element={<ReportsManager />} />
       {isSuperAdmin && <Route path="admin/afiliados" element={<AffiliateManager />} />}
+      {isSuperAdmin && <Route path="admin/cupons" element={<CouponManager />} />}
       <Route path="perfil" element={<ProfileView />} />
     </>
   );
