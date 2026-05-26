@@ -92,7 +92,7 @@ const Footer = () => {
         </div>
 
         {/* Banner Rodapé */}
-        <div className="mb-12">
+        <div className="max-w-4xl mx-auto mb-12">
           <AdCard position="footer" variant="footer" />
         </div>
 

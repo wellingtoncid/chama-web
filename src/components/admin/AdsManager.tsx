@@ -21,6 +21,7 @@ export default function AdsManager() {
   const [showCustomDate, setShowCustomDate] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
+  const [editingPriority, setEditingPriority] = useState<number | null>(null);
 
   const allAds = ads;
   const activeAds = allAds.filter(a => a.computed_status === 'active' || a.computed_status === 'expiring_soon');
@@ -157,6 +158,16 @@ export default function AdsManager() {
     } catch {
       alert('Erro ao excluir anúncio.');
     }
+  };
+
+  const updatePriority = async (id: number, priority: number) => {
+    try {
+      await api.post('/admin-manage-ads', { id, action: 'set_priority', priority });
+      setAds(prev => prev.map(ad => ad.id === id ? { ...ad, priority } : ad));
+    } catch {
+      alert('Erro ao atualizar prioridade.');
+    }
+    setEditingPriority(null);
   };
 
   const exportToCSV = () => {
@@ -306,15 +317,16 @@ export default function AdsManager() {
                 <th className="px-5 py-4">Anunciante</th>
                 <th className="px-5 py-4">Status</th>
                 <th className="px-5 py-4 text-center">Performance</th>
+                <th className="px-5 py-4 text-center w-24">Prioridade</th>
                 <th className="px-5 py-4">Criado em</th>
                 <th className="px-5 py-4 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {loading ? (
-                <tr><td colSpan={7} className="px-5 py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
+                <tr><td colSpan={8} className="px-5 py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
               ) : (hasDateFilter ? filteredAds : paginatedAds).length === 0 ? (
-                <tr><td colSpan={7} className="px-5 py-20 text-center font-bold text-slate-400 dark:text-slate-500">Nenhum anúncio encontrado</td></tr>
+                <tr><td colSpan={8} className="px-5 py-20 text-center font-bold text-slate-400 dark:text-slate-500">Nenhum anúncio encontrado</td></tr>
               ) : (hasDateFilter ? filteredAds : paginatedAds).map((ad: any) => {
                 const statusConfig: Record<string, {color: string; bg: string; label: string}> = {
                   active: { color: 'text-emerald-600', bg: 'bg-emerald-100', label: 'ATIVO' },
@@ -357,6 +369,30 @@ export default function AdsManager() {
                           <span className="text-[9px] font-bold text-blue-500 uppercase mt-0.5">Views</span>
                         </div>
                       </div>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      {editingPriority === ad.id ? (
+                        <input
+                          type="number"
+                          min="1"
+                          max="999"
+                          defaultValue={ad.priority ?? 1}
+                          onBlur={(e) => updatePriority(ad.id, parseInt(e.target.value) || 1)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') updatePriority(ad.id, parseInt((e.target as HTMLInputElement).value) || 1);
+                            if (e.key === 'Escape') setEditingPriority(null);
+                          }}
+                          className="w-16 text-center text-xs font-bold bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 outline-none focus:ring-2 focus:ring-blue-500"
+                          autoFocus
+                        />
+                      ) : (
+                        <span
+                          onClick={() => setEditingPriority(ad.id)}
+                          className="text-xs font-bold text-slate-500 dark:text-slate-400 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                        >
+                          {ad.priority ?? 1}
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-4">
                       <span className="text-xs font-bold text-slate-400">

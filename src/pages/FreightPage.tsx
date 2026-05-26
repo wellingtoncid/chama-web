@@ -9,7 +9,6 @@ import { useTracker } from '../services/useTracker';
 import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import FreightCard from '../components/shared/FreightCard';
-import AdCarousel from '../components/shared/AdCarousel';
 import AdCard from '../components/shared/AdCard';
 import { BusinessModal } from "../components/modals/BusinessModal";
 import { VEHICLE_TYPES, BODY_TYPES } from '../constants/freightOptions';
@@ -303,12 +302,9 @@ export default function FreightPage() {
             )}
           </header>
 
-          {/* SECTION DO CARROSSEL */}
-          <section className="max-w-4xl mx-auto mb-10 relative">
-            <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
-              <AdCarousel searchTerm={searchTerm} />
-            </div>
-          </section>
+          <div className="max-w-4xl mx-auto mb-6">
+            <AdCard position="freight_list" variant="ecommerce" />
+          </div>
 
           <section className="pb-24">
             {loading && page === 1 ? (
@@ -354,7 +350,7 @@ export default function FreightPage() {
                           </div>
                         )}
                         {index > 0 && index % 8 === 0 && (
-                          <AdCard position="freight_list" variant="card" search={searchTerm} />
+                          <AdCard position="freight_card" variant="card" search={searchTerm} />
                         )}
                       </React.Fragment>
                     ))}

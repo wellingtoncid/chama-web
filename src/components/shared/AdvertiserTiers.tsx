@@ -1,28 +1,34 @@
-import { useState, useEffect } from "react";
-import { api } from "../../api/api";
+import { useState, useEffect, useRef } from "react";
+import { api, BASE_URL_API } from "../../api/api";
 import { Crown, Star, Heart, Loader2 } from "lucide-react";
 
-const TIER_CONFIG: Record<string, { label: string; icon: typeof Crown; color: string; badge: string; price: string }> = {
+const TIER_CONFIG: Record<string, { label: string; icon: typeof Crown; color: string; avatarSize: string; cardPad: string; nameSize: string; speed: string }> = {
   sponsor_master: {
     label: "Oferecimento Master",
     icon: Crown,
     color: "text-amber-500",
-    badge: "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400",
-    price: "R$ 497/mês",
+    avatarSize: "w-16 h-16",
+    cardPad: "px-6 py-5",
+    nameSize: "text-sm",
+    speed: "40s",
   },
   maintainer_premium: {
     label: "Mantenedor Premium",
     icon: Star,
     color: "text-blue-500",
-    badge: "bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400",
-    price: "R$ 297/mês",
+    avatarSize: "w-14 h-14",
+    cardPad: "px-5 py-4",
+    nameSize: "text-xs",
+    speed: "30s",
   },
   supporter_connect: {
     label: "Apoiador Connect",
     icon: Heart,
     color: "text-emerald-500",
-    badge: "bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400",
-    price: "R$ 97/mês",
+    avatarSize: "w-12 h-12",
+    cardPad: "px-4 py-3",
+    nameSize: "text-xs",
+    speed: "25s",
   },
 };
 
@@ -50,8 +56,83 @@ const getAvatarUrl = (path: string | null) => {
   if (!path) return null;
   if (path.startsWith("http")) return path;
   const clean = path.replace(/^\//, "").replace(/^api\//, "");
-  return `http://127.0.0.1:8000/${clean}`;
+  return `${BASE_URL_API}/${clean}`;
 };
+
+function AdvertiserCard({ ad, config }: { ad: Advertiser; config: typeof TIER_CONFIG[string] }) {
+  return (
+    <a
+      href={`/perfil/${ad.slug}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex flex-col items-center gap-2 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 ${config.cardPad} hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all group shrink-0`}
+    >
+      {ad.avatar ? (
+        <img
+          src={getAvatarUrl(ad.avatar)}
+          alt={ad.name}
+          className={`${config.avatarSize} rounded-full object-cover flex-shrink-0`}
+        />
+      ) : (
+        <div className={`${config.avatarSize} rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0`}>
+          <span className="text-lg font-black text-slate-500 dark:text-slate-400">
+            {getInitials(ad.name)}
+          </span>
+        </div>
+      )}
+      <span className={`${config.nameSize} font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors text-center leading-tight`}>
+        {ad.name}
+      </span>
+    </a>
+  );
+}
+
+function MarqueeTrack({ advertisers, config }: { advertisers: Advertiser[]; config: typeof TIER_CONFIG[string] }) {
+  const trackRef = useRef<HTMLDivElement>(null);
+  const [shouldScroll, setShouldScroll] = useState(false);
+
+  useEffect(() => {
+    const el = trackRef.current;
+    if (!el) return;
+    const check = () => {
+      setShouldScroll(el.scrollWidth > el.clientWidth + 20);
+    };
+    check();
+    const ro = new ResizeObserver(check);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [advertisers]);
+
+  if (!shouldScroll) {
+    return (
+      <div className="flex flex-wrap justify-center gap-4">
+        {advertisers.map((ad) => (
+          <AdvertiserCard key={ad.user_id} ad={ad} config={config} />
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="overflow-hidden">
+      <div
+        ref={trackRef}
+        className="flex gap-4"
+        style={{
+          animation: `marquee-scroll ${config.speed} linear infinite`,
+          animationPlayState: "running",
+          width: "fit-content",
+        }}
+        onMouseEnter={(e) => (e.currentTarget.style.animationPlayState = "paused")}
+        onMouseLeave={(e) => (e.currentTarget.style.animationPlayState = "running")}
+      >
+        {[...advertisers, ...advertisers].map((ad, i) => (
+          <AdvertiserCard key={`${ad.user_id}-${i}`} ad={ad} config={config} />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export default function AdvertiserTiers() {
   const [tiers, setTiers] = useState<Record<string, Advertiser[]>>({});
@@ -65,7 +146,7 @@ export default function AdvertiserTiers() {
           setTiers(res.data.data || {});
         }
       } catch {
-        // Silently fail
+        //
       } finally {
         setLoading(false);
       }
@@ -114,38 +195,8 @@ export default function AdvertiserTiers() {
                 <span className="font-black text-xs text-slate-700 dark:text-slate-300 uppercase tracking-tight">
                   {config.label}
                 </span>
-                <span className={`text-[8px] font-bold px-2 py-0.5 rounded-full ${config.badge}`}>
-                  {config.price}
-                </span>
               </div>
-              <div className="flex flex-wrap gap-3">
-                {advertisers.map((ad) => (
-                  <a
-                    key={ad.user_id}
-                    href={`/perfil/${ad.slug}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-3.5 py-2 hover:shadow-md hover:border-slate-300 dark:hover:border-slate-700 transition-all group"
-                  >
-                    {ad.avatar ? (
-                      <img
-                        src={getAvatarUrl(ad.avatar)}
-                        alt={ad.name}
-                        className="w-7 h-7 rounded-full object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-7 h-7 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center flex-shrink-0">
-                        <span className="text-[9px] font-black text-slate-500 dark:text-slate-400">
-                          {getInitials(ad.name)}
-                        </span>
-                      </div>
-                    )}
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400 group-hover:text-slate-900 dark:group-hover:text-white transition-colors truncate max-w-[120px]">
-                      {ad.name}
-                    </span>
-                  </a>
-                ))}
-              </div>
+              <MarqueeTrack advertisers={advertisers} config={config} />
             </div>
           );
         })}

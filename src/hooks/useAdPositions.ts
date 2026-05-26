@@ -30,13 +30,14 @@ export const AD_COLOR_MAP: Record<string, string> = {
   spotlight: 'from-amber-500 to-yellow-600',
   infeed_wide: 'from-pink-500 to-rose-600',
   freight_list: 'from-green-500 to-emerald-600',
+  freight_card: 'from-green-500 to-emerald-600',
   marketplace_list: 'from-violet-500 to-purple-600',
+  marketplace_card: 'from-violet-500 to-purple-600',
   groups_list: 'from-indigo-500 to-blue-600',
+  groups_card: 'from-indigo-500 to-blue-600',
   chat_header: 'from-cyan-500 to-teal-600',
   popup: 'from-orange-500 to-red-600',
   header: 'from-sky-500 to-blue-600',
-  strategic_partners: 'from-purple-500 to-violet-600',
-  media_network: 'from-rose-500 to-pink-600',
 };
 
 export interface AdPosition {

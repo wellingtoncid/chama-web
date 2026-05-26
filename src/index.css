@@ -223,3 +223,12 @@
   background-color: #1e293b !important;
   color: white !important;
 }
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}

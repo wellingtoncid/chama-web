@@ -59,6 +59,7 @@ export default function PlansManager() {
     id: null, name: '', price: '', duration_days: '', type: 'freight_list', category: 'freight_subscription', limit_monthly: 0, description: '', features: '', active: 1, advertiser_tier: 'none' 
   });
   const [selectedPositions, setSelectedPositions] = useState<string[]>([]);
+  const [selectedPositionLimits, setSelectedPositionLimits] = useState<Record<string, number>>({});
 
   const loadPlans = async () => {
     try {
@@ -112,9 +113,10 @@ export default function PlansManager() {
             : planData.features;
         } catch { featuresObj = {}; }
       }
-      // Se for publicidade, salva positions no features
+      // Se for publicidade, salva positions e position_limits no features
       if (planData.category === 'advertising') {
         featuresObj.positions = selectedPositions;
+        featuresObj.position_limits = selectedPositionLimits;
       }
       const featuresStr = Object.keys(featuresObj).length > 0 ? JSON.stringify(featuresObj) : '';
 
@@ -163,15 +165,23 @@ export default function PlansManager() {
     return parsed?.positions || [];
   };
 
+  const parsePositionLimitsFromFeatures = (features: any): Record<string, number> => {
+    if (!features) return {};
+    const parsed = typeof features === 'string' ? JSON.parse(features) : features;
+    return parsed?.position_limits || {};
+  };
+
   const openNew = () => {
     setPlanData({ id: null, name: '', price: '', duration_days: '', type: 'featured', category: 'freight_subscription', description: '', active: 1, limit_monthly: 0, features: '', advertiser_tier: 'none' });
     setSelectedPositions([]);
+    setSelectedPositionLimits({});
     setShowDrawer(true);
   };
 
   const openEdit = (plan: any) => {
     setPlanData(plan);
     setSelectedPositions(parsePositionsFromFeatures(plan.features));
+    setSelectedPositionLimits(parsePositionLimitsFromFeatures(plan.features));
     setShowDrawer(true);
   };
 
@@ -461,7 +471,11 @@ export default function PlansManager() {
                           setPlanData({...planData, advertiser_tier: tier});
                           // Auto-preenche posições padrão do tier
                           if (tier !== 'none' && TIER_DEFAULT_POSITIONS[tier]) {
-                            setSelectedPositions([...TIER_DEFAULT_POSITIONS[tier]]);
+                            const positions = TIER_DEFAULT_POSITIONS[tier];
+                            setSelectedPositions([...positions]);
+                            setSelectedPositionLimits(
+                              Object.fromEntries(positions.map(p => [p, 1]))
+                            );
                           }
                         }}
                         className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
@@ -483,16 +497,44 @@ export default function PlansManager() {
                                 type="checkbox"
                                 checked={isChecked}
                                 onChange={() => {
-                                  setSelectedPositions(prev =>
-                                    isChecked
-                                      ? prev.filter(k => k !== pos.key)
-                                      : [...prev, pos.key]
-                                  );
+                                  if (isChecked) {
+                                    setSelectedPositions(prev => prev.filter(k => k !== pos.key));
+                                    setSelectedPositionLimits(prev => {
+                                      const next = { ...prev };
+                                      delete next[pos.key];
+                                      return next;
+                                    });
+                                  } else {
+                                    setSelectedPositions(prev => [...prev, pos.key]);
+                                    setSelectedPositionLimits(prev => ({
+                                      ...prev,
+                                      [pos.key]: prev[pos.key] || 1,
+                                    }));
+                                  }
                                 }}
                                 className="w-4 h-4 text-blue-600 rounded"
                               />
                               <span className="text-xs font-bold text-slate-600">{pos.label}</span>
-                              <span className="text-[8px] font-bold text-slate-400 ml-auto uppercase">{pos.group}</span>
+                              {isChecked && (
+                                <div className="flex items-center gap-1 ml-auto">
+                                  <span className="text-[8px] font-bold text-slate-400">Limite:</span>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={999}
+                                    value={selectedPositionLimits[pos.key] ?? 1}
+                                    onChange={e => {
+                                      const val = parseInt(e.target.value) || 1;
+                                      setSelectedPositionLimits(prev => ({ ...prev, [pos.key]: val }));
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                    className="w-14 px-2 py-1 bg-white rounded-lg border border-slate-200 text-[10px] font-bold text-slate-700 text-center outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              )}
+                              {!isChecked && (
+                                <span className="text-[8px] font-bold text-slate-400 ml-auto uppercase">{pos.group}</span>
+                              )}
                             </label>
                           );
                         })}

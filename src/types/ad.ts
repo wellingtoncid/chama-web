@@ -1,16 +1,17 @@
 export type AdPositionType = 
   | 'freight_list' 
+  | 'freight_card'
   | 'infeed_wide' 
   | 'footer' 
   | 'sidebar' 
   | 'spotlight'
   | 'marketplace_list' 
+  | 'marketplace_card'
   | 'groups_list' 
+  | 'groups_card'
   | 'chat_header' 
   | 'popup' 
-  | 'header'
-  | 'strategic_partners'
-  | 'media_network';
+  | 'header';
 
 export type AdVariant = 'banner-wide' | 'banner-compact' | 'vertical' | 'bar' | 'card' | 'ecommerce' | 'footer' | 'sidebar' | 'notice';
 

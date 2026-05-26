@@ -36,8 +36,8 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
     const loadSettings = async () => {
       try {
         const res = await api.get('/site-settings', { params: { keys: 'ad_rotation_seconds' } });
-        if (res.data?.ad_rotation_seconds) {
-          setRotationSeconds(parseInt(res.data.ad_rotation_seconds) || 8);
+        if (res.data?.data?.ad_rotation_seconds) {
+          setRotationSeconds(parseInt(res.data.data.ad_rotation_seconds) || 8);
         }
       } catch (e) { /* usa padrão */ }
     };
@@ -243,9 +243,8 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
     );
   }
 
-  // ===== VARIANT: ecommerce (infeed_wide, freight_list) - imagem + badge FORA =====
+  // ===== VARIANT: ecommerce (infeed_wide, freight_list, marketplace_list, groups_list) =====
   if (variant === 'ecommerce') {
-    const hasText = adToShow.title || adToShow.description;
     return withModal(
       <div 
         ref={containerRef} 
@@ -254,25 +253,14 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
       >
         <div className="relative rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all h-28">
           <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
-          {hasText && (
-            <div className="absolute inset-0 bg-slate-900/60 flex flex-col justify-end p-3">
-              {adToShow.title && (
-                <h4 className="font-bold text-white text-sm truncate">{adToShow.title}</h4>
-              )}
-              {adToShow.description && (
-                <p className="text-white/80 text-[10px] line-clamp-1 mt-0.5">{adToShow.description}</p>
-              )}
-            </div>
-          )}
         </div>
         <span className="text-[8px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Publicidade</span>
       </div>
     );
   }
 
-  // ===== VARIANT: footer (ecommerce menor) - imagem + badge FORA =====
+  // ===== VARIANT: footer =====
   if (variant === 'footer') {
-    const hasText = adToShow.title || adToShow.description;
     return withModal(
       <div 
         ref={containerRef} 
@@ -281,25 +269,14 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
       >
         <div className="relative rounded-md overflow-hidden shadow-sm hover:shadow-md transition-all h-24">
           <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
-          {hasText && (
-            <div className="absolute inset-0 bg-slate-900/60 flex flex-col justify-end p-2">
-              {adToShow.title && (
-                <h4 className="font-bold text-white text-xs truncate">{adToShow.title}</h4>
-              )}
-              {adToShow.description && (
-                <p className="text-white/80 text-[8px] line-clamp-1 mt-0.5">{adToShow.description}</p>
-              )}
-            </div>
-          )}
         </div>
         <span className="text-[7px] font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">Publicidade</span>
       </div>
     );
   }
 
-  // ===== VARIANT: sidebar (estilo Instagram feed) =====
+  // ===== VARIANT: sidebar =====
   if (variant === 'sidebar') {
-    const hasText = adToShow.title || adToShow.description;
     return withModal(
       <div 
         ref={containerRef} 
@@ -307,16 +284,6 @@ export default function AdCard({ position, variant = 'vertical', city, state, se
         className="group relative overflow-hidden rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer aspect-[3/4] lg:aspect-[1/2] w-full"
       >
         <AdImage url={adToShow.image_url} className="w-full h-full object-cover" />
-        {hasText && (
-          <div className="absolute inset-0 bg-slate-900/60 flex flex-col justify-end p-3">
-            {adToShow.title && (
-              <h4 className="font-bold text-white text-xs truncate">{adToShow.title}</h4>
-            )}
-            {adToShow.description && (
-              <p className="text-white/80 text-[8px] line-clamp-2 mt-0.5">{adToShow.description}</p>
-            )}
-          </div>
-        )}
         <span className="absolute bottom-2 left-3 text-[6px] font-bold text-white/70 uppercase tracking-wider">Publicidade</span>
       </div>
     );

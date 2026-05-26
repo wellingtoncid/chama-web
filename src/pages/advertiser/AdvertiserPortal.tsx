@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Megaphone, PlusCircle, Loader2, X,
   Image as ImageIcon, Pencil, Trash2, Crown, Star, Heart,
-  Check, Lock
+  Check, Lock, ChevronLeft, ChevronRight, MapPin
 } from 'lucide-react';
 import { api, BASE_URL_API } from '../../api/api';
 import Swal from 'sweetalert2';
@@ -11,12 +11,19 @@ import { useAdPositions } from '../../hooks/useAdPositions';
 import DashboardShell from '../../components/layout/DashboardShell';
 import { Button } from '../../components/ui/Button';
 import ConfirmModal from '../../components/shared/ConfirmModal';
-import { AD_POSITION_LABEL } from '../../constants/adPositions';
+import { AD_POSITIONS, AD_POSITION_LABEL, AD_POSITION_SIZE, ADMIN_ONLY_KEYS } from '../../constants/adPositions';
+import DataTable, { type TableColumn, type TableAction } from '@/components/admin/DataTable';
 
 const TIER_MAP: Record<string, { icon: React.ReactNode; label: string; color: string }> = {
   sponsor_master: { icon: <Crown size={16} />, label: 'Oferecimento Master', color: 'text-yellow-600 dark:text-yellow-400' },
   maintainer_premium: { icon: <Star size={16} />, label: 'Mantenedor Premium', color: 'text-blue-600 dark:text-blue-400' },
   supporter_connect: { icon: <Heart size={16} />, label: 'Apoiador Connect', color: 'text-rose-600 dark:text-rose-400' },
+};
+
+const fmtDate = (d: string) => {
+  if (!d) return '-';
+  const parts = d.split(' ')[0].split('-');
+  return `${parts[2]}/${parts[1]}/${parts[0]}`;
 };
 
 const getImageUrl = (imageUrl: string) => {
@@ -35,7 +42,7 @@ const getImageUrl = (imageUrl: string) => {
 export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
   const [loading, setLoading] = useState(true);
   const [hasAccess, setHasAccess] = useState(true);
-  const [stats, setStats] = useState({ views: 0, clicks: 0, ctr: '0%' });
+  const [stats, setStats] = useState({ views: 0, clicks: 0 });
   const [myAds, setMyAds] = useState<any[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -49,6 +56,16 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
   // Plan info
   const [activePlan, setActivePlan] = useState<any>(null);
   const [includedPositions, setIncludedPositions] = useState<string[]>([]);
+  const [positionLimits, setPositionLimits] = useState<Record<string, number>>({});
+  const [periodStart, setPeriodStart] = useState<string | null>(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const totalPages = Math.ceil(myAds.length / pageSize);
+  const pagedAds = myAds.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  useEffect(() => { setCurrentPage(1); }, [myAds.length]);
 
   // Form
   const [formData, setFormData] = useState({
@@ -100,11 +117,7 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
       
       const totalViews = ads.reduce((acc: number, ad: any) => acc + Number(ad.views_count || 0), 0);
       const totalClicks = ads.reduce((acc: number, ad: any) => acc + Number(ad.clicks_count || 0), 0);
-      setStats({
-        views: totalViews,
-        clicks: totalClicks,
-        ctr: totalViews > 0 ? ((totalClicks / totalViews) * 100).toFixed(1) + '%' : '0%'
-      });
+      setStats({ views: totalViews, clicks: totalClicks });
 
     } catch (err) {
       console.error("Erro ao carregar:", err);
@@ -133,8 +146,25 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
           const plan = plans.find((p: any) => p.id === advertiserMod.plan_id);
           if (plan) {
             setActivePlan(plan);
-            const pos = plan.features?.positions;
-            setIncludedPositions(Array.isArray(pos) ? pos : []);
+            const features = plan.features || {};
+            setPositionLimits(features.position_limits || {});
+
+            // Compute billing period start
+            const durationDays = plan.duration_days || 30;
+            if (advertiserMod.expires_at) {
+              const expires = new Date(advertiserMod.expires_at);
+              const start = new Date(expires.getTime() - durationDays * 86400000);
+              setPeriodStart(start.toISOString().split('T')[0]);
+            } else if (advertiserMod.activated_at) {
+              setPeriodStart(advertiserMod.activated_at.split('T')[0]);
+            } else {
+              setPeriodStart(new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0]);
+            }
+
+            const pos = features.positions;
+            const positions = (Array.isArray(pos) && pos.length > 0 ? pos : [])
+              .filter((p: string) => !ADMIN_ONLY_KEYS.includes(p));
+            setIncludedPositions(positions);
           }
         }
 
@@ -335,10 +365,10 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
       }
     >
       {/* Header com métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="bg-emerald-500 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Anúncios Ativos</p>
-          <h3 className="text-2xl font-black italic">{myAds.filter(a => a.status === 'active').length}</h3>
+          <h3 className="text-2xl font-black italic">{myAds.filter(a => a.status === 'active' && (!a.expires_at || new Date(a.expires_at) >= new Date())).length}</h3>
         </div>
         <div className="bg-blue-500 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Visualizações</p>
@@ -347,10 +377,6 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
         <div className="bg-purple-500 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Cliques</p>
           <h3 className="text-2xl font-black italic">{stats.clicks.toLocaleString()}</h3>
-        </div>
-        <div className="bg-orange-500 p-4 rounded-2xl text-white shadow-lg">
-          <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">CTR</p>
-          <h3 className="text-2xl font-black italic">{stats.ctr}</h3>
         </div>
         <div className="bg-slate-900 p-4 rounded-2xl text-white shadow-lg">
           <p className="text-[9px] font-black uppercase opacity-70 italic mb-1">Total</p>
@@ -389,11 +415,24 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
             <div className="border-t border-slate-100 dark:border-slate-700 pt-3">
               <p className="text-[10px] font-bold text-slate-400 uppercase mb-2">Posições incluídas no seu plano:</p>
               <div className="flex flex-wrap gap-2">
-                {includedPositions.map(pos => (
-                  <span key={pos} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 rounded-lg text-[10px] font-bold">
-                    <Check size={10} /> {AD_POSITION_LABEL[pos] || pos}
-                  </span>
-                ))}
+                {includedPositions.map(pos => {
+                  const used = myAds.filter((a: any) =>
+                    a.position === pos &&
+                    (!periodStart || a.created_at?.split(' ')[0] >= periodStart)
+                  ).length;
+                  const limit = positionLimits[pos] || 1;
+                  return (
+                    <span key={pos} className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold ${
+                      used >= limit
+                        ? 'bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300'
+                        : 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300'
+                    }`}>
+                      {used >= limit ? <Lock size={10} /> : <Check size={10} />}
+                      {AD_POSITION_LABEL[pos] || pos}
+                      <span className="opacity-70">{used}/{limit}</span>
+                    </span>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -401,89 +440,161 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
       )}
 
       {/* Lista de Anúncios */}
-      <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden dark:bg-slate-900 dark:border-slate-800">
-        {loading || positionsLoading ? (
-          <div className="py-20 text-center"><Loader2 className="animate-spin mx-auto text-orange-500" size={32} /></div>
-        ) : myAds.length === 0 ? (
-          <div className="p-12 text-center">
-            <Megaphone size={48} className="mx-auto text-slate-200 mb-4" />
-            <p className="text-slate-400 font-bold">Nenhum anúncio criado</p>
-            <Button onClick={() => setShowCreateModal(true)} variant="link" className="mt-4">
-              Criar primeiro anúncio
-            </Button>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
-              <thead className="bg-slate-50/50">
-                <tr>
-                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Preview</th>
-                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Anúncio</th>
-                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Posição</th>
-                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400">Status</th>
-                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400 text-center">Métricas</th>
-                  <th className="px-4 py-3 text-[9px] font-black uppercase text-slate-400 text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {myAds.map(ad => {
-                  const posInfo = getPositionInfo(ad.position);
-                  const statusConfig: Record<string, {color: string; bg: string; label: string}> = {
-                    active: { color: 'text-emerald-600', bg: 'bg-emerald-100', label: '● ATIVO' },
-                    paused: { color: 'text-slate-500', bg: 'bg-slate-100', label: '○ PAUSADO' },
-                    expired: { color: 'text-red-500', bg: 'bg-red-100', label: '● EXPIRADO' }
-                  };
-                  const status = statusConfig[ad.status] || statusConfig.active;
-                  
-                  return (
-                    <tr key={ad.id} className="hover:bg-slate-50/50">
-                      <td className="px-4 py-3">
-                        <div className="w-16 h-10 bg-slate-100 rounded-lg overflow-hidden">
-                          {ad.image_url ? (
-                            <img src={getImageUrl(ad.image_url) || ''} alt={ad.title} className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-slate-300" size={16} /></div>
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p className="font-bold text-slate-800 text-sm dark:text-slate-200">{ad.title}</p>
-                        <p className="text-[8px] text-slate-400">{ad.location_city || 'Brasil'} • {ad.position}</p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-[10px] bg-slate-100 px-2 py-1 rounded font-bold text-slate-600 uppercase">
-                          {posInfo.name}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`${status.bg} ${status.color} text-[9px] font-black px-2 py-1 rounded-full uppercase`}>
-                          {status.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <div className="flex justify-center gap-3 text-xs">
-                          <span><b className="text-slate-800">{ad.views_count || 0}</b> <span className="text-[8px] text-slate-400">views</span></span>
-                          <span><b className="text-slate-800">{ad.clicks_count || 0}</b> <span className="text-[8px] text-slate-400">cliques</span></span>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button onClick={() => handleEditAd(ad)} variant="secondary" size="icon" title="Editar">
-                            <Pencil size={14} />
-                          </Button>
-                          <Button onClick={() => setDeleteTarget(ad)} variant="destructive" size="icon" title="Excluir">
-                            <Trash2 size={14} />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+      {(() => {
+        if (loading || positionsLoading) {
+          return (
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="animate-spin text-orange-500" size={32} />
+              </div>
+            </div>
+          );
+        }
+        if (myAds.length === 0) {
+          return (
+            <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden p-12 text-center">
+              <Megaphone size={48} className="mx-auto text-slate-200 mb-4" />
+              <p className="text-slate-400 font-bold">Nenhum anúncio criado</p>
+              <Button onClick={() => setShowCreateModal(true)} variant="link" className="mt-4">
+                Criar primeiro anúncio
+              </Button>
+            </div>
+          );
+        }
+        return null;
+      })()}
+      {!loading && !positionsLoading && myAds.length > 0 && (() => {
+        const adColumns: TableColumn<any>[] = [
+          {
+            key: 'image_url',
+            label: 'Preview',
+            render: (val, row) => (
+              <div className="w-16 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
+                {val ? (
+                  <img src={getImageUrl(val) || ''} alt={row.title} className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-slate-300" size={16} /></div>
+                )}
+              </div>
+            ),
+          },
+          {
+            key: 'title',
+            label: 'Anúncio',
+            render: (val, row) => (
+              <>
+                <p className="font-bold text-slate-800 text-sm dark:text-slate-200">{val as string}</p>
+                <p className="text-[8px] text-slate-400">{row.location_city || 'Brasil'} • {row.position}</p>
+              </>
+            ),
+          },
+          {
+            key: 'position',
+            label: 'Posição',
+            render: (val) => {
+              const info = getPositionInfo(val as string);
+              return <span className="text-[10px] bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded font-bold text-slate-600 dark:text-slate-300 uppercase">{info.name}</span>;
+            },
+          },
+          {
+            key: 'created_at',
+            label: 'Data',
+            render: (val) => <span className="text-xs font-bold text-slate-500">{fmtDate(val as string)}</span>,
+          },
+          {
+            key: 'expires_at',
+            label: 'Expira',
+            render: (val, row) => {
+              const isExpired = val && new Date(val as string) < new Date();
+              return <span className={`text-xs font-bold ${isExpired ? 'text-red-400' : 'text-slate-500'}`}>{fmtDate(val as string)}</span>;
+            },
+          },
+          {
+            key: 'status',
+            label: 'Status',
+            render: (val, row) => {
+              const expiresAt = row.expires_at ? new Date(row.expires_at as string) : null;
+              const isExpired = expiresAt && expiresAt < new Date();
+              const effective = isExpired ? 'expired' : val;
+              const cfg: Record<string, {color: string; bg: string; label: string}> = {
+                active: { color: 'text-emerald-600', bg: 'bg-emerald-100 dark:bg-emerald-900/40', label: 'Ativo' },
+                paused: { color: 'text-slate-500', bg: 'bg-slate-100 dark:bg-slate-800', label: 'Pausado' },
+                expired: { color: 'text-red-500', bg: 'bg-red-100 dark:bg-red-900/40', label: 'Expirado' },
+              };
+              const s = cfg[effective as string];
+              if (!s) return <span className="text-xs text-slate-400">{String(val)}</span>;
+              return <span className={`${s.bg} ${s.color} text-[10px] font-bold px-2.5 py-1 rounded-full`}>{s.label}</span>;
+            },
+          },
+          {
+            key: 'views_count',
+            label: 'Métricas',
+            className: 'text-center',
+            render: (_, row) => {
+              const views = Number(row.views_count) || 0;
+              const clicks = Number(row.clicks_count) || 0;
+              const ctr = views > 0 ? ((clicks / views) * 100).toFixed(1) + '%' : '0%';
+              return (
+                <div className="flex justify-center gap-3 text-xs">
+                  <span><b className="text-slate-800 dark:text-slate-200">{views}</b> <span className="text-[8px] text-slate-400">views</span></span>
+                  <span><b className="text-slate-800 dark:text-slate-200">{clicks}</b> <span className="text-[8px] text-slate-400">cliques</span></span>
+                  <span><b className="text-slate-800 dark:text-slate-200">{ctr}</b> <span className="text-[8px] text-slate-400">CTR</span></span>
+                </div>
+              );
+            },
+          },
+        ];
+
+        const adActions: TableAction[] = [
+          {
+            icon: <Pencil size={14} />,
+            label: 'Editar',
+            onClick: (row: any) => handleEditAd(row),
+          },
+          {
+            icon: <Trash2 size={14} />,
+            label: 'Excluir',
+            variant: 'danger',
+            onClick: (row: any) => setDeleteTarget(row),
+          },
+        ];
+
+        return (
+          <>
+            <DataTable
+              columns={adColumns}
+              data={pagedAds}
+              actions={adActions}
+              emptyMessage="Nenhum anúncio criado"
+              className="dark:bg-slate-900 dark:border-slate-800"
+            />
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3">
+                <span className="text-xs text-slate-500">
+                  {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, myAds.length)} de {myAds.length}
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                  >
+                    <ChevronLeft size={16} className="text-slate-600 dark:text-slate-300" />
+                  </button>
+                  <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{currentPage} / {totalPages}</span>
+                  <button
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors"
+                  >
+                    <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />
+                  </button>
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
 
       {/* Modal de Criar Anúncio */}
       {showCreateModal && (
@@ -504,6 +615,12 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                     <div className="text-center text-slate-400">
                       <ImageIcon className="mx-auto mb-2" size={24} />
                       <p className="text-xs font-bold">Clique para adicionar imagem</p>
+                      {(() => {
+                        const size = formData.position ? AD_POSITION_SIZE[formData.position] : null;
+                        return size ? (
+                          <p className="text-[9px] text-slate-400 mt-0.5">Tamanho recomendado: {size}</p>
+                        ) : null;
+                      })()}
                     </div>
                   )}
                 </div>
@@ -518,13 +635,51 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
                 >
                   {positions.filter(pos => Number(pos.is_public)).map(pos => {
                     const isIncluded = includedPositions.includes(pos.feature_key);
+                    const limit = positionLimits[pos.feature_key] || 1;
+                    const used = myAds.filter((a: any) =>
+                      a.position === pos.feature_key &&
+                      (!periodStart || a.created_at?.split(' ')[0] >= periodStart)
+                    ).length;
+                    const remaining = Math.max(0, limit - used);
+                    const full = isIncluded && remaining === 0;
                     return (
-                      <option key={pos.feature_key} value={pos.feature_key}>
-                        {pos.feature_name} — {isIncluded ? 'INCLUSO' : `${formatPrice(pos.price_monthly)}/mês`}
+                      <option key={pos.feature_key} value={pos.feature_key} disabled={full}>
+                        {pos.feature_name} {AD_POSITION_SIZE[pos.feature_key] ? `(${AD_POSITION_SIZE[pos.feature_key]})` : pos.ad_size ? `(${pos.ad_size})` : ''} — {isIncluded ? `INCLUSO (${used}/${limit})` : `${formatPrice(pos.price_monthly)}/mês`}
                       </option>
                     );
                   })}
                 </select>
+
+                {/* Info do espaço selecionado */}
+                {formData.position && (() => {
+                  const posInfo = AD_POSITIONS.find(p => p.key === formData.position);
+                  if (!posInfo) return null;
+                  return (
+                    <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl space-y-2">
+                      <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{posInfo.description}</p>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin size={12} className="text-blue-400 shrink-0" />
+                        <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">{posInfo.pages}</span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {formData.position && includedPositions.includes(formData.position) && (() => {
+                  const limit = positionLimits[formData.position] || 1;
+                  const used = myAds.filter((a: any) =>
+                    a.position === formData.position &&
+                    (!periodStart || a.created_at?.split(' ')[0] >= periodStart)
+                  ).length;
+                  return used >= limit ? (
+                    <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-2">
+                      <Lock size={12} className="text-amber-500 shrink-0" />
+                      <p className="text-[10px] text-amber-700 dark:text-amber-400">
+                        Limite de {limit} anúncio(s) neste período para esta posição. Remova anúncios existentes ou aguarde o próximo ciclo.
+                      </p>
+                    </div>
+                  ) : null;
+                })()}
                 {formData.position && !includedPositions.includes(formData.position) && (
                   <div className="mt-2 p-2 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg flex items-center gap-2">
                     <Lock size={12} className="text-amber-500 shrink-0" />

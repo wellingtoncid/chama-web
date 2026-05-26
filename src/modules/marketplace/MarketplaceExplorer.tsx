@@ -5,7 +5,6 @@ import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import AdCard from '../../components/shared/AdCard';
 import ListingCard from '../../components/shared/ListingCard';
-import AdCarousel from '../../components/shared/AdCarousel';
 import { useTracker } from '../../services/useTracker';
 import { BusinessModal } from '../../components/modals/BusinessModal';
 
@@ -420,12 +419,9 @@ export default function MarketplaceExplorer() {
         </div>
       )}
 
-      {/* CAROUSEL DE ANÚNCIOS */}
-      <section className="max-w-4xl mx-auto my-6 relative">
-        <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
-          <AdCarousel searchTerm={debouncedSearch} state={selectedState} city={selectedCity} />
-        </div>
-      </section>
+      <div className="max-w-4xl mx-auto mb-6">
+        <AdCard position="marketplace_list" variant="ecommerce" />
+      </div>
 
       {/* Categorias Rápidas (quando filtros fechados) */}
       {!showFilters && (
@@ -512,7 +508,7 @@ export default function MarketplaceExplorer() {
                 )}
 
                 {index > 0 && index % 8 === 0 && (
-                  <AdCard position="marketplace_list" variant="card" search={debouncedSearch} />
+                  <AdCard position="marketplace_card" variant="card" search={debouncedSearch} />
                 )}
               </React.Fragment>
             ))}

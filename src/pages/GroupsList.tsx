@@ -6,7 +6,6 @@ import Header from '../components/shared/Header';
 import Footer from '../components/shared/Footer';
 import GroupsModal from '../components/modals/GroupsModal';
 import GroupCard from '../components/shared/GroupCard';
-import AdCarousel from '../components/shared/AdCarousel';
 import AdCard from '../components/shared/AdCard';
 import { BusinessModal } from '../components/modals/BusinessModal';
 import { useTracker } from '../services/useTracker';
@@ -233,7 +232,7 @@ export default function GroupsList() {
           }} />;
 
       case 'ad':
-        return <AdCard key={item.key} position="groups_list" variant="card" search={searchTerm} />;
+        return <AdCard key={item.key} position="groups_card" variant="card" search={searchTerm} />;
     }
   };
 
@@ -359,12 +358,9 @@ export default function GroupsList() {
             )}
           </header>
 
-          {/* AD CAROUSEL */}
-          <section className="max-w-4xl mx-auto mb-10">
-            <div className="rounded-2xl overflow-hidden shadow-xl border-2 border-white dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors">
-              <AdCarousel searchTerm={searchTerm} />
-            </div>
-          </section>
+          <div className="max-w-4xl mx-auto mb-6">
+            <AdCard position="groups_list" variant="ecommerce" />
+          </div>
 
           {/* GRID DE GRUPOS */}
           <section className="pb-24">

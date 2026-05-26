@@ -23,7 +23,7 @@ const Index = () => {
 
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-4xl mx-auto">
-              <AdCard position="freight_list" variant="ecommerce" />
+              <AdCard position="infeed_wide" variant="ecommerce" />
           </div>
         </div>
 
@@ -44,7 +44,7 @@ const Index = () => {
 
         <section id="comunidades">
           <div className="max-w-4xl mx-auto">
-              <AdCard position="freight_list" variant="ecommerce" />
+              <AdCard position="infeed_wide" variant="ecommerce" />
           </div>
           <CommunityGroups />
             <div className="max-w-4xl mx-auto">

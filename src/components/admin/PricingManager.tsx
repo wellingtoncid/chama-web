@@ -113,7 +113,7 @@ export default function PricingManager() {
 
   const saveRotation = async (value: number) => {
     try {
-      await api.post('/admin-settings', { ad_rotation_seconds: value.toString() });
+      await api.post('/admin-update-settings', { ad_rotation_seconds: value.toString() });
       setRotationSeconds(value);
       Swal.fire({ icon: 'success', title: 'Salvo!', timer: 1500, showConfirmButton: false });
     } catch {

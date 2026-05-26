@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { X, Upload, Link as LinkIcon, Type, Loader2, Image as ImageIcon, Layout, Home, FileText, Bell, AlertTriangle, Instagram } from 'lucide-react';
+import { X, Upload, Link as LinkIcon, Type, Loader2, Image as ImageIcon, Layout, Home, FileText, Bell, AlertTriangle, MapPin } from 'lucide-react';
 import { api } from '../../api/api';
 import { useAdPositions } from '../../hooks/useAdPositions';
+import { AD_POSITIONS, AD_POSITION_SIZE } from '../../constants/adPositions';
 
 const POSITION_ICONS: Record<string, any> = {
   layout: Layout,
@@ -104,7 +105,14 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
                 <>
                   <ImageIcon className="text-slate-300 mb-2" size={32} />
                   <p className="text-[10px] font-black text-slate-400 uppercase">Clique para subir o Banner</p>
-                  <p className="text-[8px] text-slate-400 mt-1">Sugestão: 728x90 (Horizontal) ou 300x250 (Lateral)</p>
+                  {(() => {
+                    const size = formData.position ? AD_POSITION_SIZE[formData.position] : null;
+                    return size ? (
+                      <p className="text-[9px] text-slate-400 mt-1">Tamanho recomendado: {size}</p>
+                    ) : (
+                      <p className="text-[8px] text-slate-400 mt-1">Sugestão: 728×90 (Horizontal) ou 300×250 (Lateral)</p>
+                    );
+                  })()}
                 </>
               )}
             </div>
@@ -120,10 +128,24 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
             >
               {positions.filter(p => Number(p.is_public)).map(pos => (
                 <option key={pos.feature_key} value={pos.feature_key}>
-                  {pos.feature_name} ({pos.ad_size || 'variável'})
+                  {pos.feature_name} {AD_POSITION_SIZE[pos.feature_key] ? `(${AD_POSITION_SIZE[pos.feature_key]})` : pos.ad_size ? `(${pos.ad_size})` : ' (variável)'}
                 </option>
               ))}
             </select>
+
+            {formData.position && (() => {
+              const posInfo = AD_POSITIONS.find(p => p.key === formData.position);
+              if (!posInfo) return null;
+              return (
+                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl space-y-2">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 leading-relaxed">{posInfo.description}</p>
+                  <div className="flex items-center gap-1.5">
+                    <MapPin size={12} className="text-blue-400 shrink-0" />
+                    <span className="text-[10px] font-semibold text-blue-600 dark:text-blue-400">{posInfo.pages}</span>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
 
           <div className="space-y-4">
