@@ -48,6 +48,7 @@ export interface AdPosition {
   icon_key: string | null;
   price_monthly: number;
   duration_days: number;
+  is_public?: number;
 }
 
 export function useAdPositions() {

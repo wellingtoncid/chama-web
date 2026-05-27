@@ -471,7 +471,7 @@ export default function AdvertiserPortal({ user: propUser }: { user?: any }) {
             render: (val, row) => (
               <div className="w-16 h-10 bg-slate-100 dark:bg-slate-800 rounded-lg overflow-hidden">
                 {val ? (
-                  <img src={getImageUrl(val) || ''} alt={row.title} className="w-full h-full object-cover" />
+                  <img src={getImageUrl(val as string) || ''} alt={row.title} className="w-full h-full object-cover" />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center"><ImageIcon className="text-slate-300" size={16} /></div>
                 )}

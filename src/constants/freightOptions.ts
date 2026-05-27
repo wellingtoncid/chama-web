@@ -43,10 +43,11 @@ export const BODY_TYPES = [
 export const DRIVER_COURSES = [
   { id: 'mopp', label: 'MOPP', desc: 'Produtos Perigosos' },
   { id: 'indivisivel', label: 'Carga Indivisível', desc: 'Cargas Especiais' },
-  { id: 'passageiros', label: 'Coletivo', desc: 'Passageiros/Vans' },
+  { id: 'passageiros', label: 'Coletivo', desc: 'Transporte de Passageiros' },
   { id: 'escolar', label: 'Escolar', desc: 'Transporte Escolar' },
   { id: 'emergencia', label: 'Emergência', desc: 'Ambulância/Bambeiros' },
-  { id: 'motofrete', label: 'Motofrete', desc: 'Atividade Remunerada' }
+  { id: 'motofrete', label: 'Motofrete', desc: 'Especializado em Motofrete' },
+  { id: 'ear', label: 'EAR', desc: 'Exerce Atividade Remunerada' }
 ];
 
 export const CNH_CATEGORIES = ['A', 'B', 'C', 'D', 'E'];

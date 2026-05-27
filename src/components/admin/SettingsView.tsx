@@ -64,11 +64,11 @@ export default function SettingsView() {
     report_auto_dismiss_duplicate: false,
   });
 
-  const [listSettings, setListSettings] = useState({
-    vehicle_types: [] as string[],
-    body_types: [] as string[],
-    equipment_types: [] as string[],
-    certification_types: [] as string[],
+  const [listSettings, setListSettings] = useState<Record<string, (string | { value: string; label: string })[]>>({
+    vehicle_types: [],
+    body_types: [],
+    equipment_types: [],
+    certification_types: [],
   });
   const [editingList, setEditingList] = useState<string | null>(null);
   const [listInput, setListInput] = useState('');
@@ -260,8 +260,9 @@ export default function SettingsView() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter' && listInput.trim()) {
                             const currentList = listSettings[category.key as keyof typeof listSettings];
-                            if (!currentList.includes(listInput.trim())) {
-                              setListSettings({ ...listSettings, [category.key]: [...currentList, listInput.trim()] });
+                            const exists = currentList.some(i => (typeof i === 'string' ? i : i.value) === listInput.trim());
+                            if (!exists) {
+                              setListSettings({ ...listSettings, [category.key]: [...currentList, { value: listInput.trim(), label: listInput.trim() }] });
                             }
                             setListInput('');
                           }
@@ -273,8 +274,9 @@ export default function SettingsView() {
                         onClick={() => {
                           if (listInput.trim()) {
                             const currentList = listSettings[category.key as keyof typeof listSettings];
-                            if (!currentList.includes(listInput.trim())) {
-                              setListSettings({ ...listSettings, [category.key]: [...currentList, listInput.trim()] });
+                            const exists = currentList.some(i => (typeof i === 'string' ? i : i.value) === listInput.trim());
+                            if (!exists) {
+                              setListSettings({ ...listSettings, [category.key]: [...currentList, { value: listInput.trim(), label: listInput.trim() }] });
                             }
                             setListInput('');
                           }
@@ -315,7 +317,7 @@ export default function SettingsView() {
                                 onKeyDown={(e) => {
                                   if (e.key === 'Enter') {
                                     const newList = [...category.list];
-                                    newList[idx] = editingItem.value.trim();
+                                    newList[idx] = { value: editingItem.value.trim(), label: editingItem.value.trim() };
                                     setListSettings({ ...listSettings, [category.key]: newList });
                                     setEditingItem(null);
                                   }
@@ -325,7 +327,7 @@ export default function SettingsView() {
                                 }}
                                 onBlur={() => {
                                   const newList = [...category.list];
-                                  newList[idx] = editingItem.value.trim();
+                                  newList[idx] = { value: editingItem.value.trim(), label: editingItem.value.trim() };
                                   setListSettings({ ...listSettings, [category.key]: newList });
                                   setEditingItem(null);
                                 }}
@@ -335,7 +337,7 @@ export default function SettingsView() {
                               <button
                                 onClick={() => {
                                   const newList = [...category.list];
-                                  newList[idx] = editingItem.value.trim();
+                                  newList[idx] = { value: editingItem.value.trim(), label: editingItem.value.trim() };
                                   setListSettings({ ...listSettings, [category.key]: newList });
                                   setEditingItem(null);
                                 }}
@@ -346,11 +348,11 @@ export default function SettingsView() {
                             </>
                           ) : (
                             <>
-                              <span className="cursor-pointer hover:text-orange-600" onClick={() => setEditingItem({ key: category.key, index: idx, value: item })}>
-                                {item}
+                              <span className="cursor-pointer hover:text-orange-600" onClick={() => setEditingItem({ key: category.key, index: idx, value: typeof item === 'string' ? item : (item.value || '') })}>
+                                {typeof item === 'string' ? item : (item.label || item.value)}
                               </span>
                               <button
-                                onClick={() => setEditingItem({ key: category.key, index: idx, value: item })}
+                                onClick={() => setEditingItem({ key: category.key, index: idx, value: typeof item === 'string' ? item : (item.value || '') })}
                                 className="text-blue-400 hover:text-blue-600 ml-1"
                                 title="Editar"
                               >
@@ -382,7 +384,7 @@ export default function SettingsView() {
                     {category.list.length > 0 ? (
                       <div className="flex flex-wrap gap-2 mb-4">
                         {category.list.map((item, idx) => (
-                          <span key={idx} className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm">{item}</span>
+                          <span key={idx} className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm">{typeof item === 'string' ? item : (item.label || item.value)}</span>
                         ))}
                       </div>
                     ) : (

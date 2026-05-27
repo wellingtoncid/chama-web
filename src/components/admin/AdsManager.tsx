@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { api } from '../../api/api';
 import {
-  Trash2, Loader2, Plus, X,
+  Trash2, Loader2, Plus, X, Pencil,
   Search, BarChart3, Download,
   Play, Pause, RotateCcw, AlertTriangle, ChevronLeft, ChevronRight
 } from 'lucide-react';
@@ -22,6 +22,7 @@ export default function AdsManager() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [editingPriority, setEditingPriority] = useState<number | null>(null);
+  const [editingAd, setEditingAd] = useState<any | null>(null);
 
   const allAds = ads;
   const activeAds = allAds.filter(a => a.computed_status === 'active' || a.computed_status === 'expiring_soon');
@@ -401,20 +402,23 @@ export default function AdsManager() {
                     </td>
                     <td className="px-5 py-4 text-right">
                       <div className="flex justify-end gap-2">
-                        {ad.computed_status === 'active' || ad.computed_status === 'expiring_soon' ? (
-                          <button onClick={() => pauseAd(ad.id)} className="py-2 px-4 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-bold uppercase hover:bg-amber-100 dark:hover:bg-amber-900/50">
-                            <Pause size={14}/>
-                          </button>
-                        ) : (
+                        {ad.computed_status === 'paused' ? (
                           <button onClick={() => activateAd(ad.id)} className="py-2 px-4 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-bold uppercase hover:bg-emerald-100 dark:hover:bg-emerald-900/50">
                             <Play size={14}/>
                           </button>
-                        )}
+                        ) : ad.computed_status === 'active' || ad.computed_status === 'expiring_soon' ? (
+                          <button onClick={() => pauseAd(ad.id)} className="py-2 px-4 bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 rounded-lg text-xs font-bold uppercase hover:bg-amber-100 dark:hover:bg-amber-900/50">
+                            <Pause size={14}/>
+                          </button>
+                        ) : null}
                         {(ad.computed_status === 'expired' || ad.computed_status === 'paused') && (
                           <button onClick={() => renewAd(ad.id, 30)} className="py-2 px-4 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-bold uppercase hover:bg-blue-100 dark:hover:bg-blue-900/50">
                             <RotateCcw size={14}/>
                           </button>
                         )}
+                        <button onClick={() => setEditingAd(ad)} className="py-2 px-4 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-lg text-xs font-bold uppercase hover:bg-indigo-100 dark:hover:bg-indigo-900/50">
+                          <Pencil size={14}/>
+                        </button>
                         <button onClick={() => handleDelete(ad.id)} className="py-2 px-4 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg text-xs font-bold uppercase hover:bg-red-100 dark:hover:bg-red-900/50">
                           <Trash2 size={14}/>
                         </button>
@@ -459,7 +463,17 @@ export default function AdsManager() {
       {showCreateModal && (
         <AdEditorModal 
           userId={user.id} 
+          isAdmin
           onClose={() => setShowCreateModal(false)} 
+          onSuccess={loadAds} 
+        />
+      )}
+      {editingAd && (
+        <AdEditorModal 
+          userId={editingAd.user_id || user.id}
+          ad={editingAd}
+          isAdmin
+          onClose={() => setEditingAd(null)} 
           onSuccess={loadAds} 
         />
       )}

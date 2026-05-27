@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { X, Upload, Link as LinkIcon, Type, Loader2, Image as ImageIcon, Layout, Home, FileText, Bell, AlertTriangle, MapPin } from 'lucide-react';
-import { api } from '../../api/api';
+import { api, BASE_URL_API } from '../../api/api';
 import { useAdPositions } from '../../hooks/useAdPositions';
 import { AD_POSITIONS, AD_POSITION_SIZE } from '../../constants/adPositions';
 
@@ -20,20 +20,36 @@ const POSITION_ICONS: Record<string, any> = {
 
 interface AdEditorProps {
   userId: number;
+  ad?: any;
+  isAdmin?: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorProps) {
+const TEXT_ONLY_POSITIONS = ['header'];
+
+const getFullImageUrl = (path: string) => {
+  if (!path || path.trim() === '') return null;
+  if (path.startsWith('http')) return path;
+  if (path.startsWith('blob:')) return path;
+  const clean = path.replace(/^\//, '').replace(/^api\//, '');
+  return `${BASE_URL_API}/${clean}`;
+};
+
+export default function AdEditorModal({ userId, ad, isAdmin, onClose, onSuccess }: AdEditorProps) {
+  const isEditing = !!ad;
   const [loading, setLoading] = useState(false);
   const { positions } = useAdPositions();
   const [formData, setFormData] = useState({
-    title: '',
-    destination_url: '',
-    position: 'sidebar',
+    title: ad?.title || '',
+    description: ad?.description || '',
+    destination_url: ad?.destination_url || '',
+    position: ad?.position || 'sidebar',
     image: null as File | null
   });
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(ad ? getFullImageUrl(ad.image_url) : null);
+
+  const isTextOnly = TEXT_ONLY_POSITIONS.includes(formData.position);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -45,24 +61,31 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.image || !formData.title) return alert("Preencha o título e selecione uma imagem.");
+    if (!formData.title) return alert("Preencha o título do anúncio.");
+    if (!isTextOnly && !isEditing && !formData.image) return alert("Selecione uma imagem para o banner.");
+    if (isTextOnly && !formData.description) return alert("Preencha a mensagem do aviso.");
 
     setLoading(true);
     try {
-      // Usamos FormData para envio de arquivo
       const data = new FormData();
       data.append('user_id', userId.toString());
       data.append('title', formData.title);
+      data.append('description', formData.description);
       data.append('destination_url', formData.destination_url);
-      data.append('image', formData.image);
       data.append('position', formData.position);
+      if (formData.image) {
+        data.append('image', formData.image);
+      }
+      if (isEditing) {
+        data.append('id', ad.id.toString());
+      }
 
       const res = await api.post('/ads/save', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       if (res.data?.success) {
-        alert("Anúncio salvo com sucesso!");
+        alert(isEditing ? "Anúncio atualizado!" : "Anúncio salvo com sucesso!");
         onSuccess();
         onClose();
       } else {
@@ -77,48 +100,60 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
     }
   };
 
+  const availablePositions = isAdmin
+    ? positions
+    : positions.filter(p => Number(p.is_public));
+
   return (
     <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-sm z-[110] flex items-center justify-center p-4">
       <div className="bg-white w-full max-w-2xl rounded-[2.5rem] overflow-hidden shadow-2xl animate-in fade-in zoom-in duration-300">
         
         <div className="p-8 border-b border-slate-100 flex justify-between items-center">
           <div>
-            <h2 className="text-2xl font-black text-slate-800 uppercase italic leading-none">Novo Banner</h2>
-            <p className="text-slate-400 text-[10px] font-bold uppercase mt-1">Configure sua campanha publicitária</p>
+            <h2 className="text-2xl font-black text-slate-800 uppercase italic leading-none">{isEditing ? 'Editar Banner' : 'Novo Banner'}</h2>
+            <p className="text-slate-400 text-[10px] font-bold uppercase mt-1">{isEditing ? 'Altere os dados da campanha' : 'Configure sua campanha publicitária'}</p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-full transition-colors"><X size={20}/></button>
         </div>
 
         <form onSubmit={handleSubmit} className="p-8 space-y-6">
-          {/* Preview do Upload */}
-          <div className="relative group">
-            <input 
-              type="file" 
-              accept="image/*" 
-              onChange={handleImageChange}
-              className="absolute inset-0 opacity-0 cursor-pointer z-10"
-            />
-            <div className={`h-48 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center transition-all ${preview ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50 group-hover:border-orange-500'}`}>
-              {preview ? (
-                <img src={preview} alt="Preview" className="h-full w-full object-contain rounded-[1.8rem] p-2" />
-              ) : (
-                <>
-                  <ImageIcon className="text-slate-300 mb-2" size={32} />
-                  <p className="text-[10px] font-black text-slate-400 uppercase">Clique para subir o Banner</p>
-                  {(() => {
-                    const size = formData.position ? AD_POSITION_SIZE[formData.position] : null;
-                    return size ? (
-                      <p className="text-[9px] text-slate-400 mt-1">Tamanho recomendado: {size}</p>
-                    ) : (
-                      <p className="text-[8px] text-slate-400 mt-1">Sugestão: 728×90 (Horizontal) ou 300×250 (Lateral)</p>
-                    );
-                  })()}
-                </>
+          {isTextOnly ? (
+            <div className="rounded-[2rem] border-2 border-dashed border-slate-200 bg-slate-50 p-6 text-center">
+              <p className="text-[10px] font-black text-slate-400 uppercase mb-2">Aviso de Texto (sem imagem)</p>
+              <p className="text-[11px] text-slate-500">O título e a descrição serão exibidos como um aviso no topo do site.</p>
+            </div>
+          ) : (
+            <div className="relative group">
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageChange}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10"
+              />
+              <div className={`h-48 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center transition-all ${preview ? 'border-emerald-500 bg-emerald-50' : 'border-slate-200 bg-slate-50 group-hover:border-orange-500'}`}>
+                {preview ? (
+                  <img src={preview} alt="Preview" className="h-full w-full object-contain rounded-[1.8rem] p-2" />
+                ) : (
+                  <>
+                    <ImageIcon className="text-slate-300 mb-2" size={32} />
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Clique para subir o Banner</p>
+                    {(() => {
+                      const size = formData.position ? AD_POSITION_SIZE[formData.position] : null;
+                      return size ? (
+                        <p className="text-[9px] text-slate-400 mt-1">Tamanho recomendado: {size}</p>
+                      ) : (
+                        <p className="text-[8px] text-slate-400 mt-1">Sugestão: 728×90 (Horizontal) ou 300×250 (Lateral)</p>
+                      );
+                    })()}
+                  </>
+                )}
+              </div>
+              {preview && (
+                <p className="text-[9px] text-slate-400 mt-1 text-center">{isEditing ? 'Clique na imagem para trocar (opcional)' : 'Clique para alterar a imagem'}</p>
               )}
             </div>
-          </div>
+          )}
 
-          {/* Posição do Anúncio */}
           <div className="relative">
             <label className="text-[10px] font-black text-slate-400 uppercase ml-4 mb-1 block">Espaço Publicitário</label>
             <select 
@@ -126,7 +161,7 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
               onChange={e => setFormData({...formData, position: e.target.value})}
               className="w-full bg-slate-100 rounded-2xl px-4 py-3 text-sm font-bold text-slate-700 outline-none"
             >
-              {positions.filter(p => Number(p.is_public)).map(pos => (
+              {availablePositions.map(pos => (
                 <option key={pos.feature_key} value={pos.feature_key}>
                   {pos.feature_name} {AD_POSITION_SIZE[pos.feature_key] ? `(${AD_POSITION_SIZE[pos.feature_key]})` : pos.ad_size ? `(${pos.ad_size})` : ' (variável)'}
                 </option>
@@ -150,12 +185,12 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
 
           <div className="space-y-4">
             <div className="relative">
-              <label className="text-[10px] font-black text-slate-400 uppercase ml-4 mb-1 block">Título do Anúncio (Interno)</label>
+              <label className="text-[10px] font-black text-slate-400 uppercase ml-4 mb-1 block">Título do Anúncio {isTextOnly ? '(Texto principal)' : '(Interno)'}</label>
               <div className="flex items-center bg-slate-100 rounded-2xl px-4 py-3">
                 <Type className="text-slate-400 mr-3" size={18} />
                 <input 
                   type="text" 
-                  placeholder="Ex: Promoção Pneus Sul"
+                  placeholder={isTextOnly ? "Ex: Promoção de Natal - Frete Grátis" : "Ex: Promoção Pneus Sul"}
                   className="bg-transparent w-full outline-none text-sm font-bold text-slate-700"
                   value={formData.title}
                   onChange={e => setFormData({...formData, title: e.target.value})}
@@ -163,6 +198,22 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
                 />
               </div>
             </div>
+
+            {isTextOnly && (
+              <div className="relative">
+                <label className="text-[10px] font-black text-slate-400 uppercase ml-4 mb-1 block">Mensagem de Aviso</label>
+                <div className="flex items-start bg-slate-100 rounded-2xl px-4 py-3">
+                  <FileText className="text-slate-400 mr-3 mt-0.5 shrink-0" size={18} />
+                  <textarea 
+                    placeholder="Ex: Aproveite nossas ofertas de fim de ano!"
+                    className="bg-transparent w-full outline-none text-sm font-bold text-slate-700 resize-none min-h-[60px]"
+                    value={formData.description}
+                    onChange={e => setFormData({...formData, description: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+            )}
 
             <div className="relative">
               <label className="text-[10px] font-black text-slate-400 uppercase ml-4 mb-1 block">Link de Destino (URL ou WhatsApp)</label>
@@ -186,7 +237,7 @@ export default function AdEditorModal({ userId, onClose, onSuccess }: AdEditorPr
             className="w-full bg-slate-900 text-white py-5 rounded-[1.5rem] font-black uppercase text-xs tracking-widest hover:bg-orange-500 transition-all flex items-center justify-center gap-2"
           >
             {loading ? <Loader2 className="animate-spin" size={18} /> : <Upload size={18} />}
-            Finalizar e Enviar para Análise
+            {isEditing ? 'Salvar Alterações' : 'Finalizar e Enviar para Análise'}
           </button>
         </form>
       </div>

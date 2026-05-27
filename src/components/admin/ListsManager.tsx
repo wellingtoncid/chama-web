@@ -51,8 +51,8 @@ export default function ListsManager() {
               parsed.forEach((item: any) => {
                 allItems.push({
                   id: item.id || Date.now(),
-                  name: item.id || item.name || '',
-                  label: item.label || item.name || '',
+                  name: item.id || item.value || item.label || item.name || '',
+                  label: item.label || item.name || item.value || '',
                   type: cat.type
                 });
               });
@@ -100,7 +100,7 @@ export default function ListsManager() {
       const res = await api.post('/admin-settings/save-list', {
         category: 'lists',
         key: `${formData.type}_types`,
-        item: { id: formData.name, label: formData.label }
+        item: { id: formData.name, value: formData.name, label: formData.label }
       });
       
       if (res.data?.success) {
