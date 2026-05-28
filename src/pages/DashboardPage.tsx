@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -52,6 +52,7 @@ export default function DashboardPage() {
   const fetchUserData = useCallback(async () => {
     if (fetched.current) return;
     fetched.current = true;
+    setLoading(true);
     try {
       const response = await api.get('get-my-profile'); 
       if (response.data.success) {
@@ -135,7 +136,7 @@ export default function DashboardPage() {
           <Route index element={
             isInternal ? <DashboardHome user={user} /> : 
             isCompany ? <CompanyCommandCenter user={user} refreshUser={fetchUserData} /> : 
-            isDriver ? <DriverView /> : 
+            isDriver ? <DriverView user={user} /> : 
             <Navigate to="profile" replace />
           } />
 

@@ -19,7 +19,8 @@ import {
   Headphones,
   Filter,
   CheckCircle2,
-  X
+  X,
+  UserCheck
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import DashboardShell from '../../components/layout/DashboardShell';
@@ -65,6 +66,19 @@ export default function MatchingDriversPage() {
       setRadiusKm(showRadiusModal.km);
     }
     setShowRadiusModal(null);
+  };
+
+  const handleAcceptDriver = async (driverId: number) => {
+    try {
+      const res = await api.post('/accept-driver', { freight_id: parseInt(freightId!), driver_id: driverId });
+      if (res.data?.success) {
+        navigate('/dashboard/logistica');
+      } else {
+        alert(res.data?.message || 'Erro ao aceitar motorista');
+      }
+    } catch {
+      alert('Erro ao aceitar motorista. Tente novamente.');
+    }
   };
 
   const handleContactWhatsApp = (whatsapp: string | undefined, name: string) => {
@@ -494,6 +508,14 @@ export default function MatchingDriversPage() {
                           Ligar
                         </a>
                       )}
+                      <Button
+                        variant="default"
+                        onClick={() => handleAcceptDriver(driver.driver_id)}
+                        className="bg-orange-500 hover:bg-orange-600 text-white border-none shadow-lg shadow-orange-500/20"
+                      >
+                        <UserCheck size={14} />
+                        Aceitar Motorista
+                      </Button>
                     </div>
                   </div>
                 </div>

@@ -113,17 +113,39 @@ export function useSiteSettings() {
       
       if (res.data?.success && res.data?.data) {
         const data = res.data.data;
-        const parsed: SiteSettings = {
-          vehicle_types: data.vehicle_types ? JSON.parse(data.vehicle_types) : DEFAULT_SETTINGS.vehicle_types,
-          body_types: data.body_types ? JSON.parse(data.body_types) : DEFAULT_SETTINGS.body_types,
-          equipment_types: data.equipment_types ? JSON.parse(data.equipment_types) : DEFAULT_SETTINGS.equipment_types,
-          certification_types: data.certification_types ? JSON.parse(data.certification_types) : DEFAULT_SETTINGS.certification_types,
-        };
-        setSettings(parsed);
-        setCachedSettings(parsed);
-        return parsed;
+        const hasLists = data.vehicle_types || data.body_types || data.equipment_types || data.certification_types;
+        if (hasLists) {
+          const parsed: SiteSettings = {
+            vehicle_types: data.vehicle_types ? JSON.parse(data.vehicle_types) : DEFAULT_SETTINGS.vehicle_types,
+            body_types: data.body_types ? JSON.parse(data.body_types) : DEFAULT_SETTINGS.body_types,
+            equipment_types: data.equipment_types ? JSON.parse(data.equipment_types) : DEFAULT_SETTINGS.equipment_types,
+            certification_types: data.certification_types ? JSON.parse(data.certification_types) : DEFAULT_SETTINGS.certification_types,
+          };
+          setSettings(parsed);
+          setCachedSettings(parsed);
+          return parsed;
+        }
       }
-      
+
+      // Fallback: tenta /api/public/lists (formato {value, label})
+      try {
+        const fallbackRes = await api.get('/public/lists');
+        if (fallbackRes.data?.success && fallbackRes.data?.data) {
+          const data = fallbackRes.data.data;
+          const parsed: SiteSettings = {
+            vehicle_types: (data.vehicle_types || []).map((i: any) => i.value || i.label || String(i)),
+            body_types: (data.body_types || []).map((i: any) => i.value || i.label || String(i)),
+            equipment_types: (data.equipment_types || []).map((i: any) => i.value || i.label || String(i)),
+            certification_types: (data.certification_types || []).map((i: any) => i.value || i.label || String(i)),
+          };
+          setSettings(parsed);
+          setCachedSettings(parsed);
+          return parsed;
+        }
+      } catch {
+        // fallback silencioso
+      }
+
       setSettings(DEFAULT_SETTINGS);
       return DEFAULT_SETTINGS;
     } catch (err) {

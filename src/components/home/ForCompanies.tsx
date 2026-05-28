@@ -21,7 +21,7 @@ const ForCompanies = () => {
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#1f4ead] to-blue-400">OPERAÇÃO.</span>
           </h2>
           <p className="text-slate-500 dark:text-slate-400 text-xl font-medium max-w-2xl leading-relaxed">
-            Centralize suas cotações, elimine processos manuais e conecte-se com motoristas qualificados em uma única interface.
+            Centralize suas captações em um único lugar, elimine processos manuais e conecte-se com motoristas qualificados em uma única interface.
           </p>
         </div>
 
@@ -36,12 +36,12 @@ const ForCompanies = () => {
                 <div className="inline-flex items-center gap-2 bg-blue-500/10 text-blue-400 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-blue-500/20">
                   Módulo de Inteligência
                 </div>
-                <h3 className="text-4xl font-black text-white uppercase italic leading-none">Central de <br /> Cotações</h3>
+                <h3 className="text-4xl font-black text-white uppercase italic leading-none">Central de <br /> Operações</h3>
                 <p className="text-slate-400 font-medium">
-                  Chega de planilhas. Receba lances de motoristas em tempo real, compare preços e prazos, e feche o melhor negócio com um clique.
+                  Chega de planilhas e mensagens perdidas. Faça contato com motoristas em tempo real e o match certo do veículo que sua empresa precisa e feche o melhor negócio com um clique.
                 </p>
                 <div className="space-y-3">
-                  {['Ranking de Propostas', 'Filtro por Tipo de Veículo', 'Chat de Negociação Integrado'].map((item, i) => (
+                  {['Listagem de contatos', 'Filtro por Tipo de Veículo', 'Chat de Negociação Integrado'].map((item, i) => (
                     <div key={i} className="flex items-center gap-3 text-slate-300">
                       <CheckCircle2 size={16} className="text-blue-500" />
                       <span className="text-xs font-bold uppercase tracking-tight">{item}</span>
@@ -58,7 +58,7 @@ const ForCompanies = () => {
                       <div className="h-2 w-16 bg-blue-500/40 rounded" />
                       <div className="h-1.5 w-12 bg-slate-600 rounded" />
                     </div>
-                    <div className="text-blue-400 font-black text-xs">R$ 4.200</div>
+                    <div className="text-blue-400 font-black text-xs">Contato ABC</div>
                   </div>
                 ))}
               </div>
@@ -71,9 +71,9 @@ const ForCompanies = () => {
               <MessageSquare size={32} />
             </div>
             <div>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic leading-none mb-4 group-hover:text-white transition-colors">Integração <br /> WhatsApp</h3>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic leading-none mb-4 group-hover:text-white transition-colors">Visibilidade <br /> WhatsApp</h3>
               <p className="text-slate-500 dark:text-slate-400 font-medium group-hover:text-white/80 transition-colors">
-                Anuncie sua carga automaticamente em nossa rede de grupos regionais com mais de 50 mil motoristas ativos.
+                Anuncie sua carga automaticamente em nossa plataforma e seja visto por toda comunidade com mais de 50 mil profissionais.
               </p>
             </div>
           </div>

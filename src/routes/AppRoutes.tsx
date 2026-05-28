@@ -32,6 +32,7 @@ const ArticlesPage = lazy(() => import('../pages/ArticlesPage'));
 const ArticleDetailPage = lazy(() => import('../pages/ArticleDetailPage'));
 const ArticleSubmitPage = lazy(() => import('../pages/ArticleSubmitPage'));
 const AuthorRequestPage = lazy(() => import('../pages/AuthorRequestPage'));
+const CostCalculatorPage = lazy(() => import('../pages/calculadora/CostCalculatorPage'));
 const AboutPage = lazy(() => import('../pages/public/AboutPage'));
 const PrivacyPage = lazy(() => import('../pages/public/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/public/TermsPage'));
@@ -88,6 +89,8 @@ export default function AppRoutes() {
       <Route path="/como-funciona" element={<HowItWorks />} />
       <Route path="/como-funciona/empresas" element={<HowItWorksCompanies />} />
       <Route path="/como-funciona/motoristas" element={<HowItWorksDrivers />} />
+
+      <Route path="/calculadora-de-custos" element={<CostCalculatorPage />} />
 
       <Route path="/sobre" element={<AboutPage />} />
       <Route path="/privacidade" element={<PrivacyPage />} />

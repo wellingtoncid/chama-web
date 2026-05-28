@@ -7,16 +7,17 @@ import { ProfileCompletenessAlert } from '../../components/driver';
 import { 
   Search, Heart, List, History, Activity, Truck, X, 
   Zap, ChevronRight, BellRing, Check, ShieldCheck, LayoutGrid,
-  Box, Wallet
+  Box, Wallet, Calculator
 } from 'lucide-react';
 import DashboardShell from '../../components/layout/DashboardShell';
 import { Button } from '../../components/ui/Button';
 
 interface DriverViewProps {
+  user?: any;
   forceTab?: string;
 }
 
-export default function DriverView({ forceTab }: DriverViewProps) {
+export default function DriverView({ user: userProp, forceTab }: DriverViewProps) {
   const navigate = useNavigate();
   const [filter, setFilter] = useState('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -32,25 +33,21 @@ export default function DriverView({ forceTab }: DriverViewProps) {
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
   const user = useMemo(() => {
-    const userData = localStorage.getItem('@ChamaFrete:user');
-    if (!userData) return { id: 0, name: 'Motorista' };
-
-    const parsed = JSON.parse(userData);
-
-    const extras = parsed.extended_attributes 
-      ? (typeof parsed.extended_attributes === 'string' 
-          ? JSON.parse(parsed.extended_attributes) 
-          : parsed.extended_attributes) 
+    const base = userProp || { id: 0, name: 'Motorista' };
+    const extras = base.extended_attributes 
+      ? (typeof base.extended_attributes === 'string' 
+          ? JSON.parse(base.extended_attributes) 
+          : base.extended_attributes) 
       : {};
 
     return { 
-      ...parsed, 
+      ...base, 
       ...extras,
-      display_name: parsed.name || parsed.full_name || extras.name || 'Motorista',
-      vehicle_type: parsed.vehicle_type || extras.vehicle_type || null,
-      body_type: parsed.body_type || extras.body_type || null 
+      display_name: base.name || base.full_name || extras.name || 'Motorista',
+      vehicle_type: base.vehicle_type || extras.vehicle_type || null,
+      body_type: base.body_type || extras.body_type || null 
     };
-  }, []);
+  }, [userProp]);
 
   useEffect(() => {
     if (forceTab) setFilter(forceTab);
@@ -295,6 +292,25 @@ export default function DriverView({ forceTab }: DriverViewProps) {
           </div>
         </button>
       </div>
+
+      {/* CALCULADORA DE CUSTOS */}
+      <button
+        onClick={() => navigate('/calculadora-de-custos')}
+        className="w-full bg-white dark:bg-slate-900 p-4 rounded-[2rem] border border-slate-100 dark:border-slate-800 shadow-sm flex items-center justify-between gap-4 hover:shadow-md hover:border-orange-200 dark:hover:border-orange-800 transition-all group"
+      >
+        <div className="flex items-center gap-4">
+          <div className="p-2.5 rounded-xl text-orange-500 bg-orange-50 dark:bg-orange-900/20">
+            <Calculator size={20} />
+          </div>
+          <div className="text-left">
+            <p className="text-[10px] font-black uppercase text-slate-400 tracking-tight">Calculadora de Custos</p>
+            <p className="text-sm font-bold text-slate-800 dark:text-slate-100 leading-none mt-0.5">
+              Simule custos e precifique seu frete
+            </p>
+          </div>
+        </div>
+        <ChevronRight size={18} className="text-slate-300 group-hover:text-orange-500 group-hover:translate-x-1 transition-all shrink-0" />
+      </button>
 
       {/* BUSCA E FILTROS */}
       <div className="bg-white dark:bg-slate-900 p-5 lg:p-7 rounded-[2.5rem] shadow-xl shadow-slate-200/40 border border-slate-100 dark:border-slate-800 relative z-20">

@@ -168,17 +168,46 @@ export default function SettingsView() {
 
   useEffect(() => { loadAll(); }, []);
 
+  const syncListToCrud = async (listType: string, items: any[]) => {
+    // Busca itens atuais do backend para fazer diff
+    const res = await api.get(`/admin/lists/${listType}`);
+    const existing: any[] = res.data?.data || [];
+    const existingValues = new Set(existing.map((i: any) => i.value));
+
+    // Remove itens que não estão mais na lista
+    const currentValues = new Set(items.map((i: any) => (typeof i === 'string' ? i : i.value)));
+    for (const item of existing) {
+      if (!currentValues.has(item.value)) {
+        await api.delete(`/admin/lists/${listType}/${item.id}`);
+      }
+    }
+
+    // Adiciona itens novos
+    for (const item of items) {
+      const val = typeof item === 'string' ? item : item.value;
+      const label = typeof item === 'string' ? item : (item.label || item.value);
+      if (!existingValues.has(val)) {
+        await api.post(`/admin/lists/${listType}`, { value: val, label });
+      }
+    }
+  };
+
   const handleSaveConfig = async () => {
     try {
       setSaving(true);
-      const allConfig = {
-        ...config,
-        vehicle_types: JSON.stringify(listSettings.vehicle_types),
-        body_types: JSON.stringify(listSettings.body_types),
-        equipment_types: JSON.stringify(listSettings.equipment_types),
-        certification_types: JSON.stringify(listSettings.certification_types),
-      };
-      await api.post('/admin-update-settings', allConfig);
+      const { vehicle_types, body_types, equipment_types, certification_types, ...restConfig } = config;
+
+      // Salva configurações gerais (sem as 4 listas)
+      await api.post('/admin-update-settings', restConfig);
+
+      // Sincroniza listas via CRUD
+      await Promise.all([
+        syncListToCrud('vehicle_types', listSettings.vehicle_types),
+        syncListToCrud('body_types', listSettings.body_types),
+        syncListToCrud('equipment_types', listSettings.equipment_types),
+        syncListToCrud('certification_types', listSettings.certification_types),
+      ]);
+
       alert("Configurações salvas com sucesso!");
     } catch {
       alert("Erro ao salvar configurações");

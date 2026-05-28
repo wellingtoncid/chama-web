@@ -3,7 +3,7 @@ import {
   User, CreditCard,
   Wallet, Users, PlusCircle, Tag, HelpCircle, FileText,
   Shield, LayoutGrid, Star, Flag, BookOpen, UserPlus, Settings, Mail, Headphones, ShieldCheck,
-  UsersRound
+  UsersRound, Calculator
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -45,6 +45,7 @@ export function buildMenuSections(
     { label: 'Marketplace', icon: <ShoppingBag size={20} />, path: '/marketplace', visible: true },
     { label: 'Comunidade', icon: <UsersRound size={20} />, path: '/comunidade', visible: true },
     { label: 'Artigos', icon: <BookOpen size={20} />, path: '/artigos', visible: true },
+    { label: 'Calculadora de Custos', icon: <Calculator size={20} />, path: '/calculadora-de-custos', visible: true },
   ];
 
   return [

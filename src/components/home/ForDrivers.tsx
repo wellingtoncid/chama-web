@@ -4,8 +4,8 @@ import { Button } from "../../components/ui/Button";
 const benefits = [
   { 
     icon: DollarSign, 
-    title: "Pagamento Direto", 
-    description: "Sem intermediários retendo seu dinheiro. Combine e receba direto da empresa." 
+    title: "Negocie Direto", 
+    description: "Sem intermediários retendo seu dinheiro. Combine e receba direto com a empresa." 
   },
   { 
     icon: Route, 
@@ -15,7 +15,7 @@ const benefits = [
   { 
     icon: Bell, 
     title: "Alertas no Zap", 
-    description: "Seja avisado instantaneamente quando surgir um frete na sua cidade." 
+    description: "Faça parte da comunidade para ser o primeiro a saber quando surgir um frete na sua cidade." 
   },
   { 
     icon: Zap, 
@@ -49,7 +49,7 @@ const ForDrivers = () => {
             </h2>
 
             <p className="text-slate-400 text-lg max-w-md font-medium leading-relaxed">
-              O Chama Frete foi feito por quem entende o trecho. Aqui você manda no seu tempo e escolhe as melhores oportunidades.
+              O Chama Frete foi feito por quem entende a estrada e a cidade. Aqui você manda no seu tempo e escolhe as melhores oportunidades.
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4">

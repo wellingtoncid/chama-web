@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useProfileCompleteness } from '@/hooks/useDriverMatching';
 import { 
   AlertTriangle, 
@@ -46,6 +47,7 @@ export default function ProfileCompletenessAlert({
   variant = 'card',
   onDismiss 
 }: ProfileCompletenessAlertProps) {
+  const navigate = useNavigate();
   const { completeness, checkCompleteness, loading, score, isComplete } = useProfileCompleteness();
   
   const [visible, setVisible] = useState(() => {
@@ -90,12 +92,12 @@ export default function ProfileCompletenessAlert({
             </div>
           </div>
           <div className="flex items-center gap-2">
-            <a 
-              href="/dashboard/perfil"
+            <button 
+              onClick={() => navigate('/dashboard/profile')}
               className="px-4 py-2 bg-white text-orange-600 rounded-xl font-bold text-xs hover:bg-orange-50 transition-colors"
             >
               Completar
-            </a>
+            </button>
             <button 
               onClick={handleDismiss}
               className="p-1 hover:bg-white/20 rounded-lg transition-colors"
@@ -172,12 +174,12 @@ export default function ProfileCompletenessAlert({
         </button>
       </div>
 
-      <a
-        href="/dashboard/perfil"
+      <button
+        onClick={() => navigate('/dashboard/profile')}
         className="mt-4 w-full block text-center px-4 py-3 bg-orange-500 text-white rounded-xl font-bold text-xs uppercase hover:bg-orange-600 transition-colors"
       >
         Completar Perfil Agora
-      </a>
+      </button>
     </div>
   );
 }
