@@ -105,22 +105,7 @@ const DriverFields = ({ formData, setFormData }: any) => {
         </div>
       </div>
 
-      {/* Localização */}
-      <div className="space-y-3">
-        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-          <MapPin size={12} /> Localização (CEP)
-        </label>
-        <input
-          type="text"
-          value={formData.home_cep || ''}
-          onChange={(e) => handleInputChange('home_cep', e.target.value)}
-          placeholder="00000-000"
-          className="w-full md:w-64 p-5 bg-slate-50 dark:bg-slate-800 rounded-xl border-none font-bold outline-none focus:ring-2 ring-orange-500/20"
-        />
-        <p className="text-[10px] text-slate-400">
-          Informe seu CEP para definir sua região de atuação
-        </p>
-      </div>
+
     </div>
   );
 };

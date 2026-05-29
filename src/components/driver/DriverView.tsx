@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api } from '../../api/api';
-import FreightCard from '../../components/shared/FreightCard';
-import FreightRow from '../../components/shared/FreightRow';
-import { ProfileCompletenessAlert } from '../../components/driver';
+import { api } from '@/api/api';
+import FreightCard from '@/components/shared/FreightCard';
+import FreightRow from '@/components/shared/FreightRow';
+import { ProfileCompletenessAlert } from '@/components/driver';
 import { 
   Search, Heart, List, History, Activity, Truck, X, 
   Zap, ChevronRight, BellRing, Check, ShieldCheck, LayoutGrid,
-  Box, Wallet, Calculator
+  Box, Calculator
 } from 'lucide-react';
-import DashboardShell from '../../components/layout/DashboardShell';
-import { Button } from '../../components/ui/Button';
+import DashboardShell from '@/components/layout/DashboardShell';
+import { Button } from '@/components/ui/Button';
+import { StatsGrid, StatCard } from '@/components/admin';
 
 interface DriverViewProps {
   user?: any;
@@ -30,7 +31,6 @@ export default function DriverView({ user: userProp, forceTab }: DriverViewProps
   
   const [invitations, setInvitations] = useState<any[]>([]);
   const [activeFreight, setActiveFreight] = useState<any>(null);
-  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   const user = useMemo(() => {
     const base = userProp || { id: 0, name: 'Motorista' };
@@ -52,21 +52,6 @@ export default function DriverView({ user: userProp, forceTab }: DriverViewProps
   useEffect(() => {
     if (forceTab) setFilter(forceTab);
   }, [forceTab]);
-
-  useEffect(() => {
-    loadWalletBalance();
-  }, []);
-
-  const loadWalletBalance = async () => {
-    try {
-      const res = await api.get('/wallet/balance');
-      if (res.data?.data?.balance !== undefined) {
-        setWalletBalance(res.data.data.balance);
-      }
-    } catch (error) {
-      console.error('Erro ao carregar saldo:', error);
-    }
-  };
 
   const loadOperationalData = useCallback(async () => {
     if (!user.id) return;
@@ -253,45 +238,31 @@ export default function DriverView({ user: userProp, forceTab }: DriverViewProps
       )}
 
       {/* KPIS */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 relative z-10">
-        <StatCard label="Disponíveis" value={stats.total_open} icon={<List size={18}/>} color="orange" />
-        <StatCard label="Favoritos" value={stats.total_favs} icon={<Heart size={18}/>} color="red" />
-        <StatCard label="Convites" value={invitations.length} icon={<Zap size={18}/>} color="orange" />
-        <button 
-          onClick={() => navigate('/dashboard/financeiro')}
-          className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-50 dark:border-slate-800 shadow-sm flex items-center gap-3 hover:shadow-md hover:border-green-200 dark:hover:border-green-800 transition-all cursor-pointer"
-        >
-          <div className="p-2.5 rounded-xl text-green-500 bg-green-50 dark:bg-green-900/20">
-            <Wallet size={18}/>
-          </div>
-          <div className="text-left">
-            <p className="text-[8px] font-black uppercase text-slate-400 tracking-tight">Carteira</p>
-            <p className="text-lg font-black text-slate-800 dark:text-slate-100 leading-none">
-              {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(walletBalance)}
-            </p>
-          </div>
-        </button>
+      <StatsGrid className="relative z-10">
+        <StatCard label="Disponíveis" value={stats.total_open} icon={List} variant="orange" />
+        <StatCard label="Favoritos" value={stats.total_favs} icon={Heart} variant="red" />
+        <StatCard label="Convites" value={invitations.length} icon={Zap} variant="orange" />
         
         {/* Radar Smart Interativo */}
         <button 
           onClick={() => setRadarOn(!radarOn)}
-          className={`p-4 rounded-3xl border transition-all flex items-center gap-3 ${
+          className={`bg-white dark:bg-slate-800 p-4 rounded-2xl border transition-all flex items-center gap-3 ${
               radarOn 
-              ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20' 
-              : 'bg-slate-50 border-slate-100 dark:bg-slate-800'
+              ? 'border-emerald-200 dark:border-emerald-800 hover:shadow-md' 
+              : 'border-slate-200 dark:border-slate-700'
           }`}
         >
-          <div className={`p-2.5 rounded-xl ${radarOn ? 'text-emerald-500 bg-white' : 'text-slate-400 bg-white'}`}>
-              <Activity size={18} className={radarOn ? "animate-pulse" : ""} />
+          <div className={`p-2 rounded-xl ${radarOn ? 'text-emerald-600 bg-emerald-100 dark:bg-emerald-900/30' : 'text-slate-400 bg-slate-100 dark:bg-slate-700'}`}>
+              <Activity size={20} className={radarOn ? "animate-pulse" : ""} />
           </div>
-          <div className="text-left">
-            <p className="text-[8px] font-black uppercase text-slate-400 tracking-tight">Radar Smart</p>
-            <p className={`text-lg font-black leading-none ${radarOn ? 'text-emerald-600' : 'text-slate-400'}`}>
+          <div>
+            <p className="text-xs font-bold uppercase text-slate-500 dark:text-slate-400">Radar Smart</p>
+            <p className={`text-xl lg:text-2xl font-black leading-none ${radarOn ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-400'}`}>
               {radarOn ? 'ON' : 'OFF'}
             </p>
           </div>
         </button>
-      </div>
+      </StatsGrid>
 
       {/* CALCULADORA DE CUSTOS */}
       <button
@@ -415,24 +386,6 @@ export default function DriverView({ user: userProp, forceTab }: DriverViewProps
         </div>
       )}
     </DashboardShell>
-  );
-}
-
-function StatCard({ label, value, icon, color }: any) {
-  const colors: any = {
-    red: "text-red-500 bg-red-50 dark:bg-red-900/20",
-    blue: "text-blue-500 bg-blue-50 dark:bg-blue-900/20",
-    green: "text-green-500 bg-green-50 dark:bg-green-900/20",
-    orange: "text-orange-500 bg-orange-50 dark:bg-orange-900/20",
-  };
-  return (
-    <div className="bg-white dark:bg-slate-900 p-4 rounded-3xl border border-slate-50 dark:border-slate-800 shadow-sm flex items-center gap-3">
-      <div className={`p-2.5 rounded-xl ${colors[color]}`}>{icon}</div>
-      <div>
-        <p className="text-[8px] font-black uppercase text-slate-400 tracking-tight">{label}</p>
-        <p className="text-lg font-black text-slate-800 dark:text-slate-100 leading-none">{value ?? 0}</p>
-      </div>
-    </div>
   );
 }
 

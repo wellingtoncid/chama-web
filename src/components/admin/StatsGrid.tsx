@@ -5,7 +5,7 @@ import { cn } from '../../lib/utils';
 interface StatCardProps {
   label: string;
   value: number | string;
-  variant?: 'default' | 'green' | 'yellow' | 'red' | 'blue' | 'purple';
+  variant?: 'default' | 'green' | 'yellow' | 'red' | 'blue' | 'purple' | 'orange';
   icon?: LucideIcon | React.ReactNode;
   prefix?: string;
   subtext?: string;
@@ -22,6 +22,7 @@ export function StatCard({ label, value, variant = 'default', icon, prefix, subt
     red: 'text-red-600 dark:text-red-400',
     blue: 'text-blue-600 dark:text-blue-400',
     purple: 'text-purple-600 dark:text-purple-400',
+    orange: 'text-orange-600 dark:text-orange-400',
   };
 
   const bgColors = {
@@ -31,6 +32,7 @@ export function StatCard({ label, value, variant = 'default', icon, prefix, subt
     red: 'bg-red-100 dark:bg-red-900/30',
     blue: 'bg-blue-100 dark:bg-blue-900/30',
     purple: 'bg-purple-100 dark:bg-purple-900/30',
+    orange: 'bg-orange-100 dark:bg-orange-900/30',
   };
 
   const subtextColors = {

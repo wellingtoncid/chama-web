@@ -1,16 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
-  PlusCircle, Package, Loader2, Zap, Trash2, Edit3, 
-  Truck, Search, CheckCircle2,
-  Eye, MessageCircle, Users, ExternalLink
+  PlusCircle, Package, Loader2, Zap, Trash2, Edit3,
+  CheckCircle2, Search,
+  Eye, MessageCircle, Users, ExternalLink,
+  ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { api } from '../../api/api';
 import CheckoutModal from './CheckoutModal';
 import Swal from 'sweetalert2';
 import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 import { UsageMeter } from '../shared/UsageMeter';
-import { StatsGrid, StatCard, FilterBar, StatusBadge } from '@/components/admin';
+import { StatsGrid, StatCard, StatusBadge, TimeFilter } from '@/components/admin';
 import DashboardShell from '@/components/layout/DashboardShell';
 
 export default function FreightManager({ user }: any) {
@@ -24,6 +25,9 @@ export default function FreightManager({ user }: any) {
   const [modules, setModules] = useState<any>({});
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pricingData, setPricingData] = useState<any>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
+  const [timeFilter, setTimeFilter] = useState<'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all'>('all');
   
   // Estado para métricas específicas deste módulo
   const [stats, setStats] = useState({
@@ -232,9 +236,19 @@ export default function FreightManager({ user }: any) {
     active: ['OPEN', 'PENDING'],
     completed: ['FINISHED', 'CLOSED'],
     cancelled: ['CANCELLED'],
+    expired: ['OPEN', 'PENDING', 'FINISHED', 'CLOSED', 'CANCELLED'],
   };
 
+  const isExpired = (dateStr: string) => {
+    if (!dateStr) return false;
+    return new Date(dateStr).getTime() <= Date.now();
+  };
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter]);
+
   const filteredFreights = myFreights.filter(f => {
+    const expired = isExpired(f.expires_at);
+
     const matchesSearch =
       !searchTerm ||
       f.origin_city?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -244,25 +258,45 @@ export default function FreightManager({ user }: any) {
 
     const matchesStatus =
       statusFilter === 'all' ||
-      (statusMap[statusFilter] ?? []).includes(f.status);
+      (statusFilter === 'expired' && expired) ||
+      (statusFilter !== 'expired' && !expired && (statusMap[statusFilter] ?? []).includes(f.status));
 
     return matchesSearch && matchesStatus;
   });
 
-  const timeAgo = (dateStr: string) => {
+  const formatDate = (dateStr: string) => {
     if (!dateStr) return '';
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const days = Math.floor(diff / 86400000);
-    if (days === 0) return 'Hoje';
-    if (days === 1) return 'Ontem';
-    if (days > 0) return `Há ${days} dias`;
-    const absDays = Math.abs(days);
-    if (absDays === 1) return 'Amanhã';
-    return `Em ${absDays} dias`;
+    const d = new Date(dateStr);
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
+  const formatPrice = (value: string | number) => {
+    const num = typeof value === 'string' ? parseFloat(value) : value;
+    if (isNaN(num)) return '';
+    return num.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
+  const timeRemaining = (dateStr: string) => {
+    if (!dateStr) return '';
+    const now = Date.now();
+    const target = new Date(dateStr).getTime();
+    const diff = target - now;
+    if (diff <= 0) return 'Expirado';
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    if (days > 0) return `${days}d ${hours}h`;
+    return `${hours}h`;
+  };
+
+  const featuredCount = myFreights.filter(f => Number(f.is_featured) === 1 && !isExpired(f.featured_until)).length;
   const hasAnyFreights = myFreights.length > 0;
   const hasFilterResults = filteredFreights.length > 0;
+  const totalPages = Math.ceil(filteredFreights.length / pageSize);
+  const paginatedFreights = filteredFreights.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handleTimeFilterChange = (value: 'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all', _customRange?: { start: string; end: string }) => {
+    setTimeFilter(value);
+  };
 
   const statusBadgeMap: Record<string, 'active' | 'pending' | 'completed' | 'cancelled'> = {
     OPEN: 'active',
@@ -277,168 +311,168 @@ return (
     title="Gestão de Cargas"
     description="Controle operacional da sua frota e fretes"
     actions={
-      <button 
-        onClick={() => checkAccessAndRun(() => navigate('/novo-frete'))}
-        className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-bold uppercase flex items-center gap-3 transition-all text-xs tracking-wide"
-      >
-        <PlusCircle size={16} /> 
-        Nova Publicação
-      </button>
+      <div className="flex items-center gap-3">
+        <UsageMeter moduleKey="freights" hideCreateButton />
+        <button 
+          onClick={() => checkAccessAndRun(() => navigate('/novo-frete'))}
+          className="bg-orange-500 hover:bg-orange-600 text-white px-4 py-2.5 rounded-xl font-bold uppercase flex items-center gap-3 transition-all text-xs tracking-wide"
+        >
+          <PlusCircle size={16} /> 
+          Nova Publicação
+        </button>
+      </div>
     }
   >
-    {/* Usage Meter */}
-    <UsageMeter moduleKey="freights" hideCreateButton />
-
-    {/* StatsGrid */}
     <StatsGrid>
       <StatCard label="Visualizações" value={stats.totalViews} icon={<Eye size={16} />} />
       <StatCard label="Cargas Ativas" value={stats.activeFreights} variant="blue" icon={<Package size={16} />} />
       <StatCard label="Interesses" value={stats.totalInterests} variant="purple" icon={<MessageCircle size={16} />} />
+      <StatCard label="Destaques" value={featuredCount} variant="orange" icon={<Zap size={16} fill="currentColor" />} />
     </StatsGrid>
 
-    {/* Search & Filters */}
-    <FilterBar
-      search={{
-        placeholder: 'Filtrar por rota, produto ou código...',
-        value: searchTerm,
-        onChange: setSearchTerm,
-      }}
-      tabs={[
-        { key: 'all', label: 'Todos' },
-        { key: 'active', label: 'Ativos' },
-        { key: 'completed', label: 'Concluídos' },
-        { key: 'cancelled', label: 'Cancelados' },
-      ]}
-      activeTab={statusFilter}
-      onTabChange={setStatusFilter}
-    >
-      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg border border-orange-100 dark:border-orange-800">
-        <Zap size={12} fill="currentColor" />
-        <span className="text-xs font-bold">{myFreights.filter(f => Number(f.is_featured) === 1).length} Destaques</span>
+    <div className="flex flex-col md:flex-row gap-3">
+      <div className="flex-1 relative">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <input
+          type="text"
+          placeholder="Buscar por rota, produto ou código..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-11 pr-4 py-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-orange-500 transition-all"
+        />
       </div>
-    </FilterBar>
+      <div className="flex flex-wrap items-center gap-2">
+        <select
+          value={statusFilter}
+          onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+          className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-orange-500"
+        >
+          <option value="all">Todos os Status</option>
+          <option value="active">Ativos</option>
+          <option value="completed">Concluídos</option>
+          <option value="cancelled">Cancelados</option>
+          <option value="expired">Expirados</option>
+        </select>
+        <TimeFilter value={timeFilter} onChange={handleTimeFilterChange} />
+      </div>
+    </div>
 
-    {/* Rest of content (table/list) */}
-      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden min-h-[400px]">
-        {loading ? (
-          <div className="py-32 text-center flex flex-col items-center gap-4">
-            <Loader2 className="animate-spin text-orange-500" size={40} />
-            <p className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest italic">Carregando painel logístico...</p>
-          </div>
-        ) : !hasAnyFreights ? (
-          <div className="py-32 text-center">
-            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200 dark:text-slate-600">
-              <Truck size={40} />
-            </div>
-            <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">Nenhuma carga publicada no momento.</p>
-          </div>
-        ) : !hasFilterResults ? (
-          <div className="py-32 text-center">
-            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-200 dark:text-slate-600">
-              <Search size={40} />
-            </div>
-            <p className="text-[10px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-widest italic">Nenhuma carga encontrada para este filtro.</p>
-          </div>
-        ) : (
-          <div className="divide-y divide-slate-50 dark:divide-slate-700">
-            {filteredFreights.map((f: any) => {
-              const isFeatured = Number(f.is_featured) === 1;
-              return (
-                <div key={f.id} className="p-8 hover:bg-slate-50/50 dark:hover:bg-slate-700/50 transition-all flex flex-col md:flex-row items-center justify-between gap-6 group border-b border-slate-50 dark:border-slate-700">
-                  <div className="flex items-center gap-6">
-                    <div className={`relative w-16 h-16 rounded-[1.8rem] flex items-center justify-center transition-all ${isFeatured ? 'bg-orange-500 text-white shadow-lg shadow-orange-500/20' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 border border-transparent group-hover:bg-white group-hover:border-slate-100 dark:group-hover:bg-slate-600'}`}>
-                      {isFeatured ? <Zap size={24} fill="currentColor" /> : <Package size={24} />}
-                    </div>
-
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        {isFeatured && <span className="text-[8px] font-black bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400 px-2 py-0.5 rounded-full uppercase tracking-tighter">Impulsionado</span>}
-                        <StatusBadge status={statusBadgeMap[f.status] ?? 'active'} />
-                        <span className="text-[8px] font-black text-slate-300 dark:text-slate-600 uppercase tracking-tighter italic">REF: CF-{f.id}</span>
-                      </div>
-
-                      <h4 className="font-black text-slate-800 dark:text-white uppercase italic text-lg leading-tight flex items-center gap-2">
-                        {f.origin_city} <span className="text-orange-500 text-sm">→</span> {f.dest_city}
-                      </h4>
-                      
-                      <div className="flex flex-wrap items-center gap-3 mt-2">
-                        <span className="text-[9px] font-black bg-slate-900 dark:bg-slate-700 text-white dark:text-slate-200 px-2.5 py-1 rounded-lg uppercase italic tracking-tighter">
-                          {f.product || 'Carga Geral'}
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+      <div className="px-4 lg:px-6 py-3.5 border-b border-slate-100 dark:border-slate-700">
+        <h3 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
+          Cargas ({filteredFreights.length})
+        </h3>
+      </div>
+      {loading ? (
+        <div className="p-12 text-center">
+          <Loader2 className="animate-spin text-blue-600 mx-auto" size={32} />
+        </div>
+      ) : !hasAnyFreights ? (
+        <div className="px-4 py-12 text-center text-slate-400 dark:text-slate-500 font-medium">Nenhuma carga encontrada</div>
+      ) : !hasFilterResults ? (
+        <div className="px-4 py-12 text-center text-slate-400 dark:text-slate-500 font-medium">Nenhuma carga encontrada para este filtro</div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Rota</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Produto</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Valor</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Data</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {paginatedFreights.map((f: any) => {
+                  const isFeatured = Number(f.is_featured) === 1 && !isExpired(f.featured_until);
+                  return (
+                    <tr key={f.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 ${isFeatured ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/40 dark:text-orange-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500'}`}>
+                            {isFeatured ? <Zap size={14} fill="currentColor" /> : <Package size={14} />}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-sm font-bold text-slate-800 dark:text-white whitespace-nowrap">
+                              {f.origin_city}/{f.origin_state} <span className="text-orange-500 mx-0.5">→</span> {f.dest_city}/{f.dest_state}
+                            </div>
+                            <div className="flex items-center gap-1.5 mt-px">
+                              <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">CF-{f.id}</span>
+                              {isFeatured && (
+                                <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-orange-500 dark:text-orange-400" title={f.featured_until ? `Até ${formatDate(f.featured_until)}` : ''}>
+                                  ⚡{f.featured_until && timeRemaining(f.featured_until)}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{f.product || 'Carga Geral'}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-px">{f.weight} TON</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge status={isExpired(f.expires_at) ? 'expired' : (statusBadgeMap[f.status] ?? 'active')} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                          {f.price ? formatPrice(f.price) : 'A Combinar'}
                         </span>
-                        <span className="text-[10px] font-bold text-slate-700 dark:text-slate-300 uppercase italic">
-                          {f.weight} TON
-                        </span>
-                        <span className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
-                          {f.price ? `R$ ${f.price}` : 'A Combinar'}
-                        </span>
-                        <span className="text-[9px] text-slate-400 dark:text-slate-500 italic">
-                          {timeAgo(f.created_at)}
-                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-slate-600 dark:text-slate-300 leading-tight">{formatDate(f.created_at)}</div>
                         {f.expires_at && (
-                          <span className="text-[9px] text-orange-500 italic">
-                            Expira {timeAgo(f.expires_at)}
-                          </span>
+                          <div className={`text-[10px] mt-px ${isExpired(f.expires_at) ? 'text-red-500' : 'text-orange-500'}`}>
+                            {isExpired(f.expires_at) ? `Expirou ${formatDate(f.expires_at)}` : `${timeRemaining(f.expires_at)}`}
+                          </div>
                         )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    {/* Ver Frete */}
-                    {f.slug && (
-                      <ActionButton 
-                        icon={<ExternalLink size={14} />}
-                        label="Ver"
-                        href={`/frete/${f.slug}`}
-                        variant="gray"
-                        onClick={undefined}
-                      />
-                    )}
-                    
-                    {/* Encontrar Motoristas */}
-                    <ActionButton 
-                      icon={<Users size={14} />}
-                      label="Matching"
-                      onClick={() => navigate(`/encontrar-motoristas/${f.id}`)}
-                      variant="orange"
-                    />
-                    
-                    {/* Destacar */}
-                    {!isFeatured ? (
-                      <ActionButton 
-                        icon={<Zap size={14} />}
-                        label="Impulsionar"
-                        onClick={() => { setSelectedFreightId(f.id); setShowCheckout(true); }}
-                        variant="outline"
-                      />
-                    ) : (
-                      <div className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[10px] font-black uppercase italic border border-green-100 dark:border-green-800">
-                        <CheckCircle2 size={12} /> Maximizado
-                      </div>
-                    )}
-                    
-                    {/* Editar */}
-                    <ActionButton 
-                      icon={<Edit3 size={14} />}
-                      label="Editar"
-                      onClick={() => checkAccessAndRun(() => navigate('/novo-frete', { state: { editData: f } }))}
-                      variant="gray"
-                    />
-                    
-                    {/* Excluir */}
-                    <ActionButton 
-                      icon={<Trash2 size={14} />}
-                      label="Excluir"
-                      onClick={() => handleDelete(f.id)}
-                      variant="danger"
-                    />
-                  </div>
-                </div>
-              );
-            })}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <ActionButton icon={<Users size={12} />} label="Matching" onClick={() => navigate(`/encontrar-motoristas/${f.id}`)} variant="orange" />
+                          {!isFeatured ? (
+                            <ActionButton icon={<Zap size={12} />} label="Impulsionar" onClick={() => { setSelectedFreightId(f.id); setShowCheckout(true); }} variant="outline" />
+                          ) : (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-lg bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 text-[9px] font-black uppercase italic border border-green-100 dark:border-green-800">
+                              <CheckCircle2 size={10} /> Ativo
+                            </div>
+                          )}
+                          <span className="w-px h-5 bg-slate-200 dark:bg-slate-700 mx-0.5" />
+                          {f.slug && (
+                            <IconButton icon={<ExternalLink size={14} />} label="Ver" href={`/frete/${f.slug}`} />
+                          )}
+                          <IconButton icon={<Edit3 size={14} />} label="Editar" onClick={() => checkAccessAndRun(() => navigate('/novo-frete', { state: { editData: f } }))} />
+                          <IconButton icon={<Trash2 size={14} />} label="Excluir" onClick={() => handleDelete(f.id)} variant="danger" />
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
-        )}
-      </div>
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3">
+              <span className="text-xs text-slate-500">
+                {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredFreights.length)} de {filteredFreights.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors">
+                  <ChevronLeft size={16} className="text-slate-600 dark:text-slate-300" />
+                </button>
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{currentPage} / {totalPages}</span>
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors">
+                  <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
 
       {/* MODAL DE CHECKOUT */}
       {showCheckout && selectedFreightId !== null && (
@@ -474,12 +508,12 @@ interface ActionButtonProps {
 }
 
 function ActionButton({ icon, label, onClick, href, variant = 'gray' }: ActionButtonProps) {
-  const baseClasses = "flex items-center gap-1.5 px-3 py-2 rounded-xl text-[10px] font-bold uppercase transition-all dark:text-white";
+  const baseClasses = "flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase transition-all dark:text-white";
   
   const variantClasses = {
     orange: "bg-orange-500 text-white hover:bg-orange-600 shadow-sm",
     gray: "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600",
-    outline: "bg-white border-2 border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white dark:bg-slate-800 dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-slate-900",
+    outline: "bg-white border border-slate-900 text-slate-900 hover:bg-slate-900 hover:text-white dark:bg-slate-800 dark:border-white dark:text-white dark:hover:bg-white dark:hover:text-slate-900",
     danger: "bg-red-50 text-red-500 hover:bg-red-500 hover:text-white dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white"
   };
   
@@ -498,6 +532,36 @@ function ActionButton({ icon, label, onClick, href, variant = 'gray' }: ActionBu
     <button onClick={onClick} className={classes}>
       {icon}
       <span>{label}</span>
+    </button>
+  );
+}
+
+interface IconButtonProps {
+  icon: React.ReactNode;
+  label: string;
+  onClick?: () => void;
+  href?: string;
+  variant?: 'default' | 'danger';
+}
+
+function IconButton({ icon, label, onClick, href, variant = 'default' }: IconButtonProps) {
+  const classes = `p-1.5 rounded-lg transition-all ${
+    variant === 'danger'
+      ? 'text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30'
+      : 'text-slate-400 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-slate-700'
+  }`;
+
+  if (href) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={classes} title={label}>
+        {icon}
+      </a>
+    );
+  }
+
+  return (
+    <button onClick={onClick} className={classes} title={label}>
+      {icon}
     </button>
   );
 }

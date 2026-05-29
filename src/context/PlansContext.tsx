@@ -416,9 +416,7 @@ export function PlansProvider({ children }: { children: ReactNode }) {
       }
     } catch (e: any) {
       const message = e.response?.data?.message || e.message || 'Erro ao processar';
-      if (!e.response?.data?.requires_module_activation) {
-        Swal.fire({ icon: 'error', title: 'Erro', text: message });
-      }
+      Swal.fire({ icon: 'error', title: 'Erro', text: message });
     } finally {
       setPurchasing(null);
     }

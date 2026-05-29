@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate, Outlet } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../api/api';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +19,7 @@ import MarketplaceModule from './plans/components/MarketplaceModule';
 import AdvertiserModule from './plans/components/AdvertiserModule';
 import AvulsoPage from './plans/components/AvulsoPage';
 import DriverModule from './plans/components/DriverModule';
+import DriverVerificationPage from './plans/components/DriverVerificationPage';
 import { PlansProvider } from '../context/PlansContext';
 import CompanyProPage from './company/CompanyProPage';
 import FinancialPage from './financial/FinancialPage';
@@ -124,7 +125,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <button 
-            onClick={() => navigate('profile')}
+            onClick={() => navigate('/dashboard/profile')}
             className="bg-orange-500 text-white px-6 py-2 rounded-xl text-[10px] font-black uppercase italic hover:bg-orange-600 transition-all shadow-lg shadow-orange-500/20"
           >
             Finalizar Agora
@@ -165,6 +166,7 @@ export default function DashboardPage() {
             <Route path="advertiser" element={<AdvertiserModule />} />
             <Route path="advertiser/avulso" element={<AvulsoPage />} />
             <Route path="driver" element={<DriverModule />} />
+            <Route path="driver/verificacao" element={<DriverVerificationPage />} />
           </Route>
           <Route path="financeiro" element={<FinancialPage />} />
           <Route path="suporte" element={<SupportPage />} />

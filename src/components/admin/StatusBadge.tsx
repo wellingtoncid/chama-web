@@ -1,7 +1,7 @@
 import React from 'react';
 import { cn } from '../../lib/utils';
 
-type StatusType = 'pending' | 'published' | 'rejected' | 'draft' | 'active' | 'inactive' | 'approved' | 'cancelled' | 'processing' | 'completed' | 'failed';
+type StatusType = 'pending' | 'published' | 'rejected' | 'draft' | 'active' | 'inactive' | 'approved' | 'cancelled' | 'processing' | 'completed' | 'failed' | 'expired';
 
 interface StatusBadgeProps {
   status: StatusType;
@@ -21,6 +21,7 @@ const defaultLabels: Record<StatusType, string> = {
   processing: 'Processando',
   completed: 'Concluído',
   failed: 'Falhou',
+  expired: 'Expirado',
 };
 
 const statusStyles: Record<StatusType, string> = {
@@ -35,6 +36,7 @@ const statusStyles: Record<StatusType, string> = {
   processing: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400',
   completed: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400',
   failed: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
+  expired: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400',
 };
 
 export default function StatusBadge({ status, labels = defaultLabels, className = '' }: StatusBadgeProps) {

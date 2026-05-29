@@ -27,7 +27,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ user }) => {
       
       {/* Header-like bar - same as public pages */}
       <header className="sticky top-0 z-40 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800">
-        <div className="container mx-auto px-4 lg:px-6">
+        <div className="max-w-[1280px] mx-auto px-6 lg:px-10">
           <div className="flex items-center justify-between h-16">
             
             {/* Logo */}
