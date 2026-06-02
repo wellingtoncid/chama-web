@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '@/api/api';
+import { formatWeight } from '@/lib/utils';
 import { 
   MapPin, Clock, Package, Truck, CheckCircle, 
   CircleDot, AlertCircle, ChevronRight, Loader2
@@ -135,7 +136,7 @@ export default function FreightTracking({ freightId, onClose }: FreightTrackingP
           </div>
           <div>
             <p className="text-[10px] uppercase text-slate-400">Peso</p>
-            <p className="text-sm font-medium">{freight.weight} kg</p>
+            <p className="text-sm font-medium">{formatWeight(freight.weight)}</p>
           </div>
           <div>
             <p className="text-[10px] uppercase text-slate-400">Veículo</p>

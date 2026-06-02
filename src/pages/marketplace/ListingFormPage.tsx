@@ -50,6 +50,7 @@ export default function ListingFormPage() {
   const [existingImages, setExistingImages] = useState<string[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [states, setStates] = useState<{ sigla: string; nome: string }[]>([]);
   const [cities, setCities] = useState<string[]>([]);
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
@@ -60,11 +61,15 @@ export default function ListingFormPage() {
   const [formData, setFormData] = useState({
     title: '',
     category: '',
+    subcategory: '',
     price: '',
     item_condition: 'usado',
     location_city: '',
     location_state: '',
     description: '',
+    accepting_offers: false,
+    contact_preference: 'whatsapp',
+    accepting_trade: false,
   });
 
   const [isAffiliate, setIsAffiliate] = useState(isAffiliateMode);
@@ -142,11 +147,30 @@ export default function ListingFormPage() {
     }
   }, [isAdmin]);
 
+  // Carregar subcategorias quando a categoria mudar
+  useEffect(() => {
+    if (!formData.category) {
+      setSubcategories([]);
+      return;
+    }
+    const loadSubcats = async () => {
+      try {
+        const res = await api.get(`/listing-categories/${formData.category}/subcategories`);
+        if (res.data?.success) {
+          setSubcategories(res.data.data);
+        }
+      } catch {
+        setSubcategories([]);
+      }
+    };
+    loadSubcats();
+  }, [formData.category]);
+
   const loadInitialData = async () => {
     try {
       const [statesData, categoriesRes] = await Promise.all([
         getStates(),
-        api.get('/listing-categories')
+        api.get('/listing-categories?parents_only=true')
       ]);
 
       setStates(statesData);
@@ -185,11 +209,15 @@ export default function ListingFormPage() {
         setFormData({
           title: listing.title || '',
           category: listing.category || '',
-          price: listing.price || '',
+          subcategory: listing.subcategory || '',
+          price: listing.price ? String(Math.round(Number(listing.price) * 100)) : '',
           item_condition: listing.item_condition || 'usado',
           location_city: listing.location_city || '',
           location_state: listing.location_state || '',
           description: listing.description || '',
+          accepting_offers: Number(listing.accepting_offers) === 1,
+          contact_preference: listing.contact_preference || 'whatsapp',
+          accepting_trade: Number(listing.accepting_trade) === 1,
         });
 
         if (listing.gallery && listing.gallery.length > 0) {
@@ -249,7 +277,7 @@ export default function ListingFormPage() {
           setFormData(prev => ({ ...prev, title: data.title }));
         }
         if (data.price && !formData.price) {
-          setFormData(prev => ({ ...prev, price: String(data.price) }));
+          setFormData(prev => ({ ...prev, price: String(Math.round(Number(data.price) * 100)) }));
         }
         if (data.main_image && existingImages.length === 0) {
           setExistingImages([data.main_image]);
@@ -309,11 +337,26 @@ export default function ListingFormPage() {
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const target = e.target;
     setFormData(prev => ({
       ...prev,
-      [e.target.name]: e.target.value
+      [target.name]: target.type === 'checkbox' ? (target as HTMLInputElement).checked : target.value
     }));
   };
+
+  const formatCurrency = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return '';
+    const num = parseInt(digits, 10) / 100;
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const handlePriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    setFormData(prev => ({ ...prev, price: raw }));
+  };
+
+  const displayPrice = formData.price ? formatCurrency(formData.price) : '';
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -336,6 +379,10 @@ export default function ListingFormPage() {
 
     setLoading(true);
     const data = new FormData(e.currentTarget);
+    data.set('price', String(parseInt(formData.price || '0', 10) / 100));
+    data.set('accepting_offers', formData.accepting_offers ? '1' : '0');
+    data.set('accepting_trade', formData.accepting_trade ? '1' : '0');
+    data.set('contact_preference', formData.contact_preference);
     data.append('user_id', selectedUserId.toString());
 
     if (isAffiliate) {
@@ -694,17 +741,25 @@ export default function ListingFormPage() {
 
           {/* Details Section */}
           <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 space-y-4">
-            <div>
-              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Título do Anúncio</label>
-              <input
-                name="title"
-                required
-                value={formData.title}
-                onChange={handleInputChange}
-                placeholder="Ex: Caminhão Scania R440 ou Pneu Usado"
-                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 border-2 border-transparent focus:border-emerald-500/20 transition-all"
-              />
-            </div>
+              <div>
+                <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Título do Anúncio</label>
+                <div className="relative">
+                  <input
+                    name="title"
+                    required
+                    maxLength={70}
+                    value={formData.title}
+                    onChange={handleInputChange}
+                    placeholder="Ex: Caminhão Scania R440 ou Pneu Usado"
+                    className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 border-2 border-transparent focus:border-emerald-500/20 transition-all pr-16"
+                  />
+                  <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold ${
+                    formData.title.length > 60 ? 'text-red-500' : formData.title.length > 50 ? 'text-amber-500' : 'text-slate-400'
+                  }`}>
+                    {formData.title.length}/70
+                  </span>
+                </div>
+              </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
@@ -727,15 +782,59 @@ export default function ListingFormPage() {
                 <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Preço (R$)</label>
                 <input
                   name="price"
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="numeric"
                   required
-                  value={formData.price}
-                  onChange={handleInputChange}
+                  value={displayPrice}
+                  onChange={handlePriceChange}
                   placeholder="0,00"
                   className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 tabular-nums"
                 />
               </div>
+            </div>
+
+            {subcategories.length > 0 && (
+              <div>
+                <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Subcategoria</label>
+                <select
+                  name="subcategory"
+                  value={formData.subcategory}
+                  onChange={handleInputChange}
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-slate-800 dark:text-slate-100 appearance-none"
+                >
+                  <option value="">Todas as subcategorias</option>
+                  {subcategories.map((sub) => (
+                    <option key={sub.id} value={sub.slug}>{sub.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-2xl cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="accepting_offers"
+                  checked={formData.accepting_offers}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 rounded accent-emerald-600"
+                />
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                  Aceito ofertas
+                </span>
+              </label>
+              <label className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-700 rounded-2xl cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  name="accepting_trade"
+                  checked={formData.accepting_trade}
+                  onChange={handleInputChange}
+                  className="w-5 h-5 rounded accent-emerald-600"
+                />
+                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
+                  Aceito troca
+                </span>
+              </label>
             </div>
 
             <div>
@@ -811,49 +910,134 @@ export default function ListingFormPage() {
             </div>
 
             <div>
+              <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">
+                Meio de Contato Preferencial
+              </label>
+              <div className="flex gap-2">
+                {[
+                  { value: 'whatsapp', label: 'WhatsApp' },
+                  { value: 'chat', label: 'Chat' },
+                  { value: 'ambos', label: 'Ambos' },
+                ].map((opt) => (
+                  <label key={opt.value} className="flex-1 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="contact_preference"
+                      value={opt.value}
+                      checked={formData.contact_preference === opt.value}
+                      onChange={handleInputChange}
+                      className="hidden peer"
+                    />
+                    <div className="p-3 text-center border-2 rounded-2xl font-black uppercase text-xs peer-checked:border-emerald-500 peer-checked:bg-emerald-50 dark:peer-checked:bg-emerald-900/30 peer-checked:text-emerald-600 dark:peer-checked:text-emerald-400 text-slate-400 dark:text-slate-500 cursor-pointer transition-all">
+                      {opt.label}
+                    </div>
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <label className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 ml-2 mb-2 block">Descrição</label>
-              <textarea
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                rows={4}
-                placeholder="Descreva seu produto..."
-                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
-              />
+              <div className="relative">
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={4}
+                  maxLength={3000}
+                  placeholder="Descreva seu produto com detalhes..."
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 resize-none"
+                />
+                <span className="absolute bottom-3 right-3 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+                  {formData.description.length}/3000
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* Submit Buttons */}
-          <div className="flex gap-4">
-            <Button
+          {/* Preview + Submit Buttons */}
+          <div className="space-y-3">
+            <button
               type="button"
-              variant="outline"
-              onClick={() => navigate(-1)}
-              className="flex-1"
-              size="lg"
+              onClick={() => {
+                const preview = document.getElementById('listing-preview');
+                if (preview) preview.classList.toggle('hidden');
+              }}
+              className="w-full p-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-bold text-xs uppercase hover:bg-slate-200 dark:hover:bg-slate-700 transition-all flex items-center justify-center gap-2"
             >
-              Cancelar
-            </Button>
-            <Button
-              type="submit"
-              disabled={loading || totalImages === 0}
-              className="flex-1"
-              size="lg"
-            >
-              {loading ? (
-                <Loader2 className="animate-spin" size={18} />
-              ) : totalImages === 0 ? (
-                'Adicione pelo menos 1 foto'
-              ) : isEditing ? (
-                <>
-                  <Plus size={18} /> Salvar Alterações
-                </>
-              ) : (
-                <>
-                  <Plus size={18} /> Publicar Anúncio
-                </>
-              )}
-            </Button>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Visualizar Anúncio
+            </button>
+
+            <div id="listing-preview" className="hidden max-w-sm mx-auto bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden shadow-lg">
+              <div className="aspect-[4/3] bg-slate-100 dark:bg-slate-700 flex items-center justify-center text-slate-300 dark:text-slate-600 text-xs font-bold">
+                {existingImages[0] ? (
+                  <AdImage url={existingImages[0]} className="w-full h-full object-cover" alt="Preview" />
+                ) : images[0] ? (
+                  <img src={URL.createObjectURL(images[0])} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-slate-300 dark:text-slate-600">
+                    <rect width="18" height="18" x="3" y="3" rx="2"/>
+                    <circle cx="9" cy="9" r="2"/>
+                    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                  </svg>
+                )}
+              </div>
+              <div className="p-4">
+                <div className="flex flex-wrap items-center gap-1.5 mb-2">
+                  <span className="bg-slate-100 dark:bg-slate-700 text-slate-500 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase">{formData.category || 'categoria'}</span>
+                  {formData.accepting_offers && (
+                    <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-[9px] font-bold px-2 py-0.5 rounded-full">Aceito ofertas</span>
+                  )}
+                  {formData.accepting_trade && (
+                    <span className="bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[9px] font-bold px-2 py-0.5 rounded-full">Aceito troca</span>
+                  )}
+                </div>
+                <h3 className="font-bold text-sm text-slate-800 dark:text-slate-100 mb-2 uppercase">{formData.title || 'Título do anúncio'}</h3>
+                <p className="text-[10px] text-slate-400 mb-2 leading-relaxed line-clamp-2">{formData.description || 'Descrição do anúncio...'}</p>
+                <div className="flex items-center justify-between">
+                  <p className="text-lg font-bold text-emerald-600 dark:text-emerald-400">
+                    {formData.price ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(parseInt(formData.price, 10) / 100) : 'R$ 0,00'}
+                  </p>
+                  <span className="text-[10px] text-slate-400">{formData.item_condition === 'novo' ? 'Novo' : 'Usado'} &middot; {formData.location_state || '—'}</span>
+                </div>
+                <div className="mt-2 flex items-center gap-2 text-[10px] text-slate-400">
+                  <span>Contato: {formData.contact_preference === 'whatsapp' ? 'WhatsApp' : formData.contact_preference === 'chat' ? 'Chat' : 'WhatsApp / Chat'}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex gap-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => navigate(-1)}
+                className="flex-1"
+                size="lg"
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="submit"
+                disabled={loading || totalImages === 0}
+                className="flex-1"
+                size="lg"
+              >
+                {loading ? (
+                  <Loader2 className="animate-spin" size={18} />
+                ) : totalImages === 0 ? (
+                  'Adicione pelo menos 1 foto'
+                ) : isEditing ? (
+                  <>
+                    <Plus size={18} /> Salvar Alterações
+                  </>
+                ) : (
+                  <>
+                    <Plus size={18} /> Publicar Anúncio
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </form>
       </div>

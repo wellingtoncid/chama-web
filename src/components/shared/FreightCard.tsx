@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Heart, X, Lock, ChevronRight, ShieldCheck, MapPin } from 'lucide-react';
+import { Heart, X, Lock, ChevronRight, ShieldCheck, MapPin, Loader2, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../api/api';
 import { AdImage } from '../AdImage';
@@ -16,6 +16,7 @@ interface FreightCardProps {
     dest_state?: string;
     vehicle_type?: string;
     body_type?: string;
+    cargo_type_name?: string;
     company_name?: string;
     user_name?: string;
     avatar_url?: string;
@@ -71,6 +72,30 @@ export default function FreightCard({ data, aba, onToggle, onView, disabled }: F
       if (aba === 'favs' && onToggle) onToggle();
     } catch { 
       setIsFavorite(original); 
+    }
+  };
+
+  const [interestLoading, setInterestLoading] = useState(false);
+  const [interestDone, setInterestDone] = useState(false);
+
+  const handleInterest = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user) {
+      setShowLoginModal(true);
+      return;
+    }
+    setInterestLoading(true);
+    try {
+      const res = await api.post('/freight-invitations/interest', { freight_id: data.id });
+      if (res.data?.success) {
+        setInterestDone(true);
+      }
+    } catch (err: any) {
+      if (err?.response?.status === 409) {
+        setInterestDone(true);
+      }
+    } finally {
+      setInterestLoading(false);
     }
   };
 
@@ -156,11 +181,13 @@ export default function FreightCard({ data, aba, onToggle, onView, disabled }: F
             {data.product || 'CARGA GERAL'}
           </h3>
 
-          {(data.vehicle_type || data.body_type) && (
+          {(data.vehicle_type || data.body_type || data.cargo_type_name) && (
             <p className="text-[10px] font-bold uppercase text-blue-600 dark:text-blue-400 mb-1">
               {data.vehicle_type && `🚚 ${data.vehicle_type}`}
               {data.vehicle_type && data.body_type && ' / '}
               {data.body_type && data.body_type}
+              {(data.vehicle_type || data.body_type) && data.cargo_type_name && ' · '}
+              {data.cargo_type_name && data.cargo_type_name}
             </p>
           )}
 
@@ -176,8 +203,28 @@ export default function FreightCard({ data, aba, onToggle, onView, disabled }: F
                 {formatCurrency(data.price)}
               </p>
             </div>
-            <div className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-3 py-2 rounded-xl font-bold text-[10px] uppercase transition-all">
-              VER <ChevronRight size={14} strokeWidth={2.5} />
+            <div className="flex items-center gap-1.5">
+              {isDriver && !disabled && !interestDone && (
+                <button
+                  onClick={handleInterest}
+                  disabled={interestLoading}
+                  className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider text-orange-500 bg-orange-50 dark:bg-orange-900/20 hover:bg-orange-100 dark:hover:bg-orange-900/40 transition-all disabled:opacity-50"
+                >
+                  {interestLoading ? <Loader2 size={10} className="animate-spin" /> : <Heart size={10} />}
+                  {interestLoading ? '...' : 'Quero'}
+                </button>
+              )}
+              {isDriver && interestDone && (
+                <span className="flex items-center gap-1 px-2 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-wider text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 whitespace-nowrap">
+                  <Check size={10} /> OK
+                </span>
+              )}
+              <div
+                onClick={(e) => { e.stopPropagation(); goToDetails(); }}
+                className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg font-bold text-[8px] uppercase transition-all cursor-pointer"
+              >
+                VER <ChevronRight size={10} strokeWidth={2.5} />
+              </div>
             </div>
           </div>
         </div>

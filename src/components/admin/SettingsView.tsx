@@ -69,6 +69,7 @@ export default function SettingsView() {
     body_types: [],
     equipment_types: [],
     certification_types: [],
+    cargo_types: [],
   });
   const [editingList, setEditingList] = useState<string | null>(null);
   const [listInput, setListInput] = useState('');
@@ -118,6 +119,9 @@ export default function SettingsView() {
       }
       if (res.data?.data?.certification_types) {
         setListSettings(prev => ({ ...prev, certification_types: JSON.parse(res.data.data.certification_types) }));
+      }
+      if (res.data?.data?.cargo_types) {
+        setListSettings(prev => ({ ...prev, cargo_types: JSON.parse(res.data.data.cargo_types) }));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -169,25 +173,56 @@ export default function SettingsView() {
   useEffect(() => { loadAll(); }, []);
 
   const syncListToCrud = async (listType: string, items: any[]) => {
-    // Busca itens atuais do backend para fazer diff
     const res = await api.get(`/admin/lists/${listType}`);
     const existing: any[] = res.data?.data || [];
-    const existingValues = new Set(existing.map((i: any) => i.value));
+    const existingMap = new Map(existing.map((i: any) => [i.value, i]));
+
+    const currentValues = new Set(items.map((i: any) => (typeof i === 'string' ? i : i.value)));
 
     // Remove itens que não estão mais na lista
-    const currentValues = new Set(items.map((i: any) => (typeof i === 'string' ? i : i.value)));
     for (const item of existing) {
       if (!currentValues.has(item.value)) {
         await api.delete(`/admin/lists/${listType}/${item.id}`);
       }
     }
 
-    // Adiciona itens novos
+    // Adiciona ou atualiza itens
     for (const item of items) {
       const val = typeof item === 'string' ? item : item.value;
       const label = typeof item === 'string' ? item : (item.label || item.value);
-      if (!existingValues.has(val)) {
+      const existingItem = existingMap.get(val);
+
+      if (!existingItem) {
+        // Novo item
         await api.post(`/admin/lists/${listType}`, { value: val, label });
+      } else if (existingItem.label !== label) {
+        // Item existente com label alterado → PUT
+        await api.put(`/admin/lists/${listType}/${existingItem.id}`, { value: val, label });
+      }
+    }
+  };
+
+  const syncCargoTypes = async (items: any[]) => {
+    const res = await api.get('/admin/cargo-types');
+    const existing: any[] = res.data?.data || [];
+    const existingMap = new Map(existing.map((i: any) => [i.name, i]));
+
+    const currentNames = new Set(items.map((i: any) => (typeof i === 'string' ? i : i.value)));
+
+    for (const item of existing) {
+      if (!currentNames.has(item.name)) {
+        await api.delete(`/admin/cargo-types/${item.id}`);
+      }
+    }
+
+    for (const item of items) {
+      const name = typeof item === 'string' ? item : item.value;
+      const existingItem = existingMap.get(name);
+
+      if (!existingItem) {
+        await api.post('/admin/cargo-types', { name });
+      } else if (existingItem.name !== name) {
+        await api.put(`/admin/cargo-types/${existingItem.id}`, { name });
       }
     }
   };
@@ -195,9 +230,9 @@ export default function SettingsView() {
   const handleSaveConfig = async () => {
     try {
       setSaving(true);
-      const { vehicle_types, body_types, equipment_types, certification_types, ...restConfig } = config;
+      const { vehicle_types, body_types, equipment_types, certification_types, cargo_types, ...restConfig } = config;
 
-      // Salva configurações gerais (sem as 4 listas)
+      // Salva configurações gerais (sem as listas)
       await api.post('/admin-update-settings', restConfig);
 
       // Sincroniza listas via CRUD
@@ -206,7 +241,11 @@ export default function SettingsView() {
         syncListToCrud('body_types', listSettings.body_types),
         syncListToCrud('equipment_types', listSettings.equipment_types),
         syncListToCrud('certification_types', listSettings.certification_types),
+        syncCargoTypes(listSettings.cargo_types),
       ]);
+
+      // Invalida cache do useSiteSettings para refletir nas páginas de criação
+      localStorage.removeItem('@ChamaFrete:siteSettings');
 
       alert("Configurações salvas com sucesso!");
     } catch {
@@ -272,11 +311,12 @@ export default function SettingsView() {
               { key: 'body_types', label: 'Tipos de Carroceria', icon: <Package size={20} />, list: listSettings.body_types },
               { key: 'equipment_types', label: 'Equipamentos', icon: <Wrench size={20} />, list: listSettings.equipment_types },
               { key: 'certification_types', label: 'Certificações', icon: <Award size={20} />, list: listSettings.certification_types },
+              { key: 'cargo_types', label: 'Tipos de Carga', icon: <Package size={20} />, list: listSettings.cargo_types },
             ].map((category) => (
-              <div key={category.key} className="bg-white p-6 rounded-2xl border border-slate-200">
+              <div key={category.key} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">{category.icon}</div>
-                  <h3 className="text-sm font-bold text-slate-900">{category.label}</h3>
+                  <div className="p-2 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg">{category.icon}</div>
+                  <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">{category.label}</h3>
                 </div>
                 
                 {editingList === category.key ? (
@@ -297,7 +337,7 @@ export default function SettingsView() {
                           }
                         }}
                         placeholder="Digite um item e pressione Enter"
-                        className="flex-1 px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                        className="flex-1 px-4 py-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
                       />
                       <button
                         onClick={() => {
@@ -315,7 +355,7 @@ export default function SettingsView() {
                         <Plus size={18} />
                       </button>
                     </div>
-                    <p className="text-xs text-slate-400 mb-2 flex items-center gap-1">
+                    <p className="text-xs text-slate-400 dark:text-slate-500 mb-2 flex items-center gap-1">
                       <GripVertical size={12} /> Arraste os itens para reordenar
                     </p>
                     <div className="flex flex-wrap gap-2">
@@ -328,11 +368,11 @@ export default function SettingsView() {
                           onDragLeave={handleDragLeave}
                           onDrop={(e) => handleDrop(e, category.key, idx)}
                           onDragEnd={handleDragEnd}
-                          className={`flex items-center gap-2 px-3 py-2 bg-slate-100 rounded-lg text-sm cursor-grab active:cursor-grabbing transition-all ${
-                            dragOverIndex?.key === category.key && dragOverIndex?.index === idx 
-                              ? 'ring-2 ring-orange-400 bg-orange-50' 
-                              : 'hover:bg-slate-200'
-                          }`}
+                          className={`flex items-center gap-2 px-3 py-2 bg-slate-100 dark:bg-slate-700 rounded-lg text-sm text-slate-800 dark:text-slate-200 cursor-grab active:cursor-grabbing transition-all ${
+                             dragOverIndex?.key === category.key && dragOverIndex?.index === idx 
+                               ? 'ring-2 ring-orange-400 bg-orange-50 dark:bg-orange-900/30' 
+                               : 'hover:bg-slate-200 dark:hover:bg-slate-600'
+                           }`}
                         >
                           <GripVertical size={14} className="text-slate-400" />
                           
@@ -361,7 +401,7 @@ export default function SettingsView() {
                                   setEditingItem(null);
                                 }}
                                 autoFocus
-                                className="px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-blue-500"
+                                className="px-4 py-2.5 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-600 text-xs font-bold text-slate-700 dark:text-slate-200 outline-none focus:ring-2 focus:ring-blue-500"
                               />
                               <button
                                 onClick={() => {
@@ -403,7 +443,7 @@ export default function SettingsView() {
                     </div>
                     <button
                       onClick={() => { setEditingList(null); setListInput(''); }}
-                      className="w-full py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-colors"
+                      className="w-full py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
                     >
                       Concluir
                     </button>
@@ -413,15 +453,15 @@ export default function SettingsView() {
                     {category.list.length > 0 ? (
                       <div className="flex flex-wrap gap-2 mb-4">
                         {category.list.map((item, idx) => (
-                          <span key={idx} className="px-3 py-1.5 bg-slate-100 rounded-lg text-sm">{typeof item === 'string' ? item : (item.label || item.value)}</span>
+                          <span key={idx} className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-800 dark:text-slate-200 rounded-lg text-sm">{typeof item === 'string' ? item : (item.label || item.value)}</span>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-sm text-slate-400 italic mb-4">Nenhum item cadastrado</p>
+                      <p className="text-sm text-slate-400 dark:text-slate-500 italic mb-4">Nenhum item cadastrado</p>
                     )}
                     <button
                       onClick={() => setEditingList(category.key)}
-                      className="px-4 py-2.5 bg-slate-100 text-slate-700 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 transition-colors flex items-center gap-2"
+                      className="px-4 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-bold text-xs uppercase hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors flex items-center gap-2"
                     >
                       <Edit3 size={14} /> Editar Lista
                     </button>
@@ -430,11 +470,11 @@ export default function SettingsView() {
               </div>
             ))}
             {listSettings.vehicle_types.length > 0 && listSettings.body_types.length > 0 && (
-            <div className="bg-blue-50 border border-blue-200 p-4 rounded-xl flex items-start gap-3">
-              <AlertCircle size={18} className="text-blue-600 mt-0.5 flex-shrink-0" />
-              <div className="text-sm text-blue-800">
+            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 p-4 rounded-xl flex items-start gap-3">
+              <AlertCircle size={18} className="text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+              <div className="text-sm text-blue-800 dark:text-blue-200">
                 <p className="font-bold">As listas estão sincronizadas!</p>
-                <p className="text-blue-600">Motoristas e empresas verão essas opções ao cadastrar fretes ou perfis.</p>
+                <p className="text-blue-600 dark:text-blue-400">Motoristas e empresas verão essas opções ao cadastrar fretes ou perfis.</p>
               </div>
               </div>
             )}

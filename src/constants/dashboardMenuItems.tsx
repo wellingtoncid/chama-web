@@ -101,7 +101,7 @@ export function buildMenuSections(
       title: "Ecossistema",
       visible: isExternal || isInternal,
       items: [
-        { label: 'Marketplace', icon: <ShoppingBag size={20} />, path: '/dashboard/vendas', visible: hasMarketplace },
+        { label: 'Meu Marketplace', icon: <ShoppingBag size={20} />, path: '/dashboard/vendas', visible: hasMarketplace },
         { label: 'Publicidade', icon: <Megaphone size={20} />, path: '/dashboard/anunciante', visible: (isCompany || role === 'advertiser' || isInternal) && hasAdvertiser },
         { label: 'Financeiro', icon: <CreditCard size={20} />, path: '/dashboard/financeiro', visible: hasFinancial || isDriver },
         { label: 'Planos', icon: <Tag size={20} />, path: '/dashboard/planos', visible: hasPlans },

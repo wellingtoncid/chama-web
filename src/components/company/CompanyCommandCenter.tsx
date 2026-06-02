@@ -130,8 +130,7 @@ export default function CompanyCommandCenter({ user }: any) {
   const activity = data?.recent_activity ?? [];
   const maxChart = Math.max(...chart.map((d) => d.count), 1);
 
-  const showAlert = freights && freights.active_count === 0;
-  const usageHigh = (data?.usage?.freights?.limit ?? 0) > 0 && ((data?.usage?.freights?.used ?? 0) / (data?.usage?.freights?.limit ?? 1)) >= 0.8;
+
 
   return (
     <DashboardShell
@@ -150,26 +149,9 @@ export default function CompanyCommandCenter({ user }: any) {
         </button>
       }
     >
-      {/* ALERTAS */}
-      {usageHigh && (
-        <div className="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl px-5 py-3 flex items-center gap-3">
-          <AlertTriangle size={18} className="text-amber-500 shrink-0" />
-          <p className="text-sm text-amber-800 dark:text-amber-300 flex-1 font-medium">
-            Você usou <strong>{data?.usage?.freights?.used}</strong> de <strong>{data?.usage?.freights?.limit}</strong> fretes do seu plano.
-          </p>
-          <button onClick={() => navigate('/dashboard/planos')} className="text-xs font-bold text-amber-700 dark:text-amber-400 underline whitespace-nowrap">Ver planos</button>
-        </div>
-      )}
-      {showAlert && (
-        <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl px-5 py-3 flex items-center gap-3">
-          <Package size={18} className="text-blue-500 shrink-0" />
-          <p className="text-sm text-blue-800 dark:text-blue-300 flex-1 font-medium">Nenhum frete ativo no momento.</p>
-          <button onClick={() => navigate('/dashboard/logistica')} className="text-xs font-bold text-blue-700 dark:text-blue-400 underline whitespace-nowrap">Publicar agora</button>
-        </div>
-      )}
-
-      {/* MÉTRICAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* MÉTRICAS + USO */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 flex-1">
         <StatCard
           label="Cargas Ativas"
           value={freights?.active_count ?? 0}
@@ -211,6 +193,7 @@ export default function CompanyCommandCenter({ user }: any) {
             <p className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase leading-tight">Ative o Marketplace<br />ou Publicidade</p>
           </button>
         )}
+        </div>
       </div>
 
       {/* GRÁFICO */}
@@ -233,37 +216,37 @@ export default function CompanyCommandCenter({ user }: any) {
         </div>
       </div>
 
-      {/* LIMITE DO PLANO */}
-      <UsageMeter moduleKey="freights" />
-
-      {/* MÓDULOS */}
-      <section>
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-xs font-black uppercase text-slate-600 dark:text-slate-400 tracking-wider">Módulos</h3>
-          </div>
+      {/* PLANO */}
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 lg:p-6 space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xs font-black uppercase text-slate-600 dark:text-slate-400 tracking-wider">Seu Plano</h3>
+        </div>
+        <div className="flex flex-wrap items-center gap-4">
+          {hasModule('freights') && <UsageMeter moduleKey="freights" hideCreateButton />}
+          {hasModule('marketplace') && <UsageMeter moduleKey="marketplace" hideCreateButton />}
           <button
             onClick={() => navigate('/dashboard/planos')}
-            className="text-[10px] font-bold text-orange-500 hover:text-orange-600 transition-colors uppercase tracking-wide"
+            className="px-4 py-2 rounded-xl border border-orange-200 bg-orange-50 text-orange-600 hover:bg-orange-100 transition-colors text-[10px] font-bold uppercase tracking-wide whitespace-nowrap"
           >
-            Gerenciar
+            Gerenciar Planos
           </button>
         </div>
-
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <ModuleCard title="Logística" desc="Publique cargas e encontre motoristas" icon={<Truck size={22} />} moduleKey="freights" modules={modules} />
-          <ModuleCard title="Marketplace" desc="Venda de produtos e peças" icon={<ShoppingBag size={22} />} moduleKey="marketplace" modules={modules} />
-          <ModuleCard title="Publicidade" desc="Destaque sua empresa e anúncios" icon={<Megaphone size={22} />} moduleKey="advertiser" modules={modules} />
+        <div className="pt-3 border-t border-slate-100 dark:border-slate-700">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <ModuleCard title="Logística" desc="Publique cargas e encontre motoristas" icon={<Truck size={22} />} moduleKey="freights" modules={modules} />
+            <ModuleCard title="Marketplace" desc="Venda de produtos e peças" icon={<ShoppingBag size={22} />} moduleKey="marketplace" modules={modules} />
+            <ModuleCard title="Publicidade" desc="Destaque sua empresa e anúncios" icon={<Megaphone size={22} />} moduleKey="advertiser" modules={modules} />
+          </div>
         </div>
+      </div>
 
-        <RequestModal
-          isOpen={requestModal.isOpen}
-          onClose={() => setRequestModal({ isOpen: false, moduleKey: '', moduleName: '' })}
-          moduleName={requestModal.moduleName}
-          moduleKey={requestModal.moduleKey}
-          onSuccess={loadData}
-        />
-      </section>
+      <RequestModal
+        isOpen={requestModal.isOpen}
+        onClose={() => setRequestModal({ isOpen: false, moduleKey: '', moduleName: '' })}
+        moduleName={requestModal.moduleName}
+        moduleKey={requestModal.moduleKey}
+        onSuccess={loadData}
+      />
 
       {/* ATIVIDADES RECENTES */}
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-5 lg:p-6">

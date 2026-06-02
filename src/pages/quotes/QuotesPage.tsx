@@ -8,6 +8,7 @@ import { api } from '../../api/api';
 import { Button } from '../../components/ui/Button';
 import DashboardShell from '../../components/layout/DashboardShell';
 import ConfirmModal from '../../components/shared/ConfirmModal';
+import { formatWeight } from '../../lib/utils';
 
 interface Quote {
   id: number;
@@ -352,7 +353,7 @@ export default function QuotesPage() {
                 {quote.weight && (
                   <div className="flex items-center gap-1 text-xs text-slate-400 dark:text-slate-500">
                     <Scale size={12} />
-                    <span>{quote.weight} kg</span>
+                    <span>{formatWeight(quote.weight)}</span>
                   </div>
                 )}
 
@@ -485,8 +486,9 @@ export default function QuotesPage() {
                   <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Peso (kg)</label>
                   <input
                     type="text"
+                    inputMode="decimal"
                     value={formData.weight}
-                    onChange={(e) => setFormData({ ...formData, weight: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, weight: e.target.value.replace(/[^0-9.,]/g, '') })}
                     placeholder="Ex: 500"
                     className="w-full p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 font-bold text-sm text-slate-900 dark:text-slate-200 placeholder:text-slate-400"
                   />

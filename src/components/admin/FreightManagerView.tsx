@@ -4,8 +4,8 @@ import { api } from '@/api/api';
 import { StatsGrid, StatCard, TimeFilter, PageShell } from '@/components/admin';
 import {
   Search, Trash2, Star, Loader2,
-  Edit3, PlusCircle,
-  Package, DollarSign, ChevronRight,
+  Edit3, PlusCircle, Eye,
+  Package, DollarSign, ChevronRight, ChevronLeft,
   Clock
 } from 'lucide-react';
 
@@ -16,6 +16,8 @@ export default function FreightsManagerView() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [timeFilter, setTimeFilter] = useState<'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all'>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
 
   const handleTimeFilterChange = (value: 'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all', _customRange?: { start: string; end: string }) => {
     setTimeFilter(value);
@@ -37,6 +39,8 @@ export default function FreightsManagerView() {
   };
 
   useEffect(() => { loadFreights(); }, []);
+
+  useEffect(() => { setCurrentPage(1); }, [searchTerm, statusFilter, pageSize]);
 
   const handleToggleFeatured = async (id: number, currentStatus: any) => {
     const newStatus = currentStatus == "1" ? "0" : "1";
@@ -87,6 +91,12 @@ export default function FreightsManagerView() {
     
     return matchesSearch;
   });
+
+  const totalPages = Math.ceil(filtered.length / pageSize);
+  const paginatedFreights = filtered.slice(
+    (currentPage - 1) * pageSize,
+    currentPage * pageSize
+  );
 
   // Métricas
   const totalFretes = freights.length;
@@ -159,12 +169,32 @@ export default function FreightsManagerView() {
 
       {/* Table */}
       <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-sm mt-4">
+        <div className="px-5 py-3.5 border-b border-slate-100 flex flex-wrap justify-between items-center gap-3">
+          <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
+            Cargas ({filtered.length})
+          </h3>
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-slate-500">Mostrar</span>
+            <select
+              value={pageSize}
+              onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+              className="px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-sm font-bold text-slate-700"
+            >
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+            <span className="text-xs text-slate-500">por página</span>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-slate-50/80 border-b border-slate-200">
               <tr>
                 <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">ID / Rota</th>
                 <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Produto</th>
+                <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Tipo</th>
                 <th className="px-5 py-3.5 text-left text-[10px] font-black uppercase text-slate-400 tracking-widest">Anunciante</th>
                 <th className="px-5 py-3.5 text-right text-[10px] font-black uppercase text-slate-400 tracking-widest">Valor</th>
                 <th className="px-5 py-3.5 text-center text-[10px] font-black uppercase text-slate-400 tracking-widest">Destaque</th>
@@ -174,19 +204,19 @@ export default function FreightsManagerView() {
             <tbody className="divide-y divide-slate-100">
               {loading && freights.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center">
+                  <td colSpan={7} className="px-5 py-16 text-center">
                     <Loader2 className="animate-spin mx-auto text-slate-300" size={32} />
                     <p className="text-xs font-bold text-slate-400 mt-3 uppercase tracking-wider">Carregando fretes...</p>
                   </td>
                 </tr>
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-5 py-16 text-center">
+                  <td colSpan={7} className="px-5 py-16 text-center">
                     <p className="text-sm font-bold text-slate-400 uppercase tracking-wider">Nenhum frete encontrado</p>
                   </td>
                 </tr>
               ) : (
-                 filtered.map((f) => (
+                 paginatedFreights.map((f) => (
                   <tr key={f.id} className="hover:bg-slate-50/50 transition-colors group">
                     <td className="px-5 py-4">
                       <p className="text-xs font-black text-slate-900 uppercase flex items-center gap-2">
@@ -199,6 +229,12 @@ export default function FreightsManagerView() {
                     <td className="px-5 py-4">
                       <span className="inline-flex items-center px-2.5 py-1 rounded-lg bg-slate-100 text-[10px] font-black uppercase text-slate-600">
                         {f.product || 'Carga Geral'}
+                      </span>
+                      {f.distance_km && <span className="ml-2 text-[9px] font-bold text-slate-400">{f.distance_km} km</span>}
+                    </td>
+                    <td className="px-5 py-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 text-[9px] font-bold text-slate-500 uppercase">
+                        {f.cargo_type_name || (f.cargo_type_id ? 'Geral' : '—')}
                       </span>
                     </td>
                     <td className="px-5 py-4">
@@ -224,16 +260,27 @@ export default function FreightsManagerView() {
                       </button>
                     </td>
                     <td className="px-5 py-4 text-right">
-                      <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center justify-end gap-1">
+                        <a
+                          href={`/frete/${f.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title="Ver"
+                        >
+                          <Eye size={14} />
+                        </a>
                         <button 
                           onClick={() => navigate('/novo-frete', { state: { editData: f } })}
                           className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                          title="Editar"
                         >
                           <Edit3 size={14} />
                         </button>
                         <button 
                           onClick={() => handleDelete(f.id)}
                           className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                          title="Excluir"
                         >
                           <Trash2 size={14} />
                         </button>
@@ -245,6 +292,32 @@ export default function FreightsManagerView() {
             </tbody>
           </table>
         </div>
+        {totalPages > 1 && (
+          <div className="p-4 border-t border-slate-100 flex items-center justify-between">
+            <div className="text-xs text-slate-500">
+              Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filtered.length)} de {filtered.length}
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft size={16} className="text-slate-600" />
+              </button>
+              <span className="text-sm font-bold text-slate-600">
+                {currentPage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="p-2 rounded-lg hover:bg-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight size={16} className="text-slate-600" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </PageShell>
   );

@@ -17,9 +17,9 @@ export default function DashboardShell({ title, description, actions, children, 
             {title}
           </h1>
           {description && (
-            <p className="text-xs lg:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            <div className="text-xs lg:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
               {description}
-            </p>
+            </div>
           )}
         </div>
         {actions && (

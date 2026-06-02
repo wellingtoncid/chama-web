@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { PageShell, StatsGrid, StatCard, FilterBar } from '@/components/admin';
+import { formatWeight } from '@/lib/utils';
 
 interface Quote {
   id: number;
@@ -445,7 +446,7 @@ export default function QuotesManager() {
                   </div>
                   <div className="bg-slate-50 rounded-xl p-4">
                     <span className="text-[10px] font-black uppercase text-slate-400">Peso</span>
-                    <p className="font-bold text-slate-800">{selectedQuote.weight ? `${selectedQuote.weight} kg` : '-'}</p>
+                    <p className="font-bold text-slate-800 dark:text-slate-200">{selectedQuote.weight ? formatWeight(selectedQuote.weight) : '-'}</p>
                   </div>
                 </div>
 

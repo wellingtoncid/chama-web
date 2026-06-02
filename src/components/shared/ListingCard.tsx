@@ -18,6 +18,10 @@ interface ListingCardProps {
     seller_name?: string;
     is_affiliate?: number | boolean;
     external_url?: string;
+    accepting_offers?: number;
+    accepting_trade?: number;
+    contact_preference?: string;
+    subcategory?: string;
   };
   onClick?: () => void;
   onView?: () => void;
@@ -82,6 +86,19 @@ export default function ListingCard({ data, onClick, onView, className = '' }: L
             {data.item_condition}
           </div>
         )}
+
+        <div className="absolute bottom-3 right-3 flex gap-1.5">
+          {Number(data.accepting_offers) === 1 && (
+            <div className="bg-emerald-500/90 text-white text-[8px] font-bold px-2 py-1 rounded-lg shadow-md backdrop-blur-sm">
+              OFERTAS
+            </div>
+          )}
+          {Number(data.accepting_trade) === 1 && (
+            <div className="bg-amber-500/90 text-white text-[8px] font-bold px-2 py-1 rounded-lg shadow-md backdrop-blur-sm">
+              TROCA
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Conteúdo */}

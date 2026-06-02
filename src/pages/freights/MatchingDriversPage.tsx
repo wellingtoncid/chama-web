@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useDriverMatching } from '@/hooks/useDriverMatching';
 import { api } from '@/api/api';
+import InviteDriverModal from '@/components/freights/InviteDriverModal';
 import {
   ArrowLeft,
   MapPin,
@@ -20,10 +21,19 @@ import {
   Filter,
   CheckCircle2,
   X,
-  UserCheck
+  UserCheck,
+  Send,
+  Clock,
+  Check,
+  XCircle,
+  MessageSquare
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
 import DashboardShell from '../../components/layout/DashboardShell';
+import { StatsGrid, StatCard } from '@/components/admin';
+import Swal from 'sweetalert2';
+
+type TabType = 'matching' | 'invitations' | 'interests';
 
 export default function MatchingDriversPage() {
   const { freightId } = useParams<{ freightId: string }>();
@@ -32,12 +42,30 @@ export default function MatchingDriversPage() {
   const [radiusKm, setRadiusKm] = useState(100);
   const [copied, setCopied] = useState(false);
   const [showRadiusModal, setShowRadiusModal] = useState<{ km: number; action: 'expand' | 'edit' } | null>(null);
+  const [activeTab, setActiveTab] = useState<TabType>('matching');
+  const [invitations, setInvitations] = useState<any[]>([]);
+  const [interests, setInterests] = useState<any[]>([]);
+  const [loadingInvites, setLoadingInvites] = useState(false);
+  const [inviteModalDriver, setInviteModalDriver] = useState<{ id: number; name: string } | null>(null);
+  const [pendingDriverIds, setPendingDriverIds] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (freightId) {
       findDrivers(parseInt(freightId), radiusKm);
     }
   }, [freightId, radiusKm]);
+
+  // Carrega IDs de motoristas com convites existentes p/ desabilitar botão no Matching
+  useEffect(() => {
+    if (activeTab !== 'matching' || !freightId) return;
+    api.get(`/freights/${freightId}/invitations`)
+      .then(res => {
+        if (res.data?.success) {
+          setPendingDriverIds(new Set(res.data.data.map((i: any) => i.driver_id)));
+        }
+      })
+      .catch(() => {});
+  }, [activeTab, freightId]);
 
   const handleEditFreight = async () => {
     if (!freightId) return;
@@ -68,16 +96,64 @@ export default function MatchingDriversPage() {
     setShowRadiusModal(null);
   };
 
+  const loadInvitations = useCallback(async () => {
+    if (!freightId) return;
+    setLoadingInvites(true);
+    try {
+      const [resInv, resInt] = await Promise.all([
+        api.get(`/freights/${freightId}/invitations`),
+        api.get('/company/invitations', { params: { freight_id: freightId } }),
+      ]);
+      if (resInv.data?.success) setInvitations(resInv.data.data);
+      if (resInt.data?.success) setInterests(resInt.data.data.filter((i: any) => i.invited_by === 'driver' && i.status === 'pending'));
+    } catch {
+      // silent
+    } finally {
+      setLoadingInvites(false);
+    }
+  }, [freightId]);
+
+  useEffect(() => {
+    if (activeTab === 'invitations' || activeTab === 'interests') {
+      loadInvitations();
+    }
+  }, [activeTab, loadInvitations]);
+
   const handleAcceptDriver = async (driverId: number) => {
     try {
       const res = await api.post('/accept-driver', { freight_id: parseInt(freightId!), driver_id: driverId });
       if (res.data?.success) {
         navigate('/dashboard/logistica');
       } else {
-        alert(res.data?.message || 'Erro ao aceitar motorista');
+        Swal.fire({ icon: 'error', title: 'Erro', text: res.data?.message || 'Erro ao aceitar motorista' });
       }
     } catch {
-      alert('Erro ao aceitar motorista. Tente novamente.');
+      Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro ao aceitar motorista. Tente novamente.' });
+    }
+  };
+
+  const handleCancelMatch = async (invitationId: number) => {
+    try {
+      const result = await Swal.fire({
+        title: 'Cancelar match?',
+        text: 'O motorista será notificado e o frete voltará a ficar disponível.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        cancelButtonColor: '#6b7280',
+        confirmButtonText: 'Sim, cancelar',
+        cancelButtonText: 'Voltar',
+      });
+      if (!result.isConfirmed) return;
+      const res = await api.put(`/freight-invitations/${invitationId}/cancel-match`);
+      if (res.data?.success) {
+        Swal.fire({ icon: 'success', title: 'Match cancelado!', timer: 1500, showConfirmButton: false });
+        loadInvitations();
+      } else {
+        Swal.fire({ icon: 'error', title: 'Erro', text: res.data?.message || 'Erro ao cancelar match' });
+      }
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro ao cancelar match. Tente novamente.' });
     }
   };
 
@@ -88,6 +164,19 @@ export default function MatchingDriversPage() {
       `Olá ${name}! Vi seu perfil no Chama Frete e gostaria de combinar um frete.`
     )}`;
     window.open(url, '_blank');
+  };
+
+  const handleOpenChat = async (driverId: number) => {
+    try {
+      const res = await api.post('/chat/init', { freight_id: parseInt(freightId!), seller_id: driverId });
+      if (res.data?.success) {
+        navigate(`/chat/${res.data.room_id}`);
+      } else {
+        Swal.fire({ icon: 'error', title: 'Erro', text: res.data?.message || 'Erro ao abrir chat' });
+      }
+    } catch {
+      Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro ao abrir chat. Tente novamente.' });
+    }
   };
 
   const shareWhatsApp = () => {
@@ -214,167 +303,78 @@ export default function MatchingDriversPage() {
         </div>
       )}
 
-      {/* Error State */}
+      {/* Stats */}
+      <StatsGrid>
+        <StatCard label="Motoristas Encontrados" value={drivers.length} icon={Navigation} variant="blue" />
+        <StatCard label="Convites Pendentes" value={invitations.filter(i => i.status === 'pending').length} icon={Send} variant="yellow" />
+        <StatCard label="Interessados" value={interests.length} icon={UserCheck} variant="purple" />
+        <StatCard label="Convites Aceitos" value={invitations.filter(i => i.status === 'accepted').length} icon={CheckCircle2} variant="green" />
+      </StatsGrid>
+
+      {/* Tabs: Matching | Convidados | Interessados */}
+      <div className="flex gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+        {[
+          { key: 'matching' as TabType, label: 'Matching', icon: Navigation },
+          { key: 'invitations' as TabType, label: 'Convidados', icon: Send },
+          { key: 'interests' as TabType, label: 'Interessados', icon: UserCheck },
+        ].map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all flex-1 justify-center ${
+              activeTab === tab.key
+                ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+            }`}
+          >
+            <tab.icon size={16} />
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Matching Tab */}
+      {activeTab === 'matching' && (
+        <>
       {error && (
         <div className="bg-white dark:bg-slate-800 rounded-2xl p-8 text-center border border-red-100 dark:border-red-900">
           <p className="text-red-500 dark:text-red-400 font-medium mb-4">{error}</p>
-          <Button
-            variant="default"
-            onClick={() => freightId && findDrivers(parseInt(freightId), radiusKm)}
-          >
+          <Button variant="default" onClick={() => freightId && findDrivers(parseInt(freightId), radiusKm)}>
             Tentar Novamente
           </Button>
         </div>
       )}
 
-      {/* Empty State with Tips */}
       {!loading && !error && drivers.length === 0 && (
-        <div className="space-y-6">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-10 text-center border border-slate-100 dark:border-slate-700 shadow-sm">
-            <div className="w-20 h-20 bg-slate-50 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Navigation size={40} className="text-slate-300 dark:text-slate-600" />
-            </div>
-            <h3 className="text-xl font-black text-slate-700 dark:text-white uppercase italic mb-2">
-              Nenhum motorista encontrado
-            </h3>
-            <p className="text-slate-500 dark:text-slate-400 font-medium mb-6">
-              Sua busca por:
-            </p>
-
-            <div className="flex flex-wrap justify-center gap-2 mb-8 max-w-md mx-auto">
-              <span className="px-3 py-1.5 bg-orange-50 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 rounded-lg text-xs font-medium border border-orange-100 dark:border-orange-800">
-                📍 {radiusKm}km de {freight?.origin_city || 'Origem'}
-              </span>
-              {freight?.vehicle_type && (
-                <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium">
-                  🚛 {freight.vehicle_type}
-                </span>
-              )}
-              {freight?.body_type && (
-                <span className="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-medium">
-                  📦 {freight.body_type}
-                </span>
-              )}
-              {freight?.equipment_needed?.map((eq: string, i: number) => (
-                <span key={i} className="px-3 py-1.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium">
-                  ⚙️ {eq}
-                </span>
-              ))}
-              {freight?.certifications_needed?.map((cert: string, i: number) => (
-                <span key={i} className="px-3 py-1.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-medium">
-                  📜 {cert}
-                </span>
-              ))}
-            </div>
-
-            <div className="text-left space-y-4 max-w-lg mx-auto">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase italic flex items-center gap-2">
-                💡 DICAS PARA ENCONTRAR MOTORISTAS:
-              </h4>
-
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700">
-                <p className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase italic mb-3">
-                  🔹 Amplie o raio de busca
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {[50, 100, 200, 500].map((km) => (
-                    <button
-                      key={km}
-                      onClick={() => handleRadiusChange(km)}
-                      className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                        radiusKm === km
-                          ? 'bg-orange-500 text-white shadow-lg shadow-orange-200 dark:shadow-orange-900'
-                          : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-orange-300 dark:hover:border-orange-500'
-                      }`}
-                    >
-                      {km}km
-                    </button>
-                  ))}
-                  <button
-                    onClick={() => handleRadiusChange(2000)}
-                    className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                      radiusKm === 2000
-                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-200 dark:shadow-orange-900'
-                        : 'bg-white dark:bg-slate-700 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-600 hover:border-orange-300 dark:hover:border-orange-500'
-                    }`}
-                  >
-                    Qualquer
-                  </button>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 dark:bg-slate-800 rounded-2xl p-5 border border-slate-100 dark:border-slate-700">
-                <p className="text-xs font-black text-slate-700 dark:text-slate-200 uppercase italic mb-3">
-                  🔹 Divulgue este frete nas redes sociais
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="default"
-                    onClick={shareWhatsApp}
-                    className="bg-green-500 hover:bg-green-600 text-white border-none"
-                  >
-                    <MessageCircle size={14} />
-                    WhatsApp
-                  </Button>
-                  <Button
-                    variant="default"
-                    onClick={() => window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(freightUrl)}`, '_blank')}
-                    className="bg-blue-600 hover:bg-blue-700 text-white border-none"
-                  >
-                    <Share2 size={14} />
-                    Facebook
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={copyLink}
-                  >
-                    {copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-                    {copied ? 'Copiado!' : 'Copiar Link'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => window.open(freightUrl, '_blank')}
-                  >
-                    <ExternalLink size={14} />
-                    Ver Frete
-                  </Button>
-                </div>
-              </div>
-
-              <div className="bg-orange-50 dark:bg-orange-900/20 rounded-2xl p-5 border border-orange-100 dark:border-orange-800">
-                <p className="text-xs font-black text-slate-700 dark:text-orange-300 uppercase italic mb-1">
-                  🔹 Solicite motoristas específicos
-                </p>
-                <p className="text-xs text-slate-500 dark:text-orange-200/70 mb-3">
-                  Nossa equipe pode ajudar a encontrar profissionais para sua carga.
-                </p>
-                <a
-                  href="/dashboard/suporte"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold hover:bg-orange-600 transition-colors"
-                >
-                  <Headphones size={14} />
-                  Falar com Suporte
-                </a>
-              </div>
-            </div>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl p-12 text-center border border-slate-200 dark:border-slate-700">
+          <Loader2 size={32} className="animate-spin text-orange-500 mx-auto mb-4" />
+          <p className="text-slate-500 dark:text-slate-400 font-medium text-lg">Nenhum motorista encontrado</p>
+          <p className="text-sm text-slate-400 dark:text-slate-500 mt-2">Amplie o raio de busca ou tente novamente</p>
+          <div className="flex items-center justify-center gap-2 mt-4">
+            {[50, 100, 200, 500].map((km) => (
+              <button key={km} onClick={() => setRadiusKm(km)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${radiusKm === km ? 'bg-orange-500 text-white' : 'bg-white dark:bg-slate-700 text-slate-600 border'}`}>
+                {km}km
+              </button>
+            ))}
+            <button onClick={() => setRadiusKm(2000)}
+              className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${radiusKm === 2000 ? 'bg-orange-500 text-white' : 'bg-white dark:bg-slate-700 text-slate-600 border'}`}>
+              Qualquer
+            </button>
           </div>
         </div>
       )}
 
-      {/* Drivers List */}
       {!loading && !error && drivers.length > 0 && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
-              {drivers.length} motorista{drivers.length > 1 ? 's' : ''} encontrado{drivers.length > 1 ? 's' : ''}
-            </p>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="px-4 lg:px-6 py-3.5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+            <h3 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
+              Motoristas ({drivers.length})
+            </h3>
             <div className="flex items-center gap-2">
-              <Filter size={14} className="text-slate-400 dark:text-slate-500" />
-              <select
-                value={radiusKm}
-                onChange={(e) => setRadiusKm(parseInt(e.target.value))}
-                className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-transparent border-none cursor-pointer"
-              >
+              <Filter size={14} className="text-slate-400" />
+              <select value={radiusKm} onChange={(e) => setRadiusKm(parseInt(e.target.value))}
+                className="text-xs font-bold text-slate-600 dark:text-slate-400 bg-transparent border-none cursor-pointer">
                 <option value={50}>50km</option>
                 <option value={100}>100km</option>
                 <option value={200}>200km</option>
@@ -382,147 +382,272 @@ export default function MatchingDriversPage() {
               </select>
             </div>
           </div>
-
-          {drivers.map((driver) => {
-            const scoreInfo = getMatchScoreLabel(driver.match_score || 0);
-
-            return (
-              <div
-                key={driver.driver_id}
-                className="bg-white dark:bg-slate-800 rounded-2xl p-6 border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-orange-200 dark:hover:border-orange-800 transition-all"
-              >
-                <div className="flex items-start gap-6">
-                  {/* Avatar */}
-                  <div className="w-16 h-16 rounded-2xl bg-slate-100 dark:bg-slate-700 flex-shrink-0 overflow-hidden">
-                    {driver.avatar_url ? (
-                      <img
-                        src={driver.avatar_url}
-                        alt={driver.driver_name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center bg-orange-100 dark:bg-orange-900/30">
-                        <User size={24} className="text-orange-400" />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Main Info */}
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-4 mb-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-lg font-black uppercase italic text-slate-900 dark:text-white">
-                            {driver.driver_name}
-                          </h3>
-                          {driver.verification_status === 'verified' && (
-                            <ShieldCheck size={20} className="text-green-500 flex-shrink-0" />
-                          )}
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                <tr>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Motorista</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Localização</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Veículo</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Compatibilidade</th>
+                  <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                {drivers.map((driver) => {
+                  const scoreInfo = getMatchScoreLabel(driver.match_score || 0);
+                  return (
+                    <tr key={driver.driver_id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                            {driver.avatar_url ? (
+                              <img src={driver.avatar_url} alt={driver.driver_name} className="w-full h-full object-cover" />
+                            ) : (
+                              <User size={14} className="text-slate-400" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-sm font-bold text-slate-800 dark:text-white whitespace-nowrap">{driver.driver_name}</span>
+                              {driver.verification_status === 'verified' && <ShieldCheck size={14} className="text-green-500 shrink-0" />}
+                            </div>
+                          </div>
                         </div>
-
-                        <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-                          <span className="flex items-center gap-1.5">
-                            <MapPin size={14} />
-                            {driver.home_city}/{driver.home_state}
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <Navigation size={14} />
-                            {getDistanceLabel(driver.distance_km || 0)}
-                          </span>
-                          <span className="flex items-center gap-1.5">
-                            <Truck size={14} />
-                            {driver.vehicle_type}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Match Score */}
-                      <div className="text-right">
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{driver.home_city}/{driver.home_state}</div>
+                        <div className="text-[10px] text-slate-400 mt-px">{getDistanceLabel(driver.distance_km || 0)}</div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 uppercase">{driver.vehicle_type}</span>
+                      </td>
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-16 h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full"
-                              style={{ width: `${driver.match_score || 0}%` }}
-                            />
+                            <div className="h-full bg-gradient-to-r from-green-400 to-green-500 rounded-full" style={{ width: `${driver.match_score || 0}%` }} />
                           </div>
-                          <span className={`text-sm font-bold ${scoreInfo.color}`}>
-                            {scoreInfo.label}
-                          </span>
+                          <span className={`text-xs font-bold ${scoreInfo.color}`}>{scoreInfo.label}</span>
                         </div>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase tracking-widest">Compatibilidade</p>
-                      </div>
-                    </div>
-
-                    {driver.available_equipment?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Equipamentos:</span>
-                        {driver.available_equipment.map((eq: string, i: number) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-lg text-xs font-medium"
-                          >
-                            {eq}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    {driver.available_certifications?.length > 0 && (
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        <span className="text-[10px] font-black text-slate-400 dark:text-slate-500 uppercase tracking-widest">Certificações:</span>
-                        {driver.available_certifications.map((cert: string, i: number) => (
-                          <span
-                            key={i}
-                            className="px-2 py-0.5 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 rounded-lg text-xs font-medium"
-                          >
-                            {cert}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="flex gap-3 pt-4 border-t border-slate-100 dark:border-slate-700">
-                      <a
-                        href={`/perfil/${driver.driver_slug}`}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-lg text-sm font-semibold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                      >
-                        <User size={14} />
-                        Ver Perfil
-                      </a>
-                      {driver.driver_whatsapp && (
-                        <Button
-                          variant="default"
-                          onClick={() => handleContactWhatsApp(driver.driver_whatsapp, driver.driver_name)}
-                          className="bg-green-500 hover:bg-green-600 text-white border-none shadow-lg shadow-green-500/20"
-                        >
-                          <MessageCircle size={14} />
-                          WhatsApp
-                        </Button>
-                      )}
-                      {driver.driver_phone && (
-                        <a
-                          href={`tel:${driver.driver_phone}`}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-lg text-sm font-semibold hover:bg-blue-600 transition-colors shadow-lg shadow-blue-500/20"
-                        >
-                          <Phone size={14} />
-                          Ligar
-                        </a>
-                      )}
-                      <Button
-                        variant="default"
-                        onClick={() => handleAcceptDriver(driver.driver_id)}
-                        className="bg-orange-500 hover:bg-orange-600 text-white border-none shadow-lg shadow-orange-500/20"
-                      >
-                        <UserCheck size={14} />
-                        Aceitar Motorista
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <a href={`/perfil/${driver.driver_slug}`} target="_blank" rel="noopener noreferrer"
+                            className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600 transition-all">
+                            <User size={10} /> Perfil
+                          </a>
+                          {driver.driver_whatsapp && (
+                            <button onClick={() => handleContactWhatsApp(driver.driver_whatsapp, driver.driver_name)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-green-500 text-white hover:bg-green-600 transition-all">
+                              <MessageCircle size={10} /> WA
+                            </button>
+                          )}
+                          {driver.driver_id && (
+                            <button onClick={() => handleOpenChat(driver.driver_id)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                              <MessageSquare size={10} /> Chat
+                            </button>
+                          )}
+                          {pendingDriverIds.has(driver.driver_id) ? (
+                            <span className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-slate-100 text-slate-400 cursor-not-allowed">
+                              <Check size={10} /> Convidado
+                            </span>
+                          ) : (
+                            <button onClick={() => setInviteModalDriver({ id: driver.driver_id, name: driver.driver_name })}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-orange-500 text-white hover:bg-orange-600 transition-all">
+                              <Send size={10} /> Convidar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
+      )}
+        </>
+      )}
+
+      {/* Invitations Tab */}
+      {activeTab === 'invitations' && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="px-4 lg:px-6 py-3.5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+            <h3 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
+              Convites ({invitations.length})
+            </h3>
+          </div>
+          {loadingInvites ? (
+            <div className="p-12 text-center">
+              <Loader2 className="animate-spin text-blue-600 mx-auto" size={32} />
+            </div>
+          ) : invitations.length === 0 ? (
+            <div className="px-4 py-12 text-center text-slate-400 dark:text-slate-500 font-medium">Nenhum convite enviado ainda</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Motorista</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Veículo</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Data</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {invitations.map((inv: any) => (
+                    <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                            {inv.avatar_url ? <img src={inv.avatar_url} alt={inv.driver_name} className="w-full h-full object-cover" /> : <User size={14} className="text-slate-400" />}
+                          </div>
+                          <span className="text-sm font-bold text-slate-800 dark:text-white">{inv.driver_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 uppercase">{inv.vehicle_type}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                          inv.status === 'accepted' ? 'bg-green-100 text-green-700' :
+                          inv.status === 'declined' ? 'bg-red-100 text-red-700' :
+                          inv.status === 'cancelled' ? 'bg-slate-100 text-slate-500' :
+                          'bg-yellow-100 text-yellow-700'
+                        }`}>
+                          {inv.status === 'accepted' ? 'Aceito' :
+                           inv.status === 'declined' ? 'Recusado' :
+                           inv.status === 'cancelled' ? 'Cancelado' :
+                           'Pendente'}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="text-sm text-slate-600 dark:text-slate-300">{inv.created_at ? new Date(inv.created_at).toLocaleString('pt-BR') : ''}</div>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {inv.driver_whatsapp && (
+                            <button onClick={() => handleContactWhatsApp(inv.driver_whatsapp, inv.driver_name)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-green-500 text-white hover:bg-green-600 transition-all">
+                              <MessageCircle size={10} /> WA
+                            </button>
+                          )}
+                          {inv.driver_id && (
+                            <>
+                              <button onClick={() => handleOpenChat(inv.driver_id)}
+                                className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                                <MessageSquare size={10} /> Chat
+                              </button>
+                              {inv.status === 'accepted' && (
+                                <>
+                                  <button onClick={() => handleAcceptDriver(inv.driver_id)}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-orange-500 text-white hover:bg-orange-600 transition-all">
+                                    <UserCheck size={10} /> Aceitar
+                                  </button>
+                                  <button onClick={() => handleCancelMatch(inv.id)}
+                                    className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-red-500 text-white hover:bg-red-600 transition-all">
+                                    <X size={10} /> Cancelar
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Interests Tab */}
+      {activeTab === 'interests' && (
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div className="px-4 lg:px-6 py-3.5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+            <h3 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
+              Interessados ({interests.length})
+            </h3>
+          </div>
+          {loadingInvites ? (
+            <div className="p-12 text-center">
+              <Loader2 className="animate-spin text-blue-600 mx-auto" size={32} />
+            </div>
+          ) : interests.length === 0 ? (
+            <div className="px-4 py-12 text-center text-slate-400 dark:text-slate-500 font-medium">Nenhum motorista interessado ainda</div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-slate-50 dark:bg-slate-800 border-b border-slate-200 dark:border-slate-800">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase">Motorista</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Veículo</th>
+                    <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Status</th>
+                    <th className="px-4 py-3 text-right text-xs font-bold text-slate-500 uppercase w-[1%] whitespace-nowrap">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200 dark:divide-slate-800">
+                  {interests.map((inv: any) => (
+                    <tr key={inv.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-700 flex items-center justify-center shrink-0 overflow-hidden">
+                            {inv.avatar_url ? <img src={inv.avatar_url} alt={inv.driver_name} className="w-full h-full object-cover" /> : <User size={14} className="text-slate-400" />}
+                          </div>
+                          <span className="text-sm font-bold text-slate-800 dark:text-white">{inv.driver_name}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 uppercase">{inv.vehicle_type}</span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <span className="px-2.5 py-1 rounded-full text-[10px] font-bold uppercase bg-blue-100 text-blue-700">Interessado</span>
+                      </td>
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1.5">
+                          {inv.driver_whatsapp && (
+                            <button onClick={() => handleContactWhatsApp(inv.driver_whatsapp, inv.driver_name)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-green-500 text-white hover:bg-green-600 transition-all">
+                              <MessageCircle size={10} /> WA
+                            </button>
+                          )}
+                          {inv.driver_id && (
+                            <button onClick={() => handleOpenChat(inv.driver_id)}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-blue-500 text-white hover:bg-blue-600 transition-all">
+                              <MessageSquare size={10} /> Chat
+                            </button>
+                          )}
+                          {inv.driver_id && (
+                            <button onClick={() => setInviteModalDriver({ id: inv.driver_id, name: inv.driver_name })}
+                              className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[9px] font-bold uppercase bg-orange-500 text-white hover:bg-orange-600 transition-all">
+                              <Send size={10} /> Convidar
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Invite Driver Modal */}
+      {inviteModalDriver && (
+        <InviteDriverModal
+          driverId={inviteModalDriver.id}
+          driverName={inviteModalDriver.name}
+          freightId={parseInt(freightId!)}
+          onClose={() => setInviteModalDriver(null)}
+          onSuccess={() => { loadInvitations(); setActiveTab('invitations'); }}
+        />
       )}
 
       {/* Radius Confirmation Modal */}

@@ -164,7 +164,21 @@ const Header = () => {
             </div>
 
             {/* Mobile Menu Button */}
-            <div className="flex lg:hidden items-center gap-2">
+            <div className="flex lg:hidden items-center gap-1">
+              {user && (
+                <button
+                  onClick={() => setIsDrawerOpen(true)}
+                  className="p-1.5 mr-1"
+                >
+                  {user.avatar_url ? (
+                    <img src={user.avatar_url} alt={displayName} className="w-7 h-7 rounded-full object-cover" />
+                  ) : (
+                    <span className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-600 dark:text-slate-300">
+                      {displayName.charAt(0).toUpperCase()}
+                    </span>
+                  )}
+                </button>
+              )}
               <button onClick={toggleTheme} className="p-2 text-slate-500">
                 {isDark ? <Sun size={20} /> : <Moon size={20} />}
               </button>

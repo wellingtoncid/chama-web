@@ -13,6 +13,7 @@ import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 import { UsageMeter } from '../shared/UsageMeter';
 import { StatsGrid, StatCard, StatusBadge, TimeFilter } from '@/components/admin';
 import DashboardShell from '@/components/layout/DashboardShell';
+import { formatWeight } from '@/lib/utils';
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
@@ -26,7 +27,7 @@ export default function FreightManager({ user }: any) {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [pricingData, setPricingData] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
-  const pageSize = 10;
+  const [pageSize, setPageSize] = useState(10);
   const [timeFilter, setTimeFilter] = useState<'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all'>('all');
   
   // Estado para métricas específicas deste módulo
@@ -58,7 +59,7 @@ export default function FreightManager({ user }: any) {
     loadModules();
   }, []);
 
-  const checkAccessAndRun = (callback: () => void) => {
+  const checkAccessAndRun = (callback: () => void, isEdit = false) => {
     const isAdmin = user?.role === 'ADMIN';
     const isApproved = isAdmin || user?.verification_status === 'verified';
     const hasProfile = !!user?.company_name && !!user?.document;
@@ -129,8 +130,8 @@ export default function FreightManager({ user }: any) {
       return;
     }
 
-    // Verifica limite de uso gratuito
-    if (!freightUsage.canUse && freightUsage.pricing) {
+    // Verifica limite de uso gratuito (só para novos, editar sempre permite)
+    if (!isEdit && !freightUsage.canUse && freightUsage.pricing) {
       setPricingData({
         moduleKey: 'freights',
         featureKey: 'publish',
@@ -159,10 +160,11 @@ export default function FreightManager({ user }: any) {
       const views = data.reduce((acc: number, curr: any) => acc + (Number(curr.views_count) || 0), 0);
       const clicks = data.reduce((acc: number, curr: any) => acc + (Number(curr.clicks_count) || 0), 0);
       
+      const activeCount = data.filter((f: any) => f.expires_at && new Date(f.expires_at).getTime() > Date.now()).length;
       setStats({
         totalViews: views,
         totalInterests: clicks,
-        activeFreights: data.length
+        activeFreights: activeCount
       });
 
     } catch (e) {
@@ -358,10 +360,24 @@ return (
     </div>
 
     <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
-      <div className="px-4 lg:px-6 py-3.5 border-b border-slate-100 dark:border-slate-700">
+      <div className="px-4 lg:px-6 py-3.5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
         <h3 className="text-xs font-black uppercase text-slate-400 dark:text-slate-500 tracking-widest">
           Cargas ({filteredFreights.length})
         </h3>
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-slate-500 dark:text-slate-400">Mostrar</span>
+          <select
+            value={pageSize}
+            onChange={e => { setPageSize(Number(e.target.value)); setCurrentPage(1); }}
+            className="px-2 py-1 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg text-sm font-bold text-slate-700 dark:text-slate-300"
+          >
+            <option value={10}>10</option>
+            <option value={25}>25</option>
+            <option value={50}>50</option>
+            <option value={100}>100</option>
+          </select>
+          <span className="text-xs text-slate-500 dark:text-slate-400">por página</span>
+        </div>
       </div>
       {loading ? (
         <div className="p-12 text-center">
@@ -379,6 +395,7 @@ return (
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Rota</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Produto</th>
+                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Tipo</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Valor</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Data</th>
@@ -412,7 +429,15 @@ return (
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{f.product || 'Carga Geral'}</div>
-                        <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-px">{f.weight} TON</div>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 mt-px">
+                          <span>{formatWeight(f.weight)}</span>
+                          {f.distance_km && <span>• {f.distance_km} km</span>}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+                          {f.cargo_type_name || (f.cargo_type_id ? 'Geral' : '—')}
+                        </span>
                       </td>
                       <td className="px-4 py-3">
                         <StatusBadge status={isExpired(f.expires_at) ? 'expired' : (statusBadgeMap[f.status] ?? 'active')} />
@@ -444,7 +469,7 @@ return (
                           {f.slug && (
                             <IconButton icon={<ExternalLink size={14} />} label="Ver" href={`/frete/${f.slug}`} />
                           )}
-                          <IconButton icon={<Edit3 size={14} />} label="Editar" onClick={() => checkAccessAndRun(() => navigate('/novo-frete', { state: { editData: f } }))} />
+                          <IconButton icon={<Edit3 size={14} />} label="Editar" onClick={() => checkAccessAndRun(() => navigate('/novo-frete', { state: { editData: f } }), true)} />
                           <IconButton icon={<Trash2 size={14} />} label="Excluir" onClick={() => handleDelete(f.id)} variant="danger" />
                         </div>
                       </td>
@@ -455,16 +480,26 @@ return (
             </table>
           </div>
           {totalPages > 1 && (
-            <div className="flex items-center justify-between bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 px-4 py-3">
-              <span className="text-xs text-slate-500">
-                {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, filteredFreights.length)} de {filteredFreights.length}
-              </span>
+            <div className="p-4 border-t border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <div className="text-xs text-slate-500 dark:text-slate-400">
+                Mostrando {(currentPage - 1) * pageSize + 1} - {Math.min(currentPage * pageSize, filteredFreights.length)} de {filteredFreights.length}
+              </div>
               <div className="flex items-center gap-2">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors">
+                <button
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <ChevronLeft size={16} className="text-slate-600 dark:text-slate-300" />
                 </button>
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{currentPage} / {totalPages}</span>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 transition-colors">
+                <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                  {currentPage} / {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
                   <ChevronRight size={16} className="text-slate-600 dark:text-slate-300" />
                 </button>
               </div>

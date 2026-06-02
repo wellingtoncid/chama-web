@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Search, SlidersHorizontal, X, Loader2, ArrowRight, Users, Zap, Globe } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { Search, SlidersHorizontal, X, Loader2, ArrowRight, Users, Zap, Globe, ChevronRight, ArrowUpDown } from 'lucide-react';
 import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import AdCard from '../../components/shared/AdCard';
@@ -30,6 +30,9 @@ interface Listing {
   created_at: string;
   seller_name: string;
   images: string[];
+  accepting_offers?: number;
+  accepting_trade?: number;
+  contact_preference?: string;
 }
 
 export default function MarketplaceExplorer() {
@@ -38,11 +41,15 @@ export default function MarketplaceExplorer() {
   
   const [listings, setListings] = useState<Listing[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [totalResults, setTotalResults] = useState(0);
+  const [sortBy, setSortBy] = useState('recent');
+  const [selectedSubcategory, setSelectedSubcategory] = useState('');
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false);
   
   // Filtros
@@ -68,6 +75,26 @@ export default function MarketplaceExplorer() {
     loadCategories();
   }, []);
 
+  // Carregar subcategorias quando a categoria mudar
+  useEffect(() => {
+    if (!selectedCategory || selectedCategory === 'todos') {
+      setSubcategories([]);
+      setSelectedSubcategory('');
+      return;
+    }
+    const loadSubcats = async () => {
+      try {
+        const res = await api.get(`/listing-categories/${selectedCategory}/subcategories`);
+        if (res.data?.success) {
+          setSubcategories(res.data.data);
+        }
+      } catch {
+        setSubcategories([]);
+      }
+    };
+    loadSubcats();
+  }, [selectedCategory]);
+
   useEffect(() => {
     if (selectedState) {
       loadCities(selectedState);
@@ -85,7 +112,7 @@ export default function MarketplaceExplorer() {
       loadListings(1, true);
     }, 400);
     return () => clearTimeout(timer);
-  }, [search, selectedCategory, selectedState, selectedCity, selectedCondition, minPrice, maxPrice, radius]);
+  }, [search, selectedCategory, selectedSubcategory, selectedState, selectedCity, selectedCondition, minPrice, maxPrice, radius, sortBy]);
 
   // Paginação infinita
   const observer = useRef<IntersectionObserver | null>(null);
@@ -116,13 +143,20 @@ export default function MarketplaceExplorer() {
 
   const loadCategories = async () => {
     try {
-      const res = await api.get('/listing-categories');
+      const res = await api.get('/listing-categories?parents_only=true');
       if (res.data?.success) {
         setCategories(res.data.data);
       }
     } catch (error) {
       console.error('Erro ao carregar categorias:', error);
     }
+  };
+
+  const formatPriceFilter = (value: string) => {
+    const digits = value.replace(/\D/g, '');
+    if (!digits) return '';
+    const num = parseInt(digits, 10) / 100;
+    return num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   };
 
   const loadListings = async (pageNum: number = 1, isNewSearch: boolean = true) => {
@@ -133,12 +167,16 @@ export default function MarketplaceExplorer() {
       const params = new URLSearchParams();
       params.append('page', pageNum.toString());
       params.append('per_page', '12');
+      params.append('sort', sortBy);
       
       if (debouncedSearch) {
         params.append('search', debouncedSearch);
       }
       if (selectedCategory !== 'todos') {
         params.append('category', selectedCategory);
+      }
+      if (selectedSubcategory) {
+        params.append('subcategory', selectedSubcategory);
       }
       if (selectedState) {
         params.append('state', selectedState);
@@ -150,10 +188,12 @@ export default function MarketplaceExplorer() {
         params.append('condition', selectedCondition);
       }
       if (minPrice) {
-        params.append('min_price', minPrice);
+        const val = parseInt(minPrice.replace(/\D/g, ''), 10) / 100;
+        params.append('min_price', val.toString());
       }
       if (maxPrice) {
-        params.append('max_price', maxPrice);
+        const val = parseInt(maxPrice.replace(/\D/g, ''), 10) / 100;
+        params.append('max_price', val.toString());
       }
       if (radius) {
         params.append('radius', radius.toString());
@@ -164,12 +204,14 @@ export default function MarketplaceExplorer() {
         const newItems = res.data.data.items || [];
         if (isNewSearch) {
           setListings(newItems);
+          setTotalResults(res.data.data.total || 0);
         } else {
           setListings(prev => [...prev, ...newItems]);
         }
         setHasMore(newItems.length >= 12);
       } else {
         if (isNewSearch) setListings([]);
+        setTotalResults(0);
       }
     } catch (error) {
       console.error('Erro ao carregar listings:', error);
@@ -200,12 +242,14 @@ export default function MarketplaceExplorer() {
   const clearFilters = () => {
     setSearch('');
     setSelectedCategory('todos');
+    setSelectedSubcategory('');
     setSelectedState('');
     setSelectedCity('');
     setSelectedCondition('todos');
     setMinPrice('');
     setMaxPrice('');
     setRadius(50);
+    setSortBy('recent');
     loadListings();
   };
 
@@ -218,8 +262,25 @@ export default function MarketplaceExplorer() {
     minPrice || 
     maxPrice;
 
+  const handleMinPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    setMinPrice(raw);
+  };
+
+  const handleMaxPriceChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value.replace(/\D/g, '');
+    setMaxPrice(raw);
+  };
+
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
+      {/* Breadcrumb */}
+      <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+        <Link to="/" className="hover:text-emerald-600 transition-colors">Home</Link>
+        <ChevronRight size={12} />
+        <span className="text-slate-600 dark:text-slate-300">Classificados</span>
+      </nav>
+
       {/* Barra de Busca Proeminente */}
       <form onSubmit={handleSearch} className="relative group">
         <Search className="absolute left-8 top-1/2 -translate-y-1/2 text-emerald-600" size={28} />
@@ -247,33 +308,54 @@ export default function MarketplaceExplorer() {
         </button>
       </form>
 
-      {/* Botão de Filtros */}
-      <div className="flex items-center gap-4">
-        <button
-          type="button"
-          onClick={() => setShowFilters(!showFilters)}
-          className={`px-6 py-3 rounded-xl font-bold text-sm uppercase flex items-center gap-2 transition-all ${
-            showFilters || hasActiveFilters
-              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-              : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
-          }`}
-        >
-          <SlidersHorizontal size={18} />
-          Filtros
-          {hasActiveFilters && (
-            <span className="w-2 h-2 bg-emerald-500 rounded-full" />
-          )}
-        </button>
-        
-        {hasActiveFilters && (
+      {/* Botão de Filtros + Ordenação + Resultados */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={clearFilters}
-            className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1"
+            onClick={() => setShowFilters(!showFilters)}
+            className={`px-6 py-3 rounded-xl font-bold text-sm uppercase flex items-center gap-2 transition-all ${
+              showFilters || hasActiveFilters
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+            }`}
           >
-            <X size={14} /> Limpar filtros
+            <SlidersHorizontal size={18} />
+            Filtros
+            {hasActiveFilters && (
+              <span className="w-2 h-2 bg-emerald-500 rounded-full" />
+            )}
           </button>
-        )}
+
+          {hasActiveFilters && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs font-bold text-red-500 hover:text-red-600 flex items-center gap-1 whitespace-nowrap"
+            >
+              <X size={14} /> Limpar filtros
+            </button>
+          )}
+
+          {!loading && totalResults > 0 && (
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500">
+              {totalResults} resultado{totalResults !== 1 ? 's' : ''}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2">
+          <ArrowUpDown size={14} className="text-slate-400" />
+          <select
+            value={sortBy}
+            onChange={(e) => setSortBy(e.target.value)}
+            className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold uppercase px-3 py-2 rounded-xl outline-none appearance-none cursor-pointer hover:border-slate-300 dark:hover:border-slate-600 transition-all"
+          >
+            <option value="recent">Mais recentes</option>
+            <option value="price_asc">Menor preço</option>
+            <option value="price_desc">Maior preço</option>
+          </select>
+        </div>
       </div>
 
       {/* Filtros Expandidos */}
@@ -359,10 +441,10 @@ export default function MarketplaceExplorer() {
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Preço Mín.</label>
               <input
-                type="number"
-                value={minPrice}
-                onChange={(e) => setMinPrice(e.target.value)}
-                placeholder="0"
+                type="text"
+                value={minPrice ? formatPriceFilter(minPrice) : ''}
+                onChange={handleMinPriceChange}
+                placeholder="R$ 0,00"
                 className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100"
               />
             </div>
@@ -371,10 +453,10 @@ export default function MarketplaceExplorer() {
             <div>
               <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Preço Máx.</label>
               <input
-                type="number"
-                value={maxPrice}
-                onChange={(e) => setMaxPrice(e.target.value)}
-                placeholder="999999"
+                type="text"
+                value={maxPrice ? formatPriceFilter(maxPrice) : ''}
+                onChange={handleMaxPriceChange}
+                placeholder="R$ 999.999,00"
                 className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-xl outline-none font-bold text-sm text-slate-800 dark:text-slate-100"
               />
             </div>
@@ -408,6 +490,37 @@ export default function MarketplaceExplorer() {
                 </button>
               ))}
             </div>
+
+            {subcategories.length > 0 && (
+              <div className="mt-3">
+                <label className="block text-[10px] font-black uppercase text-slate-400 dark:text-slate-500 mb-2">Subcategorias</label>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setSelectedSubcategory('')}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                      !selectedSubcategory
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    Todas
+                  </button>
+                  {subcategories.map((sub) => (
+                    <button
+                      key={sub.id}
+                      onClick={() => setSelectedSubcategory(sub.slug)}
+                      className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all ${
+                        selectedSubcategory === sub.slug
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600'
+                      }`}
+                    >
+                      {sub.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <button
@@ -419,38 +532,69 @@ export default function MarketplaceExplorer() {
         </div>
       )}
 
-      <div className="max-w-4xl mx-auto mb-6">
-        <AdCard position="marketplace_list" variant="ecommerce" />
-      </div>
-
       {/* Categorias Rápidas (quando filtros fechados) */}
       {!showFilters && (
-        <div className="flex gap-2 overflow-x-auto pb-2">
-          <button
-            onClick={() => setSelectedCategory('todos')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold uppercase whitespace-nowrap transition-all ${
-              selectedCategory === 'todos'
-                ? 'bg-emerald-600 text-white'
-                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
-            }`}
-          >
-            Todos
-          </button>
-          {categories.map((cat) => (
+        <div className="space-y-3">
+          <div className="flex gap-2 overflow-x-auto pb-2">
             <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.slug)}
+              onClick={() => setSelectedCategory('todos')}
               className={`px-4 py-2 rounded-xl text-xs font-bold uppercase whitespace-nowrap transition-all ${
-                selectedCategory === cat.slug
+                selectedCategory === 'todos'
                   ? 'bg-emerald-600 text-white'
                   : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
-              {cat.name}
+              Todos
             </button>
-          ))}
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.slug)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold uppercase whitespace-nowrap transition-all ${
+                  selectedCategory === cat.slug
+                    ? 'bg-emerald-600 text-white'
+                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+
+          {/* Subcategorias */}
+          {subcategories.length > 0 && (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              <button
+                onClick={() => setSelectedSubcategory('')}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-all ${
+                  !selectedSubcategory
+                    ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                    : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                }`}
+              >
+                Todas
+              </button>
+              {subcategories.map((sub) => (
+                <button
+                  key={sub.id}
+                  onClick={() => setSelectedSubcategory(sub.slug)}
+                  className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase whitespace-nowrap transition-all ${
+                    selectedSubcategory === sub.slug
+                      ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                      : 'bg-white dark:bg-slate-800 text-slate-400 dark:text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                  }`}
+                >
+                  {sub.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
+
+      <div className="max-w-4xl mx-auto mb-6">
+        <AdCard position="marketplace_list" variant="ecommerce" search={debouncedSearch} />
+      </div>
 
       {/* Grid de Produtos */}
       {loading && page === 1 ? (

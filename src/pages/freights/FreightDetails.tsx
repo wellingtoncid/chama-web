@@ -5,7 +5,7 @@ import {
   Truck, Phone, ArrowLeft, Info, Loader2, 
   AlertTriangle, MessageCircle, Lock, Weight, 
   Package, Star, ShieldCheck, 
-  Calendar, Share2, Eye, TrendingUp, Building2, Flag
+  Calendar, Share2, Eye, TrendingUp, Building2, Flag, MapPin
 } from 'lucide-react';
 
 import Header from '../../components/shared/Header';
@@ -15,6 +15,7 @@ import AdCard from '../../components/shared/AdCard';
 import FreightCard from '../../components/shared/FreightCard';
 import { useTracker } from '../../services/useTracker';
 import { usePageMeta } from '../../hooks/usePageMeta';
+import { formatWeight } from '../../lib/utils';
 
 interface FreightData {
   id: number;
@@ -27,6 +28,8 @@ interface FreightData {
   vehicle_type: string;
   body_type: string;
   weight: string | number;
+  cargo_type_name?: string;
+  distance_km?: string | number;
   description?: string;
   status: string;
   views_count?: number;
@@ -230,10 +233,12 @@ export default function FreightDetails() {
           <div className="lg:col-span-8 space-y-8">
             <div className={`bg-white rounded-[3rem] p-8 md:p-12 shadow-sm border border-slate-100 relative`}>
               
-              <div className="absolute top-8 right-8 flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full border border-blue-100">
-                <TrendingUp size={14} />
-                <span className="text-[10px] font-black uppercase italic">Alta Procura</span>
-              </div>
+              {(freight.views_count || 0) >= 50 && (
+                <div className="absolute top-8 right-8 flex items-center gap-2 bg-blue-50 text-blue-600 px-4 py-2 rounded-full border border-blue-100">
+                  <TrendingUp size={14} />
+                  <span className="text-[10px] font-black uppercase italic">Alta Procura</span>
+                </div>
+              )}
 
               {/* Box Produto e Valor */}
               <div className="mb-10">
@@ -267,7 +272,7 @@ export default function FreightDetails() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-10">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
                  <div className="bg-white border-2 border-slate-50 p-5 rounded-3xl text-center flex flex-col items-center justify-center">
                     <Truck size={20} className="mb-2 text-blue-600" />
                     <p className="text-[9px] font-black text-slate-400 uppercase">Veículo</p>
@@ -278,12 +283,24 @@ export default function FreightDetails() {
                     <p className="text-[9px] font-black text-slate-400 uppercase">Carroceria</p>
                     <p className="text-xs font-bold text-slate-700 uppercase">{freight.body_type}</p>
                  </div>
-                 <div className="bg-white border-2 border-slate-50 p-5 rounded-3xl text-center flex flex-col items-center justify-center col-span-2 md:col-span-1">
+                 <div className="bg-white border-2 border-slate-50 p-5 rounded-3xl text-center flex flex-col items-center justify-center">
                     <Weight size={20} className="mb-2 text-blue-600" />
                     <p className="text-[9px] font-black text-slate-400 uppercase">Peso</p>
-                    <p className="text-xs font-bold text-slate-700 uppercase">{freight.weight}kg</p>
+                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300 uppercase">{formatWeight(freight.weight)}</p>
+                 </div>
+                 <div className="bg-white border-2 border-slate-50 p-5 rounded-3xl text-center flex flex-col items-center justify-center">
+                    <Package size={20} className="mb-2 text-blue-600" />
+                    <p className="text-[9px] font-black text-slate-400 uppercase">Tipo de Carga</p>
+                    <p className="text-xs font-bold text-slate-700 uppercase">{freight.cargo_type_name || 'Geral'}</p>
                  </div>
               </div>
+              {freight.distance_km && (
+                <div className="mb-6 text-center">
+                  <span className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-wider">
+                    <MapPin size={12} /> Distância: {Math.round(Number(freight.distance_km))} km
+                  </span>
+                </div>
+              )}
 
               <div>
                 <h4 className="font-black uppercase text-[11px] text-slate-900 mb-4 flex items-center gap-2 italic">

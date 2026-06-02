@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText, Wrench, Award, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Package, ShieldCheck, UserCircle, DollarSign, FileText, Wrench, Award, CheckCircle, AlertCircle, Loader2, MapPin, Plus, Trash2 } from 'lucide-react';
 import { api } from '../../api/api';
 import { getStates, getCitiesByState } from '../../services/location';
 import { useSiteSettings } from '../../hooks/useSiteSettings';
 import WelcomeOnboarding from '../../components/profile/WelcomeOnboarding';
 import { Button } from '../../components/ui/Button';
 import DashboardShell from '../../components/layout/DashboardShell';
+import { parseBrazilianNumber } from '../../lib/utils';
 
 function parseJsonArray(value: any): string[] {
   if (Array.isArray(value)) return value;
@@ -28,6 +29,8 @@ export default function CreateFreight() {
   const [originCities, setOriginCities] = useState<string[]>([]);
   const [destCities, setDestCities] = useState<string[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
+  const [cargoTypes, setCargoTypes] = useState<{ id: number; name: string }[]>([]);
+  const [calcLoading, setCalcLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [alertMsg, setAlertMsg] = useState<string | null>(null);
   const [alertType, setAlertType] = useState<'success' | 'error'>('success');
@@ -53,6 +56,8 @@ export default function CreateFreight() {
     dest_city: '',
     product: '',
     weight: '',
+    cargo_type_id: '',
+    distance_km: '',
     vehicle_type: '',
     body_type: '',
     price: '',
@@ -62,6 +67,8 @@ export default function CreateFreight() {
     certifications_needed: [] as string[]
   });
 
+  const [vehicleRows, setVehicleRows] = useState<{ vehicle: string; body: string }[]>([{ vehicle: '', body: '' }]);
+
   const showAlert = (msg: string, type: 'success' | 'error' = 'success') => {
     setAlertMsg(msg);
     setAlertType(type);
@@ -70,6 +77,9 @@ export default function CreateFreight() {
 
   useEffect(() => {
     getStates().then(setStates);
+    api.get('cargo-types').then(res => {
+      if (res.data?.success) setCargoTypes(res.data.data);
+    }).catch(() => {});
     if (isAdminOrManager) {
       api.get('list-all-users').then(res => {
         const list = res.data.success ? res.data.data : res.data;
@@ -92,14 +102,22 @@ export default function CreateFreight() {
           dest_city: editData.dest_city || '',
           product: editData.product || '',
           weight: editData.weight !== undefined ? String(editData.weight) : '',
+          cargo_type_id: editData.cargo_type_id ? String(editData.cargo_type_id) : '',
+          distance_km: editData.distance_km ? String(editData.distance_km) : '',
           vehicle_type: editData.vehicle_type || '',
           body_type: editData.body_type || '',
-          price: editData.price !== undefined ? String(editData.price) : '',
+          price: editData.price !== undefined ? String(editData.price).replace('.', ',') : '',
           description: editData.description || '',
           contact_preference: editData.contact_preference || 'both',
           equipment_needed: parseJsonArray(editData.equipment_needed),
           certifications_needed: parseJsonArray(editData.certifications_needed)
         });
+        // Reconstroi vehicleRows a partir dos dados comma-separated
+        const vehicles = String(editData.vehicle_type || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        const bodies = String(editData.body_type || '').split(',').map((s: string) => s.trim()).filter(Boolean);
+        if (vehicles.length > 0) {
+          setVehicleRows(vehicles.map((v, i) => ({ vehicle: v, body: bodies[i] || '' })));
+        }
       };
       initializeEdit();
     } else if (currentUser && !isAdminOrManager) {
@@ -113,8 +131,36 @@ export default function CreateFreight() {
     else { setDestCities(cities); setFormData(prev => ({ ...prev, dest_state: state, dest_city: '' })); }
   };
 
+  const handleCalcDistance = async () => {
+    if (!formData.origin_city || !formData.dest_city) {
+      showAlert('Informe origem e destino primeiro.', 'error');
+      return;
+    }
+    setCalcLoading(true);
+    try {
+      const res = await api.post('/freight/calc-distance', {
+        origin_city: formData.origin_city,
+        origin_state: formData.origin_state,
+        dest_city: formData.dest_city,
+        dest_state: formData.dest_state,
+      });
+      if (res.data?.success) {
+        const km = Math.round(Number(res.data.distance_km));
+        setFormData(prev => ({ ...prev, distance_km: String(km) }));
+        showAlert(`Distância calculada: ${km} km`, 'success');
+      } else {
+        showAlert(res.data?.message || 'Erro ao calcular distância.', 'error');
+      }
+    } catch {
+      showAlert('Erro ao calcular distância. Informe manualmente.', 'error');
+    } finally {
+      setCalcLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     setLoading(true);
     try {
       const endpoint = formData.id ? 'update-freight' : 'create-freight';
@@ -125,14 +171,18 @@ export default function CreateFreight() {
         id: formData.id,
         user_id: Number(formData.user_id),
         account_id: user?.account_id,
-        weight: parseFloat(formData.weight) || 0,
-        price: parseFloat(formData.price) || 0,
+        weight: parseBrazilianNumber(formData.weight),
+        cargo_type_id: formData.cargo_type_id ? Number(formData.cargo_type_id) : null,
+        distance_km: formData.distance_km ? parseFloat(formData.distance_km) : null,
+        price: parseBrazilianNumber(formData.price),
+        vehicle_type: vehicleRows.map(r => r.vehicle).filter(Boolean).join(',') || null,
+        body_type: vehicleRows.map(r => r.body).filter(Boolean).join(',') || null,
         equipment_needed: JSON.stringify(formData.equipment_needed),
         certifications_needed: JSON.stringify(formData.certifications_needed)
       };
       const response = await api.post(`/${endpoint}`, payload);
       showAlert(response.data.message || (formData.id ? 'Salvo!' : 'Publicado!'), 'success');
-      setTimeout(() => navigate('/dashboard'), 1200);
+      setTimeout(() => navigate('/dashboard/logistica'), 1200);
     } catch (error: any) {
       const msg = error.response?.data?.message || "Erro ao processar requisição.";
       showAlert(msg, 'error');
@@ -232,34 +282,91 @@ export default function CreateFreight() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="md:col-span-2 space-y-2">
-                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Produto</label>
-                <input type="text" required value={formData.product} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, product: e.target.value })} />
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Distância (km)</label>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    value={formData.distance_km}
+                    placeholder="Ex: 850"
+                    className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
+                    onChange={e => setFormData({ ...formData, distance_km: e.target.value })}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleCalcDistance}
+                    disabled={calcLoading}
+                    className="px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-300 text-white rounded-2xl font-black text-xs uppercase transition-all flex items-center gap-2"
+                  >
+                    {calcLoading ? <Loader2 size={14} className="animate-spin" /> : <MapPin size={14} />}
+                    Calcular
+                  </button>
+                </div>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Peso (Ton)</label>
-                <input type="number" step="0.1" required value={formData.weight} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, weight: e.target.value })} />
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Peso (kg)</label>
+                <input type="text" inputMode="decimal" required value={formData.weight} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData(prev => ({ ...prev, weight: e.target.value.replace(/[^0-9.,]/g, '') }))} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="space-y-2">
+              <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Produto</label>
+              <input type="text" required value={formData.product} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, product: e.target.value })} />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Veículo</label>
-                <select required value={formData.vehicle_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, vehicle_type: e.target.value })}>
+                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Tipo de Carga</label>
+                <select value={formData.cargo_type_id} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, cargo_type_id: e.target.value })}>
                   <option value="">Selecione...</option>
-                  {vehicleTypes.map(v => <option key={v} value={v}>{v}</option>)}
+                  {cargoTypes.map(ct => <option key={ct.id} value={ct.id}>{ct.name}</option>)}
                 </select>
               </div>
               <div className="space-y-2">
-                <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Carroceria</label>
-                <select required value={formData.body_type} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData({ ...formData, body_type: e.target.value })}>
-                  <option value="">Selecione...</option>
-                  {bodyTypes.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
+                <label className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase ml-2 flex items-center gap-1"><DollarSign size={10} /> VALOR</label>
+                <input type="text" inputMode="decimal" required value={formData.price} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-200 dark:border-emerald-800 tabular-nums" onChange={e => setFormData(prev => ({ ...prev, price: e.target.value.replace(/[^0-9,]/g, '') }))} />
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase ml-2 flex items-center gap-1"><DollarSign size={10} /> Preço (R$)</label>
-                <input type="number" required value={formData.price} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-200 dark:border-emerald-800 tabular-nums" onChange={e => setFormData({ ...formData, price: e.target.value })} />
-              </div>
+            </div>
+
+            <div className="space-y-3">
+              <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Veículo / Carroceria</label>
+              {vehicleRows.map((row, idx) => (
+                <div key={idx} className="grid grid-cols-1 md:grid-cols-3 gap-3 items-start">
+                  <div className="space-y-2">
+                    <select required value={row.vehicle} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => {
+                      const updated = [...vehicleRows];
+                      updated[idx].vehicle = e.target.value;
+                      setVehicleRows(updated);
+                    }}>
+                      <option value="">Veículo {idx + 1}</option>
+                      {vehicleTypes.map(v => <option key={v} value={v}>{v}</option>)}
+                    </select>
+                  </div>
+                  <div className="space-y-2">
+                    <select required value={row.body} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => {
+                      const updated = [...vehicleRows];
+                      updated[idx].body = e.target.value;
+                      setVehicleRows(updated);
+                    }}>
+                      <option value="">Carroceria {idx + 1}</option>
+                      {bodyTypes.map(b => <option key={b} value={b}>{b}</option>)}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    {idx === vehicleRows.length - 1 && (
+                      <button type="button" onClick={() => setVehicleRows([...vehicleRows, { vehicle: '', body: '' }])} className="p-2 bg-blue-500 hover:bg-blue-600 text-white rounded-xl transition-all" title="Adicionar outro veículo">
+                        <Plus size={16} />
+                      </button>
+                    )}
+                    {idx > 0 && (
+                      <button type="button" onClick={() => setVehicleRows(vehicleRows.filter((_, i) => i !== idx))} className="p-2 bg-red-100 hover:bg-red-200 text-red-600 rounded-xl transition-all" title="Remover">
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

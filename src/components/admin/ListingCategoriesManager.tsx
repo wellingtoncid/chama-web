@@ -15,19 +15,27 @@ interface Category {
   description: string | null;
   sort_order: number;
   is_active: number;
+  parent_id: number | null;
+}
+
+interface CategoryWithSubs extends Category {
+  subcategories: Category[];
 }
 
 export default function ListingCategoriesManager() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [parentCategories, setParentCategories] = useState<CategoryWithSubs[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [expandedParents, setExpandedParents] = useState<Set<number>>(new Set());
+  const [editingParentId, setEditingParentId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
     icon: '',
     description: '',
     is_active: 1,
+    parent_id: null as number | null,
   });
 
   const fetchCategories = async () => {
@@ -35,7 +43,13 @@ export default function ListingCategoriesManager() {
       setLoading(true);
       const res = await api.get('/listing-categories?include_inactive=true');
       if (res.data?.success) {
-        setCategories(res.data.data);
+        const all: Category[] = res.data.data;
+        const parents = all.filter((c) => c.parent_id === null);
+        const grouped: CategoryWithSubs[] = parents.map((p) => ({
+          ...p,
+          subcategories: all.filter((c) => c.parent_id === p.id),
+        }));
+        setParentCategories(grouped);
       }
     } catch (err) {
       console.error('Erro ao carregar categorias:', err);
@@ -48,24 +62,28 @@ export default function ListingCategoriesManager() {
     fetchCategories();
   }, []);
 
-  const openModal = (category?: Category) => {
+  const openModal = (category?: Category, parentId?: number | null) => {
     if (category) {
       setEditingCategory(category);
+      setEditingParentId(category.parent_id);
       setFormData({
         name: category.name,
         slug: category.slug,
         icon: category.icon || '',
         description: category.description || '',
         is_active: category.is_active,
+        parent_id: category.parent_id,
       });
     } else {
       setEditingCategory(null);
+      setEditingParentId(parentId ?? null);
       setFormData({
         name: '',
         slug: '',
         icon: '',
         description: '',
         is_active: 1,
+        parent_id: parentId ?? null,
       });
     }
     setIsModalOpen(true);
@@ -74,6 +92,16 @@ export default function ListingCategoriesManager() {
   const closeModal = () => {
     setIsModalOpen(false);
     setEditingCategory(null);
+    setEditingParentId(null);
+  };
+
+  const toggleExpand = (id: number) => {
+    setExpandedParents((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
   const generateSlug = (name: string) => {
@@ -96,9 +124,18 @@ export default function ListingCategoriesManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    const payload = {
+      name: formData.name,
+      slug: formData.slug || undefined,
+      icon: formData.icon || null,
+      description: formData.description || null,
+      is_active: formData.is_active,
+      parent_id: formData.parent_id || null,
+    };
+
     try {
       if (editingCategory) {
-        await api.put(`/listing-category/${editingCategory.id}`, formData);
+        await api.put(`/listing-category/${editingCategory.id}`, payload);
         Swal.fire({
           title: 'Sucesso!',
           text: 'Categoria atualizada com sucesso.',
@@ -107,7 +144,7 @@ export default function ListingCategoriesManager() {
           color: document.documentElement.classList.contains('dark') ? '#f1f5f9' : undefined,
         });
       } else {
-        await api.post('/listing-category', formData);
+        await api.post('/listing-category', payload);
         Swal.fire({
           title: 'Sucesso!',
           text: 'Categoria criada com sucesso.',
@@ -210,68 +247,141 @@ export default function ListingCategoriesManager() {
         <table className="w-full">
           <thead className="bg-slate-50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200">
             <tr>
-              <th className="px-5 py-4 text-left">Ordem</th>
+              <th className="px-5 py-4 text-left w-8"></th>
               <th className="px-5 py-4 text-left">Nome</th>
               <th className="px-5 py-4 text-left">Slug</th>
               <th className="px-5 py-4 text-left">Ícone</th>
               <th className="px-5 py-4 text-left">Status</th>
+              <th className="px-5 py-4 text-center">Subcategorias</th>
               <th className="px-5 py-4 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {categories.map((cat) => (
-              <tr key={cat.id} className={`${!cat.is_active ? 'opacity-50' : ''}`}>
-                <td className="px-5 py-4">
-                  <GripVertical size={16} className="text-slate-300" />
-                </td>
-                <td className="px-5 py-4">
-                  <span className="font-bold text-slate-800">{cat.name}</span>
-                </td>
-                <td className="px-5 py-4">
-                  <code className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
-                    {cat.slug}
-                  </code>
-                </td>
-                <td className="px-5 py-4">
-                  <span className="text-xs text-slate-500">{cat.icon || '-'}</span>
-                </td>
-                <td className="px-5 py-4">
-                  <button
-                    onClick={() => handleToggle(cat)}
-                    className={`flex items-center gap-2 text-sm font-bold ${
-                      cat.is_active ? 'text-emerald-600' : 'text-slate-400'
-                    }`}
-                  >
-                    {cat.is_active ? (
-                      <>
-                        <ToggleRight size={24} className="text-emerald-600" />
-                        Ativa
-                      </>
-                    ) : (
-                      <>
-                        <ToggleLeft size={24} />
-                        Inativa
-                      </>
-                    )}
-                  </button>
-                </td>
-                <td className="px-5 py-4">
-                  <div className="flex justify-end gap-2">
+            {parentCategories.map((parent) => (
+              <>
+                {/* Parent row */}
+                <tr key={parent.id} className={`${!parent.is_active ? 'opacity-50' : ''}`}>
+                  <td className="px-5 py-4">
                     <button
-                      onClick={() => openModal(cat)}
-                      className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                      onClick={() => toggleExpand(parent.id)}
+                      className={`p-1 rounded transition-colors ${
+                        expandedParents.has(parent.id)
+                          ? 'text-emerald-600 bg-emerald-50'
+                          : 'text-slate-300 hover:text-slate-500'
+                      }`}
                     >
-                      <Edit3 size={16} />
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" className={`transition-transform ${expandedParents.has(parent.id) ? 'rotate-90' : ''}`}>
+                        <polyline points="9 18 15 12 9 6" />
+                      </svg>
                     </button>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="font-bold text-slate-800">{parent.name}</span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <code className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600">
+                      {parent.slug}
+                    </code>
+                  </td>
+                  <td className="px-5 py-4">
+                    <span className="text-xs text-slate-500">{parent.icon || '-'}</span>
+                  </td>
+                  <td className="px-5 py-4">
                     <button
-                      onClick={() => handleDelete(cat)}
-                      className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                      onClick={() => handleToggle(parent)}
+                      className={`flex items-center gap-2 text-sm font-bold ${
+                        parent.is_active ? 'text-emerald-600' : 'text-slate-400'
+                      }`}
                     >
-                      <Trash2 size={16} />
+                      {parent.is_active ? (
+                        <><ToggleRight size={24} className="text-emerald-600" /> Ativa</>
+                      ) : (
+                        <><ToggleLeft size={24} /> Inativa</>
+                      )}
                     </button>
-                  </div>
-                </td>
-              </tr>
+                  </td>
+                  <td className="px-5 py-4 text-center">
+                    <span className="text-sm font-bold text-slate-400">
+                      {parent.subcategories.length}
+                    </span>
+                  </td>
+                  <td className="px-5 py-4">
+                    <div className="flex justify-end gap-2">
+                      <button
+                        onClick={() => openModal(undefined, parent.id)}
+                        className="p-2 bg-emerald-50 text-emerald-600 rounded-lg hover:bg-emerald-100"
+                        title="Nova Subcategoria"
+                      >
+                        <Plus size={16} />
+                      </button>
+                      <button
+                        onClick={() => openModal(parent)}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                      >
+                        <Edit3 size={16} />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(parent)}
+                        className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+
+                {/* Subcategory rows */}
+                {expandedParents.has(parent.id) && parent.subcategories.map((sub) => (
+                  <tr key={sub.id} className={`${!sub.is_active ? 'opacity-50' : ''} bg-slate-50/50`}>
+                    <td className="px-5 py-3"></td>
+                    <td className="px-5 py-3 pl-12">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1 h-1 rounded-full bg-slate-300"></div>
+                        <span className="text-sm font-semibold text-slate-700">{sub.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-5 py-3">
+                      <code className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-500">
+                        {sub.slug}
+                      </code>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span className="text-xs text-slate-400">{sub.icon || '-'}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <button
+                        onClick={() => handleToggle(sub)}
+                        className={`flex items-center gap-2 text-xs font-bold ${
+                          sub.is_active ? 'text-emerald-600' : 'text-slate-400'
+                        }`}
+                      >
+                        {sub.is_active ? (
+                          <><ToggleRight size={20} className="text-emerald-600" /> Ativa</>
+                        ) : (
+                          <><ToggleLeft size={20} /> Inativa</>
+                        )}
+                      </button>
+                    </td>
+                    <td className="px-5 py-3"></td>
+                    <td className="px-5 py-3">
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => openModal(sub)}
+                          className="p-1.5 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                        >
+                          <Edit3 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(sub)}
+                          className="p-1.5 bg-red-50 text-red-600 rounded-lg hover:bg-red-100"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </>
             ))}
           </tbody>
         </table>
@@ -283,7 +393,9 @@ export default function ListingCategoriesManager() {
           <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center">
               <h3 className="text-xl font-bold text-slate-800">
-                {editingCategory ? 'Editar Categoria' : 'Nova Categoria'}
+                {editingCategory
+                  ? (editingCategory.parent_id ? 'Editar Subcategoria' : 'Editar Categoria')
+                  : (editingParentId ? 'Nova Subcategoria' : 'Nova Categoria')}
               </h3>
               <button onClick={closeModal} className="p-2 hover:bg-slate-100 rounded-xl">
                 <X size={20} className="text-slate-400" />
@@ -301,7 +413,7 @@ export default function ListingCategoriesManager() {
                   onChange={(e) => handleNameChange(e.target.value)}
                   required
                   className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
-                  placeholder="Ex: Veículos"
+                  placeholder={formData.parent_id ? "Ex: Caminhões" : "Ex: Veículos"}
                 />
               </div>
 
@@ -317,6 +429,26 @@ export default function ListingCategoriesManager() {
                   placeholder="veiculos"
                 />
               </div>
+
+              {(editingCategory?.parent_id || editingParentId) && (
+                <div>
+                  <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">
+                    Categoria Pai
+                  </label>
+                  <select
+                    value={formData.parent_id ?? ''}
+                    onChange={(e) => setFormData(prev => ({ ...prev, parent_id: e.target.value ? Number(e.target.value) : null }))}
+                    required
+                    className="w-full px-4 py-2.5 bg-white rounded-xl border border-slate-200 text-xs font-bold text-slate-700 outline-none focus:ring-2 focus:ring-emerald-500"
+                  >
+                    {parentCategories.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
               <div>
                 <label className="block text-[10px] font-bold uppercase text-slate-400 mb-2">
