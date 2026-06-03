@@ -5,7 +5,8 @@ import {
   Truck, Phone, ArrowLeft, Info, Loader2, 
   AlertTriangle, MessageCircle, Lock, Weight, 
   Package, Star, ShieldCheck, 
-  Calendar, Share2, Eye, TrendingUp, Building2, Flag, MapPin
+  Calendar, Share2, Eye, TrendingUp, Flag, MapPin,
+  Clock, Mail, FileText, Camera, User
 } from 'lucide-react';
 
 import Header from '../../components/shared/Header';
@@ -45,6 +46,16 @@ interface FreightData {
   display_phone?: string;
   user_id?: number;
   created_at: string;
+  owner_is_company?: number;
+  owner_last_active?: string;
+  owner_city?: string;
+  owner_state?: string;
+  owner_verifications?: {
+    email: boolean;
+    whatsapp: boolean;
+    document: boolean;
+    instagram: boolean;
+  };
 }
 
 interface RelatedFreight {
@@ -119,6 +130,25 @@ export default function FreightDetails() {
     if (!dateString || dateString === "NULL") return '2025';
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? '2025' : date.getFullYear();
+  };
+
+  const getLastActive = (dateString: string | null | undefined) => {
+    if (!dateString || dateString === "NULL" || dateString === "0000-00-00 00:00:00") return 'Indisponível';
+    const now = new Date();
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Indisponível';
+    const diffMs = now.getTime() - date.getTime();
+    if (diffMs < 0) return 'Online agora';
+    const diffMin = Math.floor(diffMs / (1000 * 60));
+    if (diffMin < 1) return 'Online agora';
+    if (diffMin < 60) return `Último acesso há ${diffMin} min`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `Último acesso há ${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Último acesso ontem';
+    if (diffDays < 7) return `Último acesso há ${diffDays} dias`;
+    if (diffDays < 30) return `Último acesso há ${Math.floor(diffDays / 7)} sem.`;
+    return `Último acesso há ${Math.floor(diffDays / 30)} meses`;
   };
 
   const handleShare = async () => {
@@ -391,45 +421,90 @@ export default function FreightDetails() {
                   )}
 
                   {/* Sobre o Anunciante */}
-                  <div className="mt-8 pt-8 border-t border-slate-100 text-left">
-                      <p className="text-[9px] font-black text-slate-400 uppercase mb-5 text-center">Sobre o Anunciante</p>
-                      <Link 
-                        to={freight.owner_slug ? `/perfil/${freight.owner_slug}` : '#'}
-                        className="flex items-center gap-4 bg-slate-50 p-5 rounded-[2rem] border border-slate-100 hover:bg-slate-100 transition-colors"
-                      >
-                        <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg shrink-0">
-                          {freight.owner_avatar ? <img src={freight.owner_avatar} alt="Avatar" className="w-full h-full object-cover rounded-2xl" /> : freight.company_name?.charAt(0)?.toUpperCase()}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <Building2 size={14} className="text-slate-400" />
-                            <p className="font-black text-slate-900 uppercase italic truncate text-sm">{freight.company_name}</p>
-                            {freight.owner_is_verified == 1 && (
-                              <span className="text-blue-600">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                              </span>
-                            )}
-                          </div>
-                          <div className="flex items-center gap-1 mt-1">
-                            <Star size={12} className="text-amber-400 fill-amber-400" />
-                            <span className="text-slate-600 font-black text-[11px]">{Number(freight.owner_rating || 5).toFixed(1)}</span>
-                            {freight.owner_is_verified == 1 && (
-                              <span className="text-blue-600 font-black text-[9px] uppercase ml-2">Verificado</span>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                      
-                      <div className="mt-4 grid grid-cols-2 gap-2">
-                         <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                            <p className="text-[8px] font-black text-slate-400 uppercase">Fretes</p>
-                            <p className="text-[10px] font-bold text-slate-700 uppercase italic">{freight.total_owner_freights || '0'} ativo{freight.total_owner_freights !== 1 ? 's' : ''}</p>
-                         </div>
-                         <div className="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
-                            <p className="text-[8px] font-black text-slate-400 uppercase">Desde</p>
-                            <p className="text-[10px] font-bold text-slate-700 uppercase italic">{getMemberSince(freight.owner_created_at)}</p>
-                         </div>
+                  <div className="mt-8 pt-8 border-t border-slate-100">
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest text-center mb-5">Sobre o Anunciante</p>
+
+                    <Link
+                      to={freight.owner_slug ? `/perfil/${freight.owner_slug}` : '#'}
+                      className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-blue-300 transition-colors"
+                    >
+                      <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0">
+                        {freight.owner_avatar ? <img src={freight.owner_avatar} alt="" className="w-full h-full object-cover rounded-xl" /> : freight.company_name?.charAt(0)?.toUpperCase()}
                       </div>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm leading-tight">{freight.company_name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Star size={12} className="text-amber-400 fill-amber-400" />
+                          <span className="text-xs text-slate-500">{Number(freight.owner_rating || 5).toFixed(1)}</span>
+                          {freight.owner_is_company === 1 ? (
+                            <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Empresa</span>
+                          ) : (
+                            <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Profissional</span>
+                          )}
+                        </div>
+                      </div>
+                    </Link>
+
+                    <div className="mt-4 space-y-2.5">
+                      {getLastActive(freight.owner_last_active) !== 'Indisponível' && (
+                        <div className="flex items-center gap-2.5">
+                          <Clock size={14} className="text-slate-400 shrink-0" />
+                          <span className="text-xs text-slate-600">{getLastActive(freight.owner_last_active)}</span>
+                        </div>
+                      )}
+                      {(freight.owner_city || freight.owner_state) && (
+                        <div className="flex items-center gap-2.5">
+                          <MapPin size={14} className="text-slate-400 shrink-0" />
+                          <span className="text-xs text-slate-600">{freight.owner_city}{freight.owner_city && freight.owner_state ? ', ' : ''}{freight.owner_state}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2.5">
+                        <Calendar size={14} className="text-slate-400 shrink-0" />
+                        <span className="text-xs text-slate-600">Membro desde {getMemberSince(freight.owner_created_at)}</span>
+                      </div>
+                    </div>
+
+                    {freight.owner_verifications && (
+                      <div className="mt-5 pt-4 border-t border-slate-100">
+                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-3">Informações Verificadas</p>
+                        <div className="space-y-2">
+                          {[
+                            { key: 'email', label: 'E-mail', icon: Mail },
+                            { key: 'whatsapp', label: 'WhatsApp', icon: Phone },
+                            { key: 'document', label: 'Identidade', icon: FileText },
+                            { key: 'instagram', label: 'Instagram', icon: Camera },
+                          ].map((item) => {
+                            const verified = freight.owner_verifications?.[item.key as keyof typeof freight.owner_verifications];
+                            const Icon = item.icon;
+                            return (
+                              <div key={item.key} className="flex items-center gap-2.5 py-0.5">
+                                {verified ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-500 shrink-0"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-slate-300 shrink-0"><path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                )}
+                                <Icon size={13} className="text-slate-400 shrink-0" />
+                                <span className="text-xs text-slate-500">{item.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {freight.owner_slug && (
+                      <Link
+                        to={`/perfil/${freight.owner_slug}`}
+                        className="mt-5 flex items-center justify-center gap-2 w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs uppercase tracking-wider py-3 rounded-xl transition-colors"
+                      >
+                        <User size={14} />
+                        Acessar Perfil
+                      </Link>
+                    )}
+
+                    <div className="mt-3 flex items-center justify-center text-xs text-slate-400">
+                      {freight.total_owner_freights || 0} frete{freight.total_owner_freights !== 1 ? 's' : ''} ativo{freight.total_owner_freights !== 1 ? 's' : ''}
+                    </div>
                   </div>
                 </div>
               </div>

@@ -66,7 +66,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         const city = res.data.data.city;
         const state = res.data.data.state;
         if (city && state) {
-          setFormData({ ...formData, city, state: state.toUpperCase() });
+          setFormData({ ...formData, city, state: state.toUpperCase(), home_cep: cleaned });
           setCepStatus('success');
           Swal.fire({ icon: 'success', title: `${city} - ${state} preenchido!`, timer: 1200, showConfirmButton: false, toast: true, position: 'top-end' });
         } else {
@@ -153,6 +153,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
       const extras = user.extended_attributes
         ? (typeof user.extended_attributes === 'string' ? JSON.parse(user.extended_attributes) : user.extended_attributes)
         : {};
+      const homeCep = user.home_cep || extras.home_cep || '';
       setFormData({
         ...user, ...extras,
         bio: user.bio || '',
@@ -166,7 +167,9 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
         body_type: user.body_type || extras.body_type || '',
         trade_name: user.trade_name || user.name || '',
         is_available: user.is_available ?? 0,
+        home_cep: homeCep,
       });
+      setCepInput(homeCep.replace(/\D/g, '').slice(0, 8));
       if (user.avatar_url) setAvatarPreview(user.avatar_url);
       if (user.cover_url) setCoverPreview(user.cover_url);
     }
@@ -201,13 +204,15 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
     try {
       const data = new FormData();
       const extendedKeys = [
-        'instagram', 'linkedin', 'website', 'website_url', 'business_type', 'commercial_email',
+        'website_url', 'business_type', 'commercial_email',
         'special_courses', 'intl_license', 'preferred_regions', 'specific_regions', 'load_volume',
       ];
       const integerFields = ['is_available'];
+      const directFields = ['instagram', 'linkedin', 'website', 'home_cep'];
       const extras: any = {};
       Object.keys(formData).forEach(key => {
         if (extendedKeys.includes(key)) extras[key] = formData[key];
+        else if (directFields.includes(key) && formData[key]) data.append(key, formData[key]);
         else if (integerFields.includes(key)) data.append(key, String(formData[key]));
         else if (Array.isArray(formData[key])) data.append(key, JSON.stringify(formData[key]));
         else if (formData[key] !== null && formData[key] !== undefined && formData[key] !== '') data.append(key, formData[key]);
@@ -437,7 +442,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                   </div>
                   <div className="flex gap-2">
                     <div className="relative flex-1">
-                      <input type="text" value={formatCep(cepInput)} onChange={e => { setCepInput(e.target.value.replace(/\D/g, '').slice(0, 8)); setCepStatus('idle'); }}
+                      <input type="text" value={formatCep(cepInput)} onChange={e => { const cleaned = e.target.value.replace(/\D/g, '').slice(0, 8); setCepInput(cleaned); setFormData({ ...formData, home_cep: cleaned }); setCepStatus('idle'); }}
                         placeholder="00000-000" maxLength={9}
                         className={`w-full py-4 px-5 rounded-xl border-2 outline-none font-bold text-xs transition-all bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200 ${
                           cepStatus === 'success' ? 'border-emerald-300 dark:border-emerald-600 bg-emerald-50/50' :

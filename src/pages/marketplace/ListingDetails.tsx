@@ -4,7 +4,7 @@ import { api } from '../../api/api';
 import { 
   MapPin, Calendar, Share2, Loader2, User, Building2, 
   Phone, Lock, Star, AlertTriangle, Info, ShieldCheck, Flag,
-  Eye, Heart, ChevronRight
+  Eye, Heart, ChevronRight, Clock, Mail, FileText, Camera
 } from 'lucide-react';
 import Header from '../../components/shared/Header';
 import Footer from '../../components/shared/Footer';
@@ -40,6 +40,15 @@ interface ListingData {
   views_count?: number;
   related?: ListingData[];
   seller_listings?: ListingData[];
+  seller_display_name?: string;
+  seller_is_company?: number;
+  seller_last_active?: string;
+  seller_verifications?: {
+    email: boolean;
+    whatsapp: boolean;
+    document: boolean;
+    instagram: boolean;
+  };
 }
 
 export default function ListingDetails() {
@@ -89,23 +98,29 @@ export default function ListingDetails() {
     loadData();
   }, [slug, trackEvent]);
 
-  const getTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffMs = now.getTime() - date.getTime();
-    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return 'Hoje';
-    if (diffDays === 1) return 'Ontem';
-    if (diffDays < 7) return `Há ${diffDays} dias`;
-    if (diffDays < 30) return `Há ${Math.floor(diffDays / 7)} sem.`;
-    if (diffDays < 365) return `Há ${Math.floor(diffDays / 30)} meses`;
-    return `Há ${Math.floor(diffDays / 365)} ano${Math.floor(diffDays / 365) > 1 ? 's' : ''}`;
-  };
-
   const getMemberSince = (dateString: string | null | undefined) => {
     if (!dateString || dateString === "NULL") return '2025';
     const date = new Date(dateString);
     return isNaN(date.getTime()) ? '2025' : date.getFullYear();
+  };
+
+  const getLastActive = (dateString: string | null | undefined) => {
+    if (!dateString || dateString === "NULL" || dateString === "0000-00-00 00:00:00") return 'Indisponível';
+    const now = new Date();
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return 'Indisponível';
+    const diffMs = now.getTime() - date.getTime();
+    if (diffMs < 0) return 'Online agora';
+    const diffMin = Math.floor(diffMs / (1000 * 60));
+    if (diffMin < 1) return 'Online agora';
+    if (diffMin < 60) return `Último acesso há ${diffMin} min`;
+    const diffHours = Math.floor(diffMin / 60);
+    if (diffHours < 24) return `Último acesso há ${diffHours}h`;
+    const diffDays = Math.floor(diffHours / 24);
+    if (diffDays === 1) return 'Último acesso ontem';
+    if (diffDays < 7) return `Último acesso há ${diffDays} dias`;
+    if (diffDays < 30) return `Último acesso há ${Math.floor(diffDays / 7)} sem.`;
+    return `Último acesso há ${Math.floor(diffDays / 30)} meses`;
   };
 
   const handleShare = async () => {
@@ -489,77 +504,92 @@ export default function ListingDetails() {
                   )}
 
                   {/* Sobre o Anunciante */}
-                  <div className="mt-6 lg:mt-8 pt-6 lg:pt-8 border-t border-slate-100 text-left">
-                    <p className="text-[8px] lg:text-[9px] font-black text-slate-400 uppercase mb-4 lg:mb-5 text-center">Sobre o Anunciante</p>
-                    <Link 
+                  <div className="mt-8 pt-8 border-t border-slate-100">
+                    <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-widest text-center mb-5">Sobre o Anunciante</p>
+
+                    <Link
                       to={`/perfil/${listing.seller_slug}`}
-                      className="flex items-center gap-3 sm:gap-4 bg-slate-50 p-4 sm:p-5 rounded-xl lg:rounded-[2rem] border border-slate-100 hover:bg-slate-100 transition-colors"
+                      className="flex items-center gap-4 p-4 rounded-xl border border-slate-200 hover:border-emerald-300 transition-colors"
                     >
-                      <div className="w-10 h-10 sm:w-14 sm:h-14 bg-emerald-600 rounded-xl lg:rounded-2xl flex items-center justify-center text-white font-black text-base sm:text-xl shadow-lg shrink-0">
-                        {listing.seller_avatar ? <img src={listing.seller_avatar} alt="Avatar" className="w-full h-full object-cover rounded-xl lg:rounded-2xl" /> : listing.seller_name?.charAt(0)?.toUpperCase()}
+                      <div className="w-12 h-12 bg-emerald-600 rounded-xl flex items-center justify-center text-white font-bold text-lg shrink-0">
+                        {listing.seller_avatar ? <img src={listing.seller_avatar} alt="" className="w-full h-full object-cover rounded-xl" /> : (listing.seller_display_name || listing.seller_name)?.charAt(0)?.toUpperCase()}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Building2 size={12} className="sm:size-[14px] text-slate-400 shrink-0" />
-                          <p className="font-black text-slate-900 uppercase italic truncate text-[11px] sm:text-sm">{listing.seller_name}</p>
-                          {listing.seller_verified == 1 && (
-                            <span className="text-emerald-600 shrink-0">
-                              <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" className="sm:size-[14px]" viewBox="0 0 24 24" fill="currentColor"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
-                          <Star size={10} className="sm:size-[12px] text-amber-400 fill-amber-400" />
-                          <span className="text-slate-600 font-black text-[10px] sm:text-[11px]">5.0</span>
-                          {listing.seller_verified == 1 && (
-                            <span className="text-emerald-600 font-black text-[8px] sm:text-[9px] uppercase ml-1 sm:ml-2">Verificado</span>
+                      <div>
+                        <p className="font-bold text-slate-900 text-sm leading-tight">{listing.seller_display_name || listing.seller_name}</p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Star size={12} className="text-amber-400 fill-amber-400" />
+                          <span className="text-xs text-slate-500">5.0</span>
+                          {listing.seller_is_company === 1 ? (
+                            <span className="text-[9px] font-semibold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded">Empresa</span>
+                          ) : (
+                            <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">Profissional</span>
                           )}
                         </div>
                       </div>
                     </Link>
-                    
-                    <div className="mt-3 sm:mt-4 grid grid-cols-2 gap-2">
-                      <div className="bg-slate-50 p-2 sm:p-3 rounded-xl border border-slate-100 text-center">
-                        <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase">Anúncios</p>
-                        <p className="text-[9px] sm:text-[10px] font-bold text-slate-700 uppercase italic">{listing.total_listings} ativo{listing.total_listings !== 1 ? 's' : ''}</p>
-                      </div>
-                      <div className="bg-slate-50 p-2 sm:p-3 rounded-xl border border-slate-100 text-center">
-                        <p className="text-[7px] sm:text-[8px] font-black text-slate-400 uppercase">Desde</p>
-                        <p className="text-[9px] sm:text-[10px] font-bold text-slate-700 uppercase italic">{getMemberSince(listing.seller_since)}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-3 sm:mt-4 bg-slate-50 p-3 sm:p-4 rounded-xl border border-slate-100">
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <MapPin size={10} className="sm:size-[12px] text-emerald-600" />
-                          <span className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase">Localização</span>
-                        </div>
-                        <span className="text-[9px] sm:text-[10px] font-black text-slate-800 uppercase">{listing.location_city}, {listing.location_state}</span>
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-1.5 sm:gap-2">
-                          <Calendar size={10} className="sm:size-[12px] text-emerald-600" />
-                          <span className="text-[9px] sm:text-[10px] font-bold text-slate-600 uppercase">Publicado</span>
-                        </div>
-                        <span className="text-[9px] sm:text-[10px] font-black text-slate-800 uppercase">{getTimeAgo(listing.created_at)}</span>
-                      </div>
-                      <div className="flex items-center justify-between mt-1.5 sm:mt-2 pt-1.5 sm:pt-2 border-t border-slate-100/50">
-                        <span className="text-[7px] sm:text-[8px] text-slate-400 uppercase">{new Date(listing.created_at).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
-                        {Number(listing.views_count) > 0 && (
-                          <span className="text-[7px] sm:text-[8px] text-slate-400 flex items-center gap-1"><Eye size={8} className="sm:size-[10px]" /> {listing.views_count}</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
 
-              {/* Anúncio Vertical */}
-              <AdCard position="sidebar" variant="sidebar" state={listing.location_state} />
+                    <div className="mt-4 space-y-2.5">
+                      {getLastActive(listing.seller_last_active) !== 'Indisponível' && (
+                        <div className="flex items-center gap-2.5">
+                          <Clock size={14} className="text-slate-400 shrink-0" />
+                          <span className="text-xs text-slate-600">{getLastActive(listing.seller_last_active)}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2.5">
+                        <MapPin size={14} className="text-slate-400 shrink-0" />
+                        <span className="text-xs text-slate-600">{listing.seller_city || listing.location_city}, {listing.seller_state || listing.location_state}</span>
+                      </div>
+                      <div className="flex items-center gap-2.5">
+                        <Calendar size={14} className="text-slate-400 shrink-0" />
+                        <span className="text-xs text-slate-600">Membro desde {getMemberSince(listing.seller_since)}</span>
+                      </div>
+                    </div>
+
+                    {listing.seller_verifications && (
+                      <div className="mt-5 pt-4 border-t border-slate-100">
+                        <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-3">Informações Verificadas</p>
+                        <div className="space-y-2">
+                          {[
+                            { key: 'email', label: 'E-mail', icon: Mail },
+                            { key: 'whatsapp', label: 'WhatsApp', icon: Phone },
+                            { key: 'document', label: 'Identidade', icon: FileText },
+                            { key: 'instagram', label: 'Instagram', icon: Camera },
+                          ].map((item) => {
+                            const verified = listing.seller_verifications?.[item.key as keyof typeof listing.seller_verifications];
+                            const Icon = item.icon;
+                            return (
+                              <div key={item.key} className="flex items-center gap-2.5 py-0.5">
+                                {verified ? (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-emerald-500 shrink-0"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                ) : (
+                                  <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor" className="text-slate-300 shrink-0"><path d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                )}
+                                <Icon size={13} className="text-slate-400 shrink-0" />
+                                <span className="text-xs text-slate-500">{item.label}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    <Link
+                      to={`/perfil/${listing.seller_slug}`}
+                      className="mt-5 flex items-center justify-center gap-2 w-full bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs uppercase tracking-wider py-3 rounded-xl transition-colors"
+                    >
+                      <User size={14} />
+                      Acessar Perfil
+                    </Link>
+
+                  </div>
+              </div>
             </div>
+
+            {/* Anúncio Vertical */}
+            <AdCard position="sidebar" variant="sidebar" state={listing.location_state} />
           </div>
         </div>
+      </div>
       </main> 
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} onSuccess={handleAuthSuccess} />
