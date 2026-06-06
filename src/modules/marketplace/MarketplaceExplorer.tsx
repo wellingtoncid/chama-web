@@ -7,6 +7,7 @@ import AdCard from '../../components/shared/AdCard';
 import ListingCard from '../../components/shared/ListingCard';
 import { useTracker } from '../../services/useTracker';
 import { BusinessModal } from '../../components/modals/BusinessModal';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
 
 interface Category {
   id: number;
@@ -274,12 +275,6 @@ export default function MarketplaceExplorer() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
-        <Link to="/" className="hover:text-emerald-600 transition-colors">Home</Link>
-        <ChevronRight size={12} />
-        <span className="text-slate-600 dark:text-slate-300">Classificados</span>
-      </nav>
 
       {/* Barra de Busca Proeminente */}
       <form onSubmit={handleSearch} className="relative group">

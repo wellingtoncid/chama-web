@@ -5,6 +5,7 @@ import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import AdCard from '@/components/shared/AdCard';
 import { ArrowRight, Clock, Eye, User, BookOpen, Send } from 'lucide-react';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 
 interface Article {
   id: number;
@@ -12,6 +13,7 @@ interface Article {
   slug: string;
   excerpt: string;
   content: string;
+  image_url?: string;
   author_id: number;
   author_name: string;
   author_avatar: string;
@@ -88,6 +90,11 @@ const ArticlesPage = () => {
       <main className="flex-grow pt-32">
         <div className="max-w-7xl mx-auto px-4">
 
+          <Breadcrumb items={[
+            { label: 'Home', href: '/' },
+            { label: 'Artigos' },
+          ]} linkClassName="hover:text-[#1f4ead]" className="mb-6" />
+
           <header className="mb-10">
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.85] mb-4">
               Artigos & <span className="text-[#1f4ead]">Conteúdo</span>
@@ -137,11 +144,14 @@ const ArticlesPage = () => {
             >
               <div className="bg-white dark:bg-slate-900 rounded-2xl overflow-hidden shadow-lg hover:shadow-xl transition-all">
                 <div className="md:flex">
-                  <div className="md:w-1/2 h-64 md:h-80 bg-slate-200 dark:bg-slate-800">
-                    {/* Placeholder for featured image */}
-                    <div className="w-full h-full flex items-center justify-center">
-                      <span className="text-6xl">📰</span>
-                    </div>
+                  <div className="md:w-1/2 h-64 md:h-80 bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                    {featuredArticle.image_url ? (
+                      <img src={featuredArticle.image_url} alt={featuredArticle.title} className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <span className="text-6xl">📰</span>
+                      </div>
+                    )}
                   </div>
                   <div className="md:w-1/2 p-6 md:p-8 flex flex-col justify-center">
                     <div className="flex items-center gap-2 mb-3">
@@ -151,7 +161,7 @@ const ArticlesPage = () => {
                       >
                         {featuredArticle.category_name}
                       </span>
-                      {featuredArticle.is_paid && (
+                      {!!featuredArticle.is_paid && (
                         <span className="px-2 py-1 rounded text-xs font-bold bg-purple-600 text-white">
                           Patrocinado
                         </span>
@@ -200,17 +210,19 @@ const ArticlesPage = () => {
           </h2>
           
           {loading ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {[1, 2, 3, 4, 5, 6].map(i => (
-                <div key={i} className="bg-white dark:bg-slate-900 rounded-xl p-4 animate-pulse">
-                  <div className="h-40 bg-slate-200 dark:bg-slate-800 rounded-lg mb-4"></div>
-                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
-                  <div className="h-4 bg-slate-200 dark:bg-slate-800 rounded w-2/3"></div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              {[1, 2, 3, 4, 5, 6, 7, 8].map(i => (
+                <div key={i} className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden animate-pulse">
+                  <div className="h-36 bg-slate-200 dark:bg-slate-800"></div>
+                  <div className="p-3">
+                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded mb-2"></div>
+                    <div className="h-3 bg-slate-200 dark:bg-slate-800 rounded w-2/3"></div>
+                  </div>
                 </div>
               ))}
             </div>
           ) : filteredArticles.length > 0 ? (
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
               {filteredArticles.map(article => (
                 <Link 
                   key={article.id} 
@@ -218,36 +230,42 @@ const ArticlesPage = () => {
                   className="group"
                 >
                   <article className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all h-full flex flex-col">
-                    <div className="h-40 bg-slate-200 dark:bg-slate-800 flex items-center justify-center">
-                      <span className="text-4xl">📄</span>
+                    <div className="h-36 bg-slate-200 dark:bg-slate-800 overflow-hidden">
+                      {article.image_url ? (
+                        <img src={article.image_url} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <span className="text-3xl">📄</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="p-4 flex-1 flex flex-col">
-                      <div className="flex items-center gap-2 mb-2">
+                    <div className="p-3 flex-1 flex flex-col">
+                      <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
                         <span 
-                          className="px-2 py-0.5 rounded text-xs font-bold text-white"
+                          className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white"
                           style={{ backgroundColor: article.category_id ? '#1f4ead' : '#64748b' }}
                         >
                           {article.category_name || 'Artigo'}
                         </span>
-                        {article.is_paid && (
-                          <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-600 text-white">
+                        {!!article.is_paid && (
+                          <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-purple-600 text-white">
                             Patrocinado
                           </span>
                         )}
                       </div>
-                      <h3 className="font-bold text-slate-900 dark:text-white mb-2 group-hover:text-[#1f4ead] transition-colors line-clamp-2">
+                      <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5 group-hover:text-[#1f4ead] transition-colors line-clamp-2 leading-snug">
                         {article.title}
                       </h3>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 line-clamp-2 mb-3 flex-1">
+                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2 flex-1 leading-relaxed">
                         {article.excerpt}
                       </p>
-                      <div className="flex items-center justify-between text-xs text-slate-400">
+                      <div className="flex items-center justify-between text-[10px] text-slate-400">
                         <div className="flex items-center gap-1">
-                          <User size={12} />
+                          <User size={10} />
                           <span>{article.author_name}</span>
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock size={12} />
+                          <Clock size={10} />
                           <span>{formatDate(article.published_at)}</span>
                         </div>
                       </div>

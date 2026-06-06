@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useSearchParams } from 'react-router-dom';
 import { api } from '@/api/api';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
-import { ArrowLeft, Save, Send, AlertCircle, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Save, Send, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
 
 interface Category {
   id: number;
@@ -15,12 +15,16 @@ interface Category {
 const ArticleSubmitPage = () => {
   const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
-  
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get('edit');
+  const isEditing = !!editId;
+
   const [title, setTitle] = useState('');
   const [excerpt, setExcerpt] = useState('');
   const [content, setContent] = useState('');
   const [categoryId, setCategoryId] = useState<number | ''>('');
   const [categories, setCategories] = useState<Category[]>([]);
+  const [imageUrl, setImageUrl] = useState('');
   const [isPaid, setIsPaid] = useState(false);
   const [paidPlan, setPaidPlan] = useState<'standard' | 'premium'>('standard');
   const [loading, setLoading] = useState(false);
@@ -29,14 +33,17 @@ const ArticleSubmitPage = () => {
   const [charCount, setCharCount] = useState(0);
   const [authorStatus, setAuthorStatus] = useState<{is_author: boolean; has_pending_request: boolean} | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [loadingEdit, setLoadingEdit] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
       navigate('/login?redirect=/artigos/submeter');
     } else if (user) {
       checkAuthorStatus();
+      fetchCategories();
+      if (editId) loadArticle(editId);
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, editId]);
 
   useEffect(() => {
     setCharCount(content.length);
@@ -73,6 +80,29 @@ const ArticleSubmitPage = () => {
     }
   };
 
+  const loadArticle = async (id: string) => {
+    try {
+      setLoadingEdit(true);
+      const res = await api.get(`/articles/by-id/${id}`);
+      if (res.data?.success) {
+        const article = res.data.data.article;
+        setTitle(article.title || '');
+        setExcerpt(article.excerpt || '');
+        setContent(article.content || '');
+        setImageUrl(article.image_url || '');
+        setCategoryId(article.category_id || '');
+        setIsPaid(!!article.is_paid);
+        setPaidPlan(article.paid_plan || 'standard');
+      } else {
+        setError(res.data?.message || 'Erro ao carregar artigo');
+      }
+    } catch (err) {
+      setError('Erro ao carregar dados do artigo');
+    } finally {
+      setLoadingEdit(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent, asDraft: boolean = false) => {
     e.preventDefault();
     setError(null);
@@ -105,6 +135,7 @@ const ArticleSubmitPage = () => {
         title: title.trim(),
         excerpt: excerpt.trim(),
         content,
+        image_url: imageUrl || null,
         category_id: categoryId || null,
         as_draft: asDraft
       };
@@ -114,11 +145,21 @@ const ArticleSubmitPage = () => {
         payload.paid_plan = paidPlan;
       }
 
-      const res = await api.post('/articles', payload);
+      let res;
+      if (isEditing) {
+        res = await api.put(`/articles/${editId}`, payload);
+      } else {
+        res = await api.post('/articles', payload);
+      }
 
       if (res.data?.success) {
         if (asDraft) {
           setSuccess('Rascunho salvo com sucesso!');
+        } else if (isEditing) {
+          setSuccess('Artigo atualizado com sucesso! Ele será reanalisado pela equipe.');
+          setTimeout(() => {
+            navigate('/dashboard/meus-artigos');
+          }, 2000);
         } else {
           setSuccess('Artigo submetido com sucesso! Aguarde a aprovação da equipe.');
           setTimeout(() => {
@@ -150,10 +191,13 @@ const ArticleSubmitPage = () => {
     return { color: 'text-green-600', text: `${charCount.toLocaleString()} caracteres` };
   };
 
-  if (authLoading || checkingAuth) {
+  if (authLoading || checkingAuth || loadingEdit) {
     return (
       <div className="min-h-screen bg-slate-50 dark:bg-[#020617] flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#1f4ead]"></div>
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="animate-spin text-[#1f4ead]" size={32} />
+          <p className="text-sm text-slate-500">{loadingEdit ? 'Carregando artigo...' : 'Verificando autenticação...'}</p>
+        </div>
       </div>
     );
   }
@@ -210,10 +254,12 @@ const ArticleSubmitPage = () => {
           {/* Page Header */}
           <div className="bg-white dark:bg-slate-900 rounded-2xl p-6 mb-6">
             <h1 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
-              Submeter Novo Artigo
+              {isEditing ? 'Editar Artigo' : 'Submeter Novo Artigo'}
             </h1>
             <p className="text-slate-600 dark:text-slate-400">
-              Compartilhe seu conhecimento com a comunidade de transporte e logística.
+              {isEditing
+                ? 'Altere os campos abaixo. O artigo será reanalisado pela equipe após salvar.'
+                : 'Compartilhe seu conhecimento com a comunidade de transporte e logística.'}
             </p>
           </div>
 
@@ -271,6 +317,35 @@ const ArticleSubmitPage = () => {
                   maxLength={300}
                 />
                 <p className="text-xs text-slate-500 mt-1">{excerpt.length}/300 caracteres</p>
+              </div>
+
+              {/* Image URL */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl p-6">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Imagem de Destaque
+                </label>
+                <input
+                  type="url"
+                  value={imageUrl}
+                  onChange={(e) => setImageUrl(e.target.value)}
+                  placeholder="https://exemplo.com/imagem.jpg (opcional)"
+                  className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1f4ead] focus:border-transparent"
+                />
+                <p className="text-xs text-slate-500 mt-1">
+                  URL da imagem que aparecerá nos cards e ao compartilhar o artigo
+                </p>
+                {imageUrl && (
+                  <div className="mt-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                    <img
+                      src={imageUrl}
+                      alt="Preview"
+                      className="w-full h-40 object-cover"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Category */}
@@ -416,7 +491,7 @@ const ArticleSubmitPage = () => {
                   ) : (
                     <>
                       <Send size={20} />
-                      Submeter Artigo
+                      {isEditing ? 'Salvar Alterações' : 'Submeter Artigo'}
                     </>
                   )}
                 </button>

@@ -2,6 +2,7 @@ import React from 'react';
 import Header from '../../components/shared/Header';
 import Footer from '../../components/shared/Footer';
 import MarketplaceExplorer from '../../modules/marketplace/MarketplaceExplorer';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
 
 export default function Marketplace() {
   return (
@@ -10,7 +11,12 @@ export default function Marketplace() {
       
       <main className="flex-grow pt-32">
         <div className="max-w-7xl mx-auto px-4">
-          
+
+          <Breadcrumb items={[
+            { label: 'Home', href: '/' },
+            { label: 'Classificados' },
+          ]} linkClassName="hover:text-emerald-600" className="mb-6" />
+
           <header className="mb-10">
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.85] mb-4">
               Portal de <span className="text-emerald-600">Classificados</span>

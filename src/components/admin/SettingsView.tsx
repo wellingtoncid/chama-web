@@ -70,6 +70,7 @@ export default function SettingsView() {
     equipment_types: [],
     certification_types: [],
     cargo_types: [],
+    article_categories: [],
   });
   const [editingList, setEditingList] = useState<string | null>(null);
   const [listInput, setListInput] = useState('');
@@ -122,6 +123,9 @@ export default function SettingsView() {
       }
       if (res.data?.data?.cargo_types) {
         setListSettings(prev => ({ ...prev, cargo_types: JSON.parse(res.data.data.cargo_types) }));
+      }
+      if (res.data?.data?.article_categories) {
+        setListSettings(prev => ({ ...prev, article_categories: JSON.parse(res.data.data.article_categories) }));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -202,6 +206,29 @@ export default function SettingsView() {
     }
   };
 
+  const syncArticleCategories = async (items: any[]) => {
+    const res = await api.get('/admin/article-categories');
+    const existing: any[] = res.data?.data?.categories || [];
+    const existingMap = new Map(existing.map((i: any) => [i.name, i]));
+    const currentNames = new Set(items.map((i: any) => (typeof i === 'string' ? i : i.value)));
+
+    for (const item of existing) {
+      if (!currentNames.has(item.name)) {
+        await api.delete(`/admin/article-categories/${item.id}`);
+      }
+    }
+
+    for (const item of items) {
+      const name = typeof item === 'string' ? item : item.value;
+      const existingItem = existingMap.get(name);
+      if (!existingItem) {
+        await api.post('/admin/article-categories', { name, color: '#1f4ead' });
+      } else if (existingItem.name !== name) {
+        await api.put(`/admin/article-categories/${existingItem.id}`, { name });
+      }
+    }
+  };
+
   const syncCargoTypes = async (items: any[]) => {
     const res = await api.get('/admin/cargo-types');
     const existing: any[] = res.data?.data || [];
@@ -230,7 +257,7 @@ export default function SettingsView() {
   const handleSaveConfig = async () => {
     try {
       setSaving(true);
-      const { vehicle_types, body_types, equipment_types, certification_types, cargo_types, ...restConfig } = config;
+      const { vehicle_types, body_types, equipment_types, certification_types, cargo_types, article_categories, ...restConfig } = config;
 
       // Salva configurações gerais (sem as listas)
       await api.post('/admin-update-settings', restConfig);
@@ -242,6 +269,7 @@ export default function SettingsView() {
         syncListToCrud('equipment_types', listSettings.equipment_types),
         syncListToCrud('certification_types', listSettings.certification_types),
         syncCargoTypes(listSettings.cargo_types),
+        syncArticleCategories(listSettings.article_categories),
       ]);
 
       // Invalida cache do useSiteSettings para refletir nas páginas de criação
@@ -312,6 +340,7 @@ export default function SettingsView() {
               { key: 'equipment_types', label: 'Equipamentos', icon: <Wrench size={20} />, list: listSettings.equipment_types },
               { key: 'certification_types', label: 'Certificações', icon: <Award size={20} />, list: listSettings.certification_types },
               { key: 'cargo_types', label: 'Tipos de Carga', icon: <Package size={20} />, list: listSettings.cargo_types },
+              { key: 'article_categories', label: 'Categorias de Artigos', icon: <BookOpen size={20} />, list: listSettings.article_categories },
             ].map((category) => (
               <div key={category.key} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3 mb-4">

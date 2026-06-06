@@ -4,11 +4,12 @@ import { api } from '../../api/api';
 import { 
   MapPin, Calendar, Share2, Loader2, User, Building2, 
   Phone, Lock, Star, AlertTriangle, Info, ShieldCheck, Flag,
-  Eye, Heart, ChevronRight, Clock, Mail, FileText, Camera
+  Eye, Heart, Clock, Mail, FileText, Camera
 } from 'lucide-react';
 import Header from '../../components/shared/Header';
 import Footer from '../../components/shared/Footer';
 import AdCard from '../../components/shared/AdCard';
+import { Breadcrumb } from '../../components/shared/Breadcrumb';
 import { AdImage } from '../../components/AdImage';
 import AuthModal from '../../components/modals/AuthModal';
 import { useTracker } from '../../services/useTracker';
@@ -219,14 +220,12 @@ export default function ListingDetails() {
       <main className="max-w-7xl mx-auto pt-24 lg:pt-32 pb-20 px-4">
         
         {/* NAVEGAÇÃO */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6 lg:mb-8">
-          <nav className="flex items-center gap-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            <Link to="/" className="hover:text-emerald-600 transition-colors shrink-0">Home</Link>
-            <ChevronRight size={10} className="shrink-0" />
-            <Link to="/marketplace" className="hover:text-emerald-600 transition-colors shrink-0">Classificados</Link>
-            <ChevronRight size={10} className="shrink-0" />
-            <span className="text-slate-600 truncate max-w-[120px] sm:max-w-[200px]">{listing.title}</span>
-          </nav>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          <Breadcrumb items={[
+            { label: 'Home', href: '/' },
+            { label: 'Classificados', href: '/marketplace' },
+            { label: listing.title },
+          ]} linkClassName="hover:text-emerald-600" />
           <div className="flex items-center gap-3 sm:gap-4">
             {Number(listing.views_count) > 0 && (
               <span className="flex items-center gap-1 text-[10px] text-slate-400 font-bold uppercase">

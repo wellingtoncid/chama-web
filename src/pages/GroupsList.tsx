@@ -9,6 +9,7 @@ import GroupCard from '../components/shared/GroupCard';
 import AdCard from '../components/shared/AdCard';
 import { BusinessModal } from '../components/modals/BusinessModal';
 import { useTracker } from '../services/useTracker';
+import { Breadcrumb } from '../components/shared/Breadcrumb';
 
 interface WhatsAppGroup {
   id: number;
@@ -242,6 +243,11 @@ export default function GroupsList() {
 
       <main className="flex-grow pt-32">
         <div className="max-w-7xl mx-auto px-4">
+
+          <Breadcrumb items={[
+            { label: 'Home', href: '/' },
+            { label: 'Grupos' },
+          ]} linkClassName="hover:text-indigo-600" className="mb-6" />
 
           {/* HERO */}
           <header className="mb-10">

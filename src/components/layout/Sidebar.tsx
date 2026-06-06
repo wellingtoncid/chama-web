@@ -38,6 +38,20 @@ const Sidebar = ({ user }: { user: any }) => {
   }, [fetchUserModules]);
 
   useEffect(() => {
+    const fetchAuthorStatus = async () => {
+      try {
+        const res = await api.get('/article-author-status');
+        if (res.data?.success) {
+          setIsAuthor(res.data.data.is_author);
+        }
+      } catch (e) {
+        // silently fail
+      }
+    };
+    fetchAuthorStatus();
+  }, []);
+
+  useEffect(() => {
     if (user?.is_available !== undefined) {
       setIsAvailable(user.is_available);
     }

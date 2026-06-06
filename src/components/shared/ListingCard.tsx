@@ -75,7 +75,7 @@ export default function ListingCard({ data, onClick, onView, className = '' }: L
           </div>
         )}
 
-        {data.is_affiliate && (
+        {!!data.is_affiliate && (
           <div className="absolute top-3 right-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white text-[9px] font-bold px-2.5 py-1 rounded-full shadow-md">
             <ExternalLink size={10} className="inline mr-1" />MERCADO LIVRE
           </div>

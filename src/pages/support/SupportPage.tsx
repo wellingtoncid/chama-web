@@ -376,7 +376,7 @@ export default function SupportPage() {
                             ? 'bg-blue-50 dark:bg-blue-900/20 text-slate-800 dark:text-slate-200 rounded-tl-none'
                             : 'bg-slate-900 dark:bg-slate-700 text-white rounded-tr-none'
                         }`}>
-                          {msg.is_admin_reply && (
+                          {!!msg.is_admin_reply && (
                             <p className="text-[10px] font-black uppercase text-blue-600 dark:text-blue-400 mb-1">Suporte Chama Frete</p>
                           )}
                           <p className="text-sm font-medium">{msg.message}</p>

@@ -236,6 +236,7 @@ export default function AuthorRequestPage() {
           )}
         </div>
       </div>
+      <Footer />
     </div>
   );
 }

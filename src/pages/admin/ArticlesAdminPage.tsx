@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '@/api/api';
 import { 
   FileText, Eye, Check, X, AlertCircle, ChevronLeft, ChevronRight,
-  Loader2, CheckCircle, XCircle, Trash2, Star, Search
+  Loader2, CheckCircle, XCircle, Trash2, Star, Search, Pencil
 } from 'lucide-react';
 import { 
   PageShell, StatsGrid, StatCard,
@@ -313,7 +314,7 @@ export default function ArticlesAdminPage() {
                   <td className="px-5 py-4">
                     <div>
                       <p className="font-black text-slate-800 dark:text-white text-sm uppercase italic line-clamp-1">{row.title}</p>
-                      {row.is_paid && (
+                      {!!row.is_paid && (
                         <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">Patrocinado ({row.paid_plan})</span>
                       )}
                     </div>
@@ -347,6 +348,13 @@ export default function ArticlesAdminPage() {
                       >
                         <Eye size={14} />
                       </a>
+                      <Link
+                        to={`/artigos/submeter?edit=${row.id}`}
+                        className="py-2 px-4 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-lg text-xs font-bold uppercase hover:bg-sky-100 dark:hover:bg-sky-900/50"
+                        title="Editar"
+                      >
+                        <Pencil size={14} />
+                      </Link>
                       {row.status === 'pending' && (
                         <>
                           <button

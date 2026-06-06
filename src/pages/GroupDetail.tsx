@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
-  ArrowLeft, Share2, Loader2, ShieldCheck, Users,
+  Share2, Loader2, ShieldCheck, Users,
   MessageCircle, ExternalLink
 } from 'lucide-react';
 import { api } from '@/api/api';
@@ -11,6 +11,7 @@ import Footer from '@/components/shared/Footer';
 import GroupCard from '@/components/shared/GroupCard';
 import AdCard from '@/components/shared/AdCard';
 import AuthModal from '@/components/modals/AuthModal';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { useTracker } from '@/services/useTracker';
 
 interface WhatsAppGroup {
@@ -181,10 +182,12 @@ export default function GroupDetail() {
       <main className="max-w-7xl mx-auto pt-32 pb-20 px-4">
         
         {/* NAVEGAÇÃO */}
-        <div className="flex items-center justify-between mb-8">
-          <button onClick={() => navigate('/comunidade')} className="flex items-center gap-2 text-slate-400 font-bold hover:text-blue-600 transition-all uppercase text-[10px] tracking-widest">
-            <ArrowLeft size={16} /> Voltar
-          </button>
+        <div className="flex items-center justify-between mb-6">
+          <Breadcrumb items={[
+            { label: 'Home', href: '/' },
+            { label: 'Grupos', href: '/comunidade' },
+            { label: group.region_name || group.category_name },
+          ]} linkClassName="hover:text-blue-600" />
           <button onClick={handleShare} className="flex items-center gap-2 text-slate-400 font-bold hover:text-slate-900 transition-all uppercase text-[10px] tracking-widest">
             Compartilhar <Share2 size={14} />
           </button>

@@ -273,12 +273,12 @@ export default function MyArticlesPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-2">
                       {getStatusBadge(article.status)}
-                      {article.is_paid && (
+                      {!!article.is_paid && (
                         <span className="text-xs text-purple-600 font-bold">
                           Patrocinado ({article.paid_plan})
                         </span>
                       )}
-                      {article.featured && article.status === 'published' && (
+                      {!!article.featured && article.status === 'published' && (
                         <span className="text-xs text-amber-600 font-bold">
                           ★ Destaque
                         </span>

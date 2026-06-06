@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { LogOut, X, ChevronRight, User, LayoutDashboard, MessageSquare } from 'lucide-react';
+import { LogOut, X, ChevronRight, User, LayoutDashboard, MessageSquare, BookOpen } from 'lucide-react';
 import { api } from '@/api/api';
 import { useAuth } from '@/context/AuthContext';
 import { isInternal as isInternalRole, isExternal as isExternalRole, isSuperAdmin as isSuperAdminRole, isDriver as isDriverRole, isCompany as isCompanyRole } from '@/constants/roleUtils';
@@ -35,6 +35,20 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
   useEffect(() => {
     fetchUserModules();
   }, [fetchUserModules]);
+
+  useEffect(() => {
+    const fetchAuthorStatus = async () => {
+      try {
+        const res = await api.get('/article-author-status');
+        if (res.data?.success) {
+          setIsAuthor(res.data.data.is_author);
+        }
+      } catch (e) {
+        // Silently fail
+      }
+    };
+    fetchAuthorStatus();
+  }, []);
 
   const role = String(user?.role || '').toLowerCase();
   const isInternal = isInternalRole(role);
@@ -108,6 +122,15 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
               <MessageSquare size={18} className="text-[#1f4ead]" />
               <span className="text-xs font-bold">Mensagens</span>
             </button>
+            {isAuthor && (
+              <button 
+                onClick={() => handleNavigate('/artigos/submeter')}
+                className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors col-span-2"
+              >
+                <BookOpen size={18} className="text-amber-600" />
+                <span className="text-xs font-bold">Escrever Artigo</span>
+              </button>
+            )}
           </div>
         </div>
 

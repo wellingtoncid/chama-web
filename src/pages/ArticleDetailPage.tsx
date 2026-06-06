@@ -4,6 +4,7 @@ import { api } from '@/api/api';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import AdCard from '@/components/shared/AdCard';
+import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { Clock, Eye, User, ArrowLeft, Share2, Calendar } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 
@@ -13,6 +14,7 @@ interface Article {
   slug: string;
   excerpt: string;
   content: string;
+  image_url?: string;
   author_id: number;
   author_name: string;
   author_avatar: string;
@@ -100,6 +102,7 @@ const ArticleDetailPage = () => {
   usePageMeta(article ? {
     title: articleTitle,
     description: articleDesc,
+    image: article.image_url || undefined,
     url: window.location.href,
     type: 'article',
   } : {});
@@ -155,7 +158,7 @@ const ArticleDetailPage = () => {
       <Header />
       
       {/* Paid Banner */}
-      {article.is_paid && article.paid_banner_image && (
+      {!!article.is_paid && article.paid_banner_image && (
         <div className="bg-slate-100 dark:bg-slate-900 py-4">
           <div className="container mx-auto px-4 max-w-7xl">
             <a 
@@ -175,15 +178,13 @@ const ArticleDetailPage = () => {
       )}
 
       {/* Main Content */}
-      <article className="container mx-auto px-4 py-8 max-w-4xl">
+      <article className="container mx-auto px-4 pt-36 lg:pt-40 pb-8 max-w-4xl">
         {/* Back Link */}
-        <Link 
-          to="/artigos" 
-          className="inline-flex items-center gap-2 text-slate-600 dark:text-slate-400 hover:text-[#1f4ead] mb-6"
-        >
-          <ArrowLeft size={20} />
-          Voltar para artigos
-        </Link>
+        <Breadcrumb items={[
+          { label: 'Home', href: '/' },
+          { label: 'Artigos', href: '/artigos' },
+          { label: article.title },
+        ]} linkClassName="hover:text-[#1f4ead]" className="mb-6" />
 
         {/* Article Header */}
         <header className="max-w-4xl mx-auto mb-8">
@@ -197,12 +198,12 @@ const ArticleDetailPage = () => {
                 {article.category_name}
               </Link>
             )}
-            {article.is_paid && (
+            {!!article.is_paid && (
               <span className="px-3 py-1 rounded text-sm font-bold bg-purple-600 text-white">
                 {article.paid_plan === 'premium' ? 'Patrocínio Premium' : 'Patrocínio'}
               </span>
             )}
-            {article.featured && (
+            {!!article.featured && (
               <span className="px-3 py-1 rounded text-sm font-bold bg-amber-500 text-white">
                 Destaque
               </span>
@@ -264,6 +265,17 @@ const ArticleDetailPage = () => {
           </div>
         </header>
 
+        {/* Hero Image */}
+        {article.image_url && (
+          <div className="max-w-4xl mx-auto mb-8 rounded-2xl overflow-hidden shadow-lg">
+            <img
+              src={article.image_url}
+              alt={article.title}
+              className="w-full h-64 md:h-96 object-cover"
+            />
+          </div>
+        )}
+
         {/* Publicidade - Início */}
         <div className="max-w-4xl mx-auto mb-8">
           <AdCard position="infeed_wide" variant="ecommerce" />
@@ -297,7 +309,7 @@ const ArticleDetailPage = () => {
               to="/artigos/submeter"
               className="inline-flex items-center gap-2 bg-white text-orange-600 px-6 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors"
             >
-              Submitter Artigo
+              Enviar Artigo
             </Link>
           </div>
         </div>

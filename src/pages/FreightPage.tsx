@@ -12,6 +12,7 @@ import FreightCard from '../components/shared/FreightCard';
 import AdCard from '../components/shared/AdCard';
 import { BusinessModal } from "../components/modals/BusinessModal";
 import { VEHICLE_TYPES, BODY_TYPES } from '../constants/freightOptions';
+import { Breadcrumb } from '../components/shared/Breadcrumb';
 
 interface FreightItem {
   id: number;
@@ -165,6 +166,11 @@ export default function FreightPage() {
       <main className="flex-grow pt-32">
         <div className="max-w-7xl mx-auto px-4">
           
+          <Breadcrumb items={[
+            { label: 'Home', href: '/' },
+            { label: 'Fretes' },
+          ]} linkClassName="hover:text-blue-600" className="mb-6" />
+
           <header className="mb-10">
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.85] mb-4">
               Portal de <span className="text-blue-600">Cargas</span>
