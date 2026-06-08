@@ -122,15 +122,6 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
               <MessageSquare size={18} className="text-[#1f4ead]" />
               <span className="text-xs font-bold">Mensagens</span>
             </button>
-            {isAuthor && (
-              <button 
-                onClick={() => handleNavigate('/artigos/submeter')}
-                className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 transition-colors col-span-2"
-              >
-                <BookOpen size={18} className="text-amber-600" />
-                <span className="text-xs font-bold">Escrever Artigo</span>
-              </button>
-            )}
           </div>
         </div>
 

@@ -4,7 +4,10 @@ import { api } from '@/api/api';
 import { useAuth } from '@/context/AuthContext';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
-import { ArrowLeft, Save, Send, AlertCircle, CheckCircle, Loader2 } from 'lucide-react';
+import { ArrowLeft, Save, Send, AlertCircle, CheckCircle, Loader2, Upload, Trash2 } from 'lucide-react';
+import { getImageUrl } from '@/lib/utils';
+import Swal from 'sweetalert2';
+import TextEditor from '@/components/shared/TextEditor';
 
 interface Category {
   id: number;
@@ -34,6 +37,7 @@ const ArticleSubmitPage = () => {
   const [authorStatus, setAuthorStatus] = useState<{is_author: boolean; has_pending_request: boolean} | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingEdit, setLoadingEdit] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -103,6 +107,41 @@ const ArticleSubmitPage = () => {
     }
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Imagem deve ter no máximo 5MB');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('image', file);
+
+    try {
+      setImageUploading(true);
+      setError(null);
+      const res = await api.post('/articles/upload-image', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      if (res.data?.success) {
+        setImageUrl(res.data.data.url);
+      } else {
+        setError(res.data?.message || 'Erro ao enviar imagem');
+      }
+    } catch (err: unknown) {
+      if (err && typeof err === 'object' && 'response' in err) {
+        const axiosErr = err as { response?: { data?: { message?: string } } };
+        setError(axiosErr.response?.data?.message || 'Erro ao enviar imagem');
+      } else {
+        setError('Erro ao enviar imagem');
+      }
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent, asDraft: boolean = false) => {
     e.preventDefault();
     setError(null);
@@ -153,6 +192,77 @@ const ArticleSubmitPage = () => {
       }
 
       if (res.data?.success) {
+        const articleId = res.data.data.article_id;
+
+        if (isPaid && articleId && !isEditing) {
+          setLoading(false);
+          const { value: paymentMethod } = await Swal.fire({
+            title: 'Pagamento Publieditorial',
+            html: `
+              <p style="margin-bottom:20px;font-size:14px;color:#666;">
+                Plano: <strong>${paidPlan === 'premium' ? 'Premium - R$ 497' : 'Standard - R$ 297'}</strong>
+              </p>
+              <div style="text-align:left;">
+                <label style="display:block;margin-bottom:8px;cursor:pointer;padding:8px 12px;border:1px solid #ddd;border-radius:8px;">
+                  <input type="radio" name="payment" value="wallet" style="margin-right:8px;">
+                  Saldo da Carteira
+                </label>
+                <label style="display:block;cursor:pointer;padding:8px 12px;border:1px solid #1f4ead;border-radius:8px;background:#f0f4ff;">
+                  <input type="radio" name="payment" value="mercadopago" checked style="margin-right:8px;">
+                  Cartão de Crédito (Mercado Pago)
+                </label>
+              </div>
+            `,
+            showCancelButton: true,
+            confirmButtonText: 'Pagar Agora',
+            cancelButtonText: 'Pagar Depois',
+            confirmButtonColor: '#1f4ead',
+            preConfirm: () => {
+              const sel = document.querySelector('input[name="payment"]:checked') as HTMLInputElement;
+              return sel?.value || 'mercadopago';
+            }
+          });
+
+          if (paymentMethod) {
+            try {
+              setLoading(true);
+              const payRes = await api.post('/articles/purchase-publieditorial', {
+                article_id: articleId,
+                plan: paidPlan,
+                payment_method: paymentMethod
+              });
+
+              if (payRes.data?.success) {
+                if (payRes.data.payment_method === 'wallet') {
+                  await Swal.fire({
+                    icon: 'success',
+                    title: 'Publieditorial Ativado!',
+                    text: 'Artigo submetido com sucesso. Aguarde aprovação da equipe.',
+                    timer: 3000,
+                    showConfirmButton: false
+                  });
+                  setSuccess('Artigo submetido com sucesso! Publieditorial ativado.');
+                  setTimeout(() => navigate('/dashboard/meus-artigos'), 1500);
+                  return;
+                } else if (payRes.data.checkout_url) {
+                  window.location.href = payRes.data.checkout_url;
+                  return;
+                }
+              } else {
+                Swal.fire({ icon: 'error', title: 'Erro no Pagamento', text: payRes.data?.message || 'Tente novamente' });
+              }
+            } catch {
+              Swal.fire({ icon: 'error', title: 'Erro', text: 'Erro ao processar pagamento' });
+            } finally {
+              setLoading(false);
+            }
+          } else {
+            setSuccess('Artigo submetido! Finalize o pagamento em Meus Artigos.');
+            setTimeout(() => navigate('/dashboard/meus-artigos'), 2000);
+          }
+          return;
+        }
+
         if (asDraft) {
           setSuccess('Rascunho salvo com sucesso!');
         } else if (isEditing) {
@@ -319,33 +429,60 @@ const ArticleSubmitPage = () => {
                 <p className="text-xs text-slate-500 mt-1">{excerpt.length}/300 caracteres</p>
               </div>
 
-              {/* Image URL */}
+              {/* Image Upload */}
               <div className="bg-white dark:bg-slate-900 rounded-xl p-6">
                 <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
                   Imagem de Destaque
                 </label>
-                <input
-                  type="url"
-                  value={imageUrl}
-                  onChange={(e) => setImageUrl(e.target.value)}
-                  placeholder="https://exemplo.com/imagem.jpg (opcional)"
-                  className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1f4ead] focus:border-transparent"
-                />
-                <p className="text-xs text-slate-500 mt-1">
-                  URL da imagem que aparecerá nos cards e ao compartilhar o artigo
-                </p>
-                {imageUrl && (
-                  <div className="mt-3 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+
+                {imageUrl ? (
+                  <div className="relative rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700">
+                    <div className="absolute top-2 left-2 flex items-center gap-1.5 px-2 py-1 bg-green-600 text-white text-[10px] font-bold rounded-lg">
+                      <CheckCircle size={12} />
+                      Imagem enviada
+                    </div>
                     <img
-                      src={imageUrl}
+                      src={getImageUrl(imageUrl)}
                       alt="Preview"
-                      className="w-full h-40 object-cover"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = 'none';
-                      }}
+                      className="w-full h-48 object-cover"
                     />
+                    <button
+                      type="button"
+                      onClick={() => setImageUrl('')}
+                      className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      title="Remover imagem"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
+                ) : (
+                  <label className={`flex flex-col items-center justify-center h-48 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 cursor-pointer hover:border-[#1f4ead] dark:hover:border-[#1f4ead] transition-colors ${imageUploading ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className="flex flex-col items-center gap-2 text-slate-400">
+                      {imageUploading ? (
+                        <>
+                          <Loader2 className="animate-spin" size={24} />
+                          <span className="text-sm font-bold">Enviando...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Upload size={24} />
+                          <span className="text-sm font-bold">Clique para selecionar imagem</span>
+                          <span className="text-xs">JPG, PNG ou WebP • Máx 5MB</span>
+                        </>
+                      )}
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={imageUploading}
+                    />
+                  </label>
                 )}
+                <p className="text-xs text-slate-500 mt-1">
+                  Imagem que aparecerá nos cards e ao compartilhar o artigo
+                </p>
               </div>
 
               {/* Category */}
@@ -375,11 +512,17 @@ const ArticleSubmitPage = () => {
                     {getCharacterStatus().text}
                   </span>
                 </div>
-                <textarea
+                <div className="mb-4 p-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl text-xs text-amber-800 dark:text-amber-200 space-y-2">
+                  <p className="font-bold">⚠️ Espaço Exclusivo para Compartilhar Conhecimento</p>
+                  <p>Este é um ambiente dedicado à troca de experiências, informações e crescimento da nossa comunidade. Para garantir a qualidade e o foco dos conteúdos, todos os artigos passam por uma curadoria editorial antes de serem publicados.</p>
+                  <p><strong>O que é bem-vindo:</strong> Dicas técnicas, análises de mercado, tutorias e conhecimentos práticos que gerem valor para o público.</p>
+                  <p><strong>O que não permitimos:</strong> Autopromoção, propagandas, links afiliados ou anúncios de produtos e serviços no corpo do texto.</p>
+                  <p>Ajude-nos a manter a comunidade unida e focada no que realmente importa: o conhecimento que move o Brasil!</p>
+                </div>
+                <TextEditor
                   value={content}
-                  onChange={(e) => setContent(e.target.value)}
+                  onChange={setContent}
                   placeholder="Escreva seu artigo aqui... (mínimo 2.000 caracteres)"
-                  className="w-full px-4 py-3 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-[#1f4ead] focus:border-transparent resize-y font-sans"
                   rows={20}
                 />
                 <div className="flex gap-4 mt-2 text-xs">
@@ -394,6 +537,10 @@ const ArticleSubmitPage = () => {
 
               {/* Paid Option */}
               <div className="bg-white dark:bg-slate-900 rounded-xl p-6">
+                <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl text-xs text-blue-800 dark:text-blue-200 space-y-2">
+                  <p className="font-bold">📢 Quer divulgar sua marca ou serviço?</p>
+                  <p>Se o seu objetivo é comercial, nós temos o espaço ideal para você! Selecione o campo abaixo para tornar seu artigo em um Publieditorial.</p>
+                </div>
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"

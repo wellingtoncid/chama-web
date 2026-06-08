@@ -2,18 +2,22 @@ import { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '@/api/api';
 import { 
-  FileText, Eye, Check, X, AlertCircle, ChevronLeft, ChevronRight,
-  Loader2, CheckCircle, XCircle, Trash2, Star, Search, Pencil
+  FileText, Eye, X, AlertCircle, ChevronLeft, ChevronRight,
+  Loader2, CheckCircle, XCircle, Trash2, Star, Search, Pencil,
+  DollarSign
 } from 'lucide-react';
 import { 
   PageShell, StatsGrid, StatCard,
 } from '@/components/admin';
+import { getImageUrl } from '@/lib/utils';
 
 interface Article {
   id: number;
   title: string;
   slug: string;
   excerpt: string;
+  content: string;
+  image_url?: string;
   author_id: number;
   author_name: string;
   author_email: string;
@@ -21,8 +25,10 @@ interface Article {
   category_name: string;
   status: 'pending' | 'published' | 'rejected' | 'draft';
   featured: boolean;
+  featured_at: string | null;
   is_paid: boolean;
   paid_plan: string;
+  paid_until: string;
   rejection_reason: string;
   rejection_count: number;
   views_count: number;
@@ -35,13 +41,14 @@ export default function ArticlesAdminPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [filter, setFilter] = useState<'all' | 'pending' | 'published' | 'rejected' | 'draft'>('all');
+  const [filter, setFilter] = useState<'all' | 'pending' | 'published' | 'rejected' | 'draft' | 'paid'>('all');
   const [search, setSearch] = useState('');
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [showViewModal, setShowViewModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [stats, setStats] = useState({ total: 0, pending: 0, published: 0, rejected: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, published: 0, rejected: 0, paid_pending: 0 });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
@@ -57,8 +64,17 @@ export default function ArticlesAdminPage() {
     try {
       setLoading(true);
       setError(null);
-      
-      const res = await api.get('/articles/admin/all');
+
+      const params: Record<string, string> = {};
+      if (filter !== 'all') {
+        if (filter === 'paid') {
+          params.is_paid = '1';
+        } else {
+          params.status = filter;
+        }
+      }
+
+      const res = await api.get('/articles/admin/all', { params });
       
       if (res.data?.success) {
         setArticles(res.data.data.articles || []);
@@ -204,7 +220,7 @@ export default function ArticlesAdminPage() {
   const formatDate = (dateStr: string) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
+    return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
   };
 
   const statusColors: Record<string, string> = {
@@ -239,22 +255,23 @@ export default function ArticlesAdminPage() {
     >
       <div className="mt-6">
         <StatsGrid>
-          <StatCard label="Total" value={stats.total} icon={FileText} />
           <StatCard label="Pendentes" value={stats.pending} variant="yellow" icon={AlertCircle} />
           <StatCard label="Publicados" value={stats.published} variant="green" icon={CheckCircle} />
+          <StatCard label="Publieditorial" value={stats.paid_pending} variant="purple" icon={DollarSign} />
           <StatCard label="Rejeitados" value={stats.rejected} variant="red" icon={XCircle} />
         </StatsGrid>
       </div>
 
-      <div className="flex flex-wrap gap-3 mt-4 items-center">
+      <div className="flex flex-wrap gap-3 items-center mb-4 mt-6">
         <select
           value={filter}
-          onChange={e => setFilter(e.target.value as 'all' | 'pending' | 'published' | 'rejected' | 'draft')}
+          onChange={e => setFilter(e.target.value as 'all' | 'pending' | 'published' | 'rejected' | 'draft' | 'paid')}
           className="bg-white dark:bg-slate-800 px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold text-slate-700 dark:text-slate-300 outline-none focus:ring-2 focus:ring-blue-500"
         >
           <option value="all">Todos os Status</option>
           <option value="pending">Pendentes</option>
           <option value="published">Publicados</option>
+          <option value="paid">Publieditorial</option>
           <option value="rejected">Rejeitados</option>
           <option value="draft">Rascunhos</option>
         </select>
@@ -295,41 +312,73 @@ export default function ArticlesAdminPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50 dark:bg-slate-900/50 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-200 dark:border-slate-700">
+                <th className="px-5 py-4 w-14"></th>
                 <th className="px-5 py-4">Artigo</th>
                 <th className="px-5 py-4">Autor</th>
-                <th className="px-5 py-4">Categoria</th>
                 <th className="px-5 py-4">Status</th>
                 <th className="px-5 py-4 text-center">Views</th>
-                <th className="px-5 py-4">Data</th>
+                <th className="px-5 py-4">Criado</th>
+                <th className="px-5 py-4">Publicado</th>
                 <th className="px-5 py-4 text-right">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
               {loading ? (
-                <tr><td colSpan={7} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
+                <tr><td colSpan={8} className="py-24 text-center"><Loader2 className="animate-spin mx-auto text-slate-300" size={32} /></td></tr>
               ) : paginatedArticles.length === 0 ? (
-                <tr><td colSpan={7} className="py-20 text-center"><FileText size={40} className="mx-auto text-slate-200 dark:text-slate-600 mb-4" /><p className="text-slate-400 font-bold text-sm uppercase">Nenhum artigo encontrado</p></td></tr>
+                <tr><td colSpan={8} className="py-20 text-center"><FileText size={40} className="mx-auto text-slate-200 dark:text-slate-600 mb-4" /><p className="text-slate-400 font-bold text-sm uppercase">Nenhum artigo encontrado</p></td></tr>
               ) : paginatedArticles.map((row) => (
-                <tr key={row.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <div>
-                      <p className="font-black text-slate-800 dark:text-white text-sm uppercase italic line-clamp-1">{row.title}</p>
-                      {!!row.is_paid && (
-                        <span className="text-[10px] font-bold text-purple-600 dark:text-purple-400">Patrocinado ({row.paid_plan})</span>
+                <tr key={row.id} className={`hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors ${row.is_paid ? 'bg-purple-50/50 dark:bg-purple-900/10' : ''}`}>
+                  <td className="px-5 py-4 w-14">
+                    <div className="flex items-center gap-2">
+                      {!!row.is_paid && <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0" title="Publieditorial" />}
+                      {row.image_url ? (
+                        <img src={getImageUrl(row.image_url)} alt="" className="w-8 h-8 rounded object-cover" />
+                      ) : (
+                        <div className="w-8 h-8 rounded bg-slate-200 dark:bg-slate-700 flex items-center justify-center">
+                          <FileText size={14} className="text-slate-400" />
+                        </div>
                       )}
                     </div>
                   </td>
                   <td className="px-5 py-4">
+                    <div className="flex items-center gap-2">
+                      <div>
+                        <p className="text-slate-800 dark:text-white text-sm uppercase line-clamp-1">{row.title}</p>
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                          {!!row.is_paid && (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-700">
+                              <DollarSign size={10} /> Publieditorial {row.paid_plan === 'premium' ? 'Premium' : 'Standard'}
+                            </span>
+                          )}
+                          {!!row.featured && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                              <Star size={10} className="fill-current" /> Destaque{row.featured_at ? ` ${new Date(row.featured_at).toLocaleDateString('pt-BR')}` : ''}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-5 py-4">
                     <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{row.author_name}</p>
-                    <p className="text-[10px] font-bold text-slate-400">{row.author_email}</p>
                   </td>
                   <td className="px-5 py-4">
-                    <span className="text-xs font-bold text-slate-600 dark:text-slate-400">{row.category_name}</span>
-                  </td>
-                  <td className="px-5 py-4">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${statusColors[row.status]}`}>
-                      {statusLabels[row.status]}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold ${statusColors[row.status]}`}>
+                        {statusLabels[row.status]}
+                      </span>
+                      {row.status === 'rejected' && row.rejection_count > 0 && (
+                        <span className="text-[10px] font-bold text-red-400" title={`Rejeitado ${row.rejection_count}x`}>
+                          ({row.rejection_count}x)
+                        </span>
+                      )}
+                    </div>
+                    {row.status === 'rejected' && row.rejection_reason && (
+                      <p className="text-[10px] text-red-400 mt-0.5 line-clamp-1 max-w-[160px]" title={row.rejection_reason}>
+                        {row.rejection_reason}
+                      </p>
+                    )}
                   </td>
                   <td className="px-5 py-4 text-center">
                     <span className="text-xs font-bold text-slate-500 dark:text-slate-400">{row.views_count}</span>
@@ -337,17 +386,18 @@ export default function ArticlesAdminPage() {
                   <td className="px-5 py-4">
                     <span className="text-xs font-bold text-slate-400">{formatDate(row.created_at)}</span>
                   </td>
+                  <td className="px-5 py-4">
+                    <span className="text-xs font-bold text-slate-400">{formatDate(row.published_at)}</span>
+                  </td>
                   <td className="px-5 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <a
-                        href={`/artigos/${row.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <button
+                        onClick={() => { setSelectedArticle(row); setShowViewModal(true); }}
                         className="py-2 px-4 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-lg text-xs font-bold uppercase hover:bg-slate-100 dark:hover:bg-slate-600"
                         title="Visualizar"
                       >
                         <Eye size={14} />
-                      </a>
+                      </button>
                       <Link
                         to={`/artigos/submeter?edit=${row.id}`}
                         className="py-2 px-4 bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 rounded-lg text-xs font-bold uppercase hover:bg-sky-100 dark:hover:bg-sky-900/50"
@@ -377,6 +427,7 @@ export default function ArticlesAdminPage() {
                         <button
                           onClick={() => handleToggleFeatured(row.id, row.featured)}
                           disabled={actionLoading}
+                          title={row.featured ? 'Remover destaque' : 'Destacar artigo'}
                           className={`py-2 px-4 rounded-lg text-xs font-bold uppercase disabled:opacity-50 ${
                             row.featured ? 'bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 hover:text-amber-600 dark:hover:text-amber-400'
                           }`}
@@ -426,6 +477,120 @@ export default function ArticlesAdminPage() {
           </div>
         )}
       </div>
+
+      {showViewModal && selectedArticle && (
+        <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex items-start justify-center p-4 pt-12 overflow-y-auto">
+          <div className="bg-white dark:bg-slate-800 w-full max-w-3xl rounded-2xl shadow-2xl animate-in zoom-in-95 duration-300 overflow-hidden">
+            <div className="sticky top-0 bg-white dark:bg-slate-800 z-10 flex items-center justify-between p-5 border-b border-slate-200 dark:border-slate-700">
+              <h3 className="text-lg font-bold text-slate-800 dark:text-white line-clamp-1">{selectedArticle.title}</h3>
+              <button onClick={() => { setShowViewModal(false); setSelectedArticle(null); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl shrink-0">
+                <X size={20} className="text-slate-500 dark:text-slate-400" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-5">
+              {selectedArticle.image_url && (
+                <img src={getImageUrl(selectedArticle.image_url)} alt={selectedArticle.title} className="w-full h-56 object-cover rounded-xl" />
+              )}
+
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                {selectedArticle.category_name && (
+                  <span className="px-2 py-1 rounded-lg bg-[#1f4ead]/10 text-[#1f4ead] font-bold">{selectedArticle.category_name}</span>
+                )}
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold ${statusColors[selectedArticle.status]}`}>
+                  {statusLabels[selectedArticle.status]}
+                </span>
+                {!!selectedArticle.featured && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 font-bold">
+                    <Star size={12} className="fill-current" /> Destaque
+                  </span>
+                )}
+                {!!selectedArticle.is_paid && (
+                  <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl space-y-2">
+                    <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
+                      <DollarSign size={18} />
+                      <span className="font-bold text-sm">Publieditorial</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 text-xs text-purple-600 dark:text-purple-400">
+                      <div>
+                        <span className="font-bold">Plano:</span> {selectedArticle.paid_plan === 'premium' ? 'Premium - R$ 497' : 'Standard - R$ 297'}
+                      </div>
+                      {selectedArticle.paid_until && (
+                        <div>
+                          <span className="font-bold">Válido até:</span> {formatDate(selectedArticle.paid_until)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex items-center gap-3 text-xs text-slate-500 dark:text-slate-400 pb-3 border-b border-slate-100 dark:border-slate-700">
+                <span className="font-bold">{selectedArticle.author_name}</span>
+                <span>•</span>
+                <span>Criado {formatDate(selectedArticle.created_at)}</span>
+                {selectedArticle.published_at && (
+                  <>
+                    <span>•</span>
+                    <span>Publicado {formatDate(selectedArticle.published_at)}</span>
+                  </>
+                )}
+                <span>•</span>
+                <span>{selectedArticle.views_count} visualizações</span>
+              </div>
+
+              {selectedArticle.excerpt && (
+                <p className="text-sm text-slate-600 dark:text-slate-300 italic">{selectedArticle.excerpt}</p>
+              )}
+
+              {selectedArticle.rejection_reason && (
+                <div className="p-3 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+                  <p className="text-xs font-bold text-red-700 dark:text-red-400 mb-1">Motivo da rejeição ({selectedArticle.rejection_count}x):</p>
+                  <p className="text-xs text-red-600 dark:text-red-300">{selectedArticle.rejection_reason}</p>
+                </div>
+              )}
+
+              <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:font-bold prose-p:text-slate-700 dark:prose-p:text-slate-300 prose-a:text-[#1f4ead] prose-img:rounded-lg max-h-80 overflow-y-auto p-4 bg-slate-50 dark:bg-slate-900/50 rounded-xl">
+                <div dangerouslySetInnerHTML={{ __html: selectedArticle.content }} />
+              </div>
+            </div>
+
+            <div className="sticky bottom-0 bg-white dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 p-4 flex justify-end gap-3">
+              {selectedArticle.status === 'pending' && (
+                <>
+                  <button
+                    onClick={() => { setShowViewModal(false); setSelectedArticle(selectedArticle); setShowRejectModal(true); }}
+                    disabled={actionLoading}
+                    className="py-2.5 px-5 rounded-xl border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-bold uppercase hover:bg-red-50 dark:hover:bg-red-900/20 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    <XCircle size={16} />
+                    Rejeitar
+                  </button>
+                  <button
+                    onClick={() => { handleApprove(selectedArticle.id); setShowViewModal(false); }}
+                    disabled={actionLoading}
+                    className="py-2.5 px-5 rounded-xl bg-emerald-600 text-white text-xs font-bold uppercase hover:bg-emerald-700 disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {actionLoading ? <Loader2 className="animate-spin" size={16} /> : <><CheckCircle size={16} /> Aprovar</>}
+                  </button>
+                </>
+              )}
+              {selectedArticle.status === 'published' && (
+                <button
+                  onClick={() => { handleToggleFeatured(selectedArticle.id, selectedArticle.featured); setShowViewModal(false); }}
+                  disabled={actionLoading}
+                  className={`py-2.5 px-5 rounded-xl text-xs font-bold uppercase disabled:opacity-50 flex items-center gap-2 ${
+                    selectedArticle.featured ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                  }`}
+                >
+                  <Star size={16} className={selectedArticle.featured ? 'fill-current' : ''} />
+                  {selectedArticle.featured ? 'Remover Destaque' : 'Destacar'}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {showRejectModal && selectedArticle && (
         <div className="fixed inset-0 bg-slate-900/90 backdrop-blur-md z-[200] flex items-center justify-center p-6">

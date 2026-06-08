@@ -157,6 +157,7 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
       setFormData({
         ...user, ...extras,
         bio: user.bio || '',
+        headline: user.headline || '',
         instagram: extras.instagram || user.instagram || '',
         linkedin: extras.linkedin || user.linkedin || '',
         website: extras.website || user.website || '',
@@ -411,6 +412,12 @@ const MyProfile = ({ user, refreshUser }: MyProfileProps) => {
                 <div className={`w-1 h-8 ${theme.bg} rounded-full`} />
                 <MessageCircle size={18} className={theme.subtle} />
                 <h3 className="text-base font-black uppercase italic text-slate-900 dark:text-white">Apresentação</h3>
+              </div>
+              <div className="mb-4">
+                <label className="text-[10px] font-bold uppercase text-slate-400 mb-1.5 block">Headline (cargo/resumo)</label>
+                <input value={formData.headline || ''} onChange={e => setFormData({ ...formData, headline: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 outline-none font-medium text-sm text-slate-700 dark:text-slate-300 transition-all focus:border-slate-300 dark:focus:border-slate-600 focus:ring-2"
+                  placeholder="Ex: Motorista especializado em cargas frigoríficas | Sudeste" maxLength={200} />
               </div>
               <textarea value={formData.bio} onChange={e => setFormData({ ...formData, bio: e.target.value })}
                 className={`w-full p-5 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-slate-700 outline-none font-medium text-sm text-slate-700 dark:text-slate-300 min-h-[160px] transition-all resize-none focus:border-slate-300 dark:focus:border-slate-600 focus:ring-2 ${theme.ring}`}

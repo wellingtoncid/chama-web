@@ -8,6 +8,7 @@ import ForCompanies from "../components/home/ForCompanies";
 import AdCard from "../components/shared/AdCard";
 import CTA from "../components/home/CTA";
 import Footer from "../components/shared/Footer";
+import ArticlesSection from "../components/home/ArticlesSection";
 
 const Index = () => {
   return (
@@ -31,6 +32,8 @@ const Index = () => {
           <ForDrivers />
           <ForCompanies />
         </section>
+
+        <ArticlesSection />
 
         <div className="container mx-auto px-4 py-12">
           <div className="max-w-4xl mx-auto">

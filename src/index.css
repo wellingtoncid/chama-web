@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* No Tailwind v4, variáveis definidas em @theme tornam-se 
   automaticamente classes utilitárias (ex: bg-background)

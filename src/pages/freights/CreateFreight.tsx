@@ -9,6 +9,20 @@ import { Button } from '../../components/ui/Button';
 import DashboardShell from '../../components/layout/DashboardShell';
 import { parseBrazilianNumber } from '../../lib/utils';
 
+function formatBRInteger(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  return digits ? Number(digits).toLocaleString('pt-BR') : '';
+}
+
+function formatBRPrice(value: string): string {
+  const digits = value.replace(/\D/g, '');
+  if (!digits) return '';
+  const padded = digits.padStart(3, '0');
+  const intPart = padded.slice(0, -2).replace(/^0+/, '') || '0';
+  const decPart = padded.slice(-2);
+  return `${Number(intPart).toLocaleString('pt-BR')},${decPart}`;
+}
+
 function parseJsonArray(value: any): string[] {
   if (Array.isArray(value)) return value;
   if (typeof value === 'string' && value) {
@@ -101,12 +115,12 @@ export default function CreateFreight() {
           dest_state: editData.dest_state || '',
           dest_city: editData.dest_city || '',
           product: editData.product || '',
-          weight: editData.weight !== undefined ? String(editData.weight) : '',
+          weight: editData.weight !== undefined ? formatBRInteger(String(editData.weight)) : '',
           cargo_type_id: editData.cargo_type_id ? String(editData.cargo_type_id) : '',
-          distance_km: editData.distance_km ? String(editData.distance_km) : '',
+          distance_km: editData.distance_km ? formatBRInteger(String(editData.distance_km)) : '',
           vehicle_type: editData.vehicle_type || '',
           body_type: editData.body_type || '',
-          price: editData.price !== undefined ? String(editData.price).replace('.', ',') : '',
+          price: editData.price !== undefined ? Number(editData.price).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '',
           description: editData.description || '',
           contact_preference: editData.contact_preference || 'both',
           equipment_needed: parseJsonArray(editData.equipment_needed),
@@ -146,8 +160,8 @@ export default function CreateFreight() {
       });
       if (res.data?.success) {
         const km = Math.round(Number(res.data.distance_km));
-        setFormData(prev => ({ ...prev, distance_km: String(km) }));
-        showAlert(`Distância calculada: ${km} km`, 'success');
+        setFormData(prev => ({ ...prev, distance_km: formatBRInteger(String(km)) }));
+        showAlert(`Distância calculada: ${km.toLocaleString('pt-BR')} km`, 'success');
       } else {
         showAlert(res.data?.message || 'Erro ao calcular distância.', 'error');
       }
@@ -173,7 +187,7 @@ export default function CreateFreight() {
         account_id: user?.account_id,
         weight: parseBrazilianNumber(formData.weight),
         cargo_type_id: formData.cargo_type_id ? Number(formData.cargo_type_id) : null,
-        distance_km: formData.distance_km ? parseFloat(formData.distance_km) : null,
+        distance_km: formData.distance_km ? parseBrazilianNumber(formData.distance_km) : null,
         price: parseBrazilianNumber(formData.price),
         vehicle_type: vehicleRows.map(r => r.vehicle).filter(Boolean).join(',') || null,
         body_type: vehicleRows.map(r => r.body).filter(Boolean).join(',') || null,
@@ -285,13 +299,13 @@ export default function CreateFreight() {
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Distância (km)</label>
                 <div className="flex gap-2">
                   <input
-                    type="number"
-                    step="1"
+                    type="text"
+                    inputMode="numeric"
                     min="0"
                     value={formData.distance_km}
                     placeholder="Ex: 850"
                     className="flex-1 p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200"
-                    onChange={e => setFormData({ ...formData, distance_km: e.target.value })}
+                    onChange={e => setFormData({ ...formData, distance_km: formatBRInteger(e.target.value) })}
                   />
                   <button
                     type="button"
@@ -306,7 +320,7 @@ export default function CreateFreight() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-slate-500 dark:text-slate-400 uppercase ml-2">Peso (kg)</label>
-                <input type="text" inputMode="decimal" required value={formData.weight} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData(prev => ({ ...prev, weight: e.target.value.replace(/[^0-9.,]/g, '') }))} />
+                <input type="text" inputMode="numeric" required value={formData.weight} className="w-full p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl font-bold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200" onChange={e => setFormData(prev => ({ ...prev, weight: formatBRInteger(e.target.value) }))} />
               </div>
             </div>
 
@@ -325,7 +339,7 @@ export default function CreateFreight() {
               </div>
               <div className="space-y-2">
                 <label className="text-xs font-black text-emerald-600 dark:text-emerald-400 uppercase ml-2 flex items-center gap-1"><DollarSign size={10} /> VALOR</label>
-                <input type="text" inputMode="decimal" required value={formData.price} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-200 dark:border-emerald-800 tabular-nums" onChange={e => setFormData(prev => ({ ...prev, price: e.target.value.replace(/[^0-9,]/g, '') }))} />
+                <input type="text" inputMode="numeric" required value={formData.price} className="w-full p-4 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 rounded-2xl font-black border border-emerald-200 dark:border-emerald-800 tabular-nums" onChange={e => setFormData(prev => ({ ...prev, price: formatBRPrice(e.target.value) }))} />
               </div>
             </div>
 

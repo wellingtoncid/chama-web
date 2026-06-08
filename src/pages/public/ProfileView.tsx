@@ -48,6 +48,9 @@ import {
   X,
   Megaphone,
   Loader2,
+  Globe,
+  Instagram,
+  Linkedin,
 } from 'lucide-react';
 import { api } from '../../api/api';
 import { useTracker } from '../../services/useTracker';
@@ -485,34 +488,53 @@ export default function ProfileView() {
                   {displayName}
                 </h1>
 
-                <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-slate-400 font-bold text-[11px] uppercase tracking-widest">
+                <div className="flex flex-wrap justify-center md:justify-start items-center gap-4 text-slate-400 font-bold text-[11px] tracking-widest">
                   <span className={`flex items-center gap-2 ${theme.text}`}>
                     <MapPinned size={18} /> {profile.city || 'Atendimento'} - {profile.state || 'Brasil'}
                   </span>
                   {profile.member_since && (
                     <span className="flex items-center gap-2">
                       <Calendar size={18} /> No Chama Frete desde {new Date(profile.member_since).getFullYear()}
-                    </span> 
+                    </span>
+                  )}
+                  {isLoggedIn ? (
+                    profile.whatsapp_clean ? (
+                      <button
+                        onClick={handleWhatsAppClick}
+                        className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 transition-colors"
+                      >
+                        <MessageCircle size={18} />
+                        <span>WhatsApp</span>
+                      </button>
+                    ) : null
+                  ) : (
+                    <span className="flex items-center gap-1.5 text-slate-300 dark:text-slate-600">
+                      <Lock size={14} />
+                      <span>WhatsApp (login)</span>
+                    </span>
+                  )}
+                  {websiteUrl && (
+                    <a href={websiteUrl} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1.5 text-sky-600 dark:text-sky-400 hover:text-sky-700 dark:hover:text-sky-300 transition-colors">
+                      <Globe size={18} />
+                      <span>Site</span>
+                    </a>
+                  )}
+                  {instagramUrl && (
+                    <a href={instagramUrl} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1.5 text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors">
+                      <Instagram size={18} />
+                      <span>Instagram</span>
+                    </a>
+                  )}
+                  {linkedinUrl && (
+                    <a href={linkedinUrl} target="_blank" rel="noreferrer"
+                      className="flex items-center gap-1.5 text-blue-700 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 transition-colors">
+                      <Linkedin size={18} />
+                      <span>LinkedIn</span>
+                    </a>
                   )}
                 </div>
-
-                {isLoggedIn && profile.whatsapp_clean ? (
-                  <button
-                    onClick={handleWhatsAppClick}
-                    className={`inline-flex items-center gap-4 ${theme.bg} hover:scale-[1.02] text-white px-8 py-5 rounded-[2rem] font-black uppercase italic transition-all shadow-xl mt-4`}
-                  >
-                    <MessageCircle size={24} />
-                    <div className="text-left leading-tight">
-                      <p className="text-[10px] opacity-80 not-italic uppercase">Contato</p>
-                      <p className="text-lg">WhatsApp</p>
-                    </div>
-                  </button>
-                ) : (
-                  <div className="inline-flex items-center gap-3 bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-6 py-4 rounded-2xl mt-4">
-                    <Lock size={20} />
-                    <span className="text-[11px] font-bold uppercase">Faça login para ver o contato</span>
-                  </div>
-                )}
               </div>
             </div>
 
@@ -595,30 +617,6 @@ export default function ProfileView() {
               </div>
             </div>
 
-            {/* ESTATÍSTICAS PÚBLICAS */}
-            {(profile.total_active_freights > 0 || profile.total_active_listings > 0 || profile.total_active_ads > 0 || profile.experience_years > 0) && (
-              <div className="mt-12 pt-10 border-t border-slate-100 dark:border-slate-800">
-                <h3 className="text-slate-900 dark:text-white font-black uppercase italic text-sm tracking-widest flex items-center gap-3 mb-6">
-                  <div className={`w-10 h-1.5 ${theme.bg} rounded-full`} />
-                  Estatísticas
-                </h3>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  {profile.total_active_freights > 0 && (
-                    <StatCard label="Fretes Ativos" value={profile.total_active_freights} icon="Truck" />
-                  )}
-                  {profile.total_active_listings > 0 && (
-                    <StatCard label="Anúncios no Marketpl." value={profile.total_active_listings} icon="Building2" />
-                  )}
-                  {profile.total_active_ads > 0 && (
-                    <StatCard label="Anúncios Publicit." value={profile.total_active_ads} icon="Megaphone" />
-                  )}
-                  {profile.experience_years > 0 && (
-                    <StatCard label="Anos de Experiência" value={profile.experience_years} icon="Calendar" />
-                  )}
-                </div>
-              </div>
-            )}
-
             {/* AVALIAÇÕES EXPANSÍVEL */}
             <div className="mt-8">
               <ReviewsExpandable
@@ -628,47 +626,62 @@ export default function ProfileView() {
               />
             </div>
 
-            {/* REDES SOCIAIS */}
-            {(instagramUrl || linkedinUrl || websiteUrl) && (
-              <div className="mt-8 flex flex-wrap items-center gap-4">
-                {websiteUrl && (
-                  <a
-                    href={websiteUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-sky-50 text-sky-600 border border-sky-100 hover:bg-sky-100 dark:bg-sky-500/10 dark:text-sky-400 dark:border-sky-500/20"
-                  >
-                    Site
-                  </a>
-                )}
-                {instagramUrl && (
-                  <a
-                    href={instagramUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-pink-50 text-pink-600 border border-pink-100 hover:bg-pink-100 dark:bg-pink-500/10 dark:text-pink-400 dark:border-pink-500/20"
-                  >
-                    Instagram
-                  </a>
-                )}
-                {linkedinUrl && (
-                  <a
-                    href={linkedinUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs font-black uppercase tracking-widest bg-slate-900 text-white border border-slate-800 hover:bg-black dark:bg-slate-700 dark:border-slate-600"
-                  >
-                    LinkedIn
-                  </a>
-                )}
-              </div>
-            )}
           </div>
 
           {/* SPOTLIGHT AD */}
           <div className="mt-12 max-w-4xl mx-auto">
             <AdCard position="spotlight" variant="ecommerce" state={profile.state} city={profile.city} />
           </div>
+
+          {/* LISTAGEM DE POSTS */}
+          {hasFreights && (
+            <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
+                  Fretes Disponíveis
+                </h2>
+                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
+                  {freights.length} {freights.length === 1 ? 'oferta' : 'ofertas'}
+                </span>
+              </div>
+              <div className="space-y-4">
+                {freights.map((item) => (
+                  <FreightRow
+                    key={item.id}
+                    data={{ ...item, value: (item as Record<string, unknown>).price || (item as Record<string, unknown>).value }}
+                    onClick={() => navigate(`/frete/${(item as Record<string, unknown>).slug || item.id}`)}
+                    showDate
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+
+          {hasMarketplace && (
+            <section className="mt-12">
+              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
+                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
+                  {isDriver ? 'Anúncios no Marketplace' : 'Produtos no Marketplace'}
+                </h2>
+                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
+                  {marketplaceItems.length} {marketplaceItems.length === 1 ? 'anúncio' : 'anúncios'}
+                </span>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {marketplaceItems.map((item) => {
+                  const itemData = item as unknown as Parameters<typeof ListingCard>[0]['data'];
+                  return (
+                    <ListingCard
+                      key={item.id}
+                      data={itemData}
+                      onView={() => handleListingView(item.id)}
+                      onClick={() => handleListingClick((item as Record<string, unknown>).slug as string, item.id)}
+                    />
+                  );
+                })}
+              </div>
+            </section>
+          )}
 
           {/* ARTIGOS DO AUTOR */}
           {articlesTotal > 0 && (
@@ -726,56 +739,6 @@ export default function ProfileView() {
                   )}
                 </div>
               )}
-            </section>
-          )}
-
-            {/* LISTAGEM DE POSTS */}
-          {hasFreights && (
-            <section className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
-                  Fretes Disponíveis
-                </h2>
-                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
-                  {freights.length} {freights.length === 1 ? 'oferta' : 'ofertas'}
-                </span>
-              </div>
-              <div className="space-y-4">
-                {freights.map((item) => (
-                  <FreightRow
-                    key={item.id}
-                    data={{ ...item, value: (item as Record<string, unknown>).price || (item as Record<string, unknown>).value }}
-                    onClick={() => navigate(`/frete/${(item as Record<string, unknown>).slug || item.id}`)}
-                    showDate
-                  />
-                ))}
-              </div>
-            </section>
-          )}
-
-          {hasMarketplace && (
-            <section className="mt-12">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
-                <h2 className="text-2xl md:text-3xl font-black uppercase italic text-slate-900 dark:text-white tracking-tighter">
-                  {isDriver ? 'Anúncios no Marketplace' : 'Produtos no Marketplace'}
-                </h2>
-                <span className="bg-white dark:bg-slate-900 px-4 py-2 rounded-full text-xs font-black text-slate-500 border border-slate-200 dark:border-slate-700 uppercase">
-                  {marketplaceItems.length} {marketplaceItems.length === 1 ? 'anúncio' : 'anúncios'}
-                </span>
-              </div>
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {marketplaceItems.map((item) => {
-                  const itemData = item as unknown as Parameters<typeof ListingCard>[0]['data'];
-                  return (
-                    <ListingCard
-                      key={item.id}
-                      data={itemData}
-                      onView={() => handleListingView(item.id)}
-                      onClick={() => handleListingClick((item as Record<string, unknown>).slug as string, item.id)}
-                    />
-                  );
-                })}
-              </div>
             </section>
           )}
 

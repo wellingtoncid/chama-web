@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Calendar, BookOpen } from 'lucide-react';
+import { getImageUrl } from '@/lib/utils';
 
 interface ArticleCardProps {
   article: {
@@ -89,7 +90,7 @@ export default function ArticleCard({ article }: ArticleCardProps) {
         {article.image_url && (
           <div className="sm:w-48 shrink-0">
             <img
-              src={article.image_url}
+              src={getImageUrl(article.image_url)}
               alt={article.title}
               className="w-full h-40 sm:h-full object-cover"
             />

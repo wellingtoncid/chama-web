@@ -328,15 +328,24 @@ export default function MyArticlesPage() {
 
                   <div className="flex items-center gap-2">
                     {article.status === 'published' && (
-                      <a
-                        href={`/artigos/${article.slug}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="p-2 text-slate-500 hover:text-orange-500 transition-colors"
-                        title="Visualizar"
-                      >
-                        <Eye size={18} />
-                      </a>
+                      <>
+                        <a
+                          href={`/artigos/${article.slug}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 text-slate-500 hover:text-orange-500 transition-colors"
+                          title="Visualizar"
+                        >
+                          <Eye size={18} />
+                        </a>
+                        <Link
+                          to={`/artigos/submeter?edit=${article.id}`}
+                          className="p-2 text-slate-500 hover:text-orange-500 transition-colors"
+                          title="Editar"
+                        >
+                          <Pencil size={18} />
+                        </Link>
+                      </>
                     )}
                     
                     {article.status === 'draft' && (

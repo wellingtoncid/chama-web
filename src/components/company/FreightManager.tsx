@@ -13,7 +13,7 @@ import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 import { UsageMeter } from '../shared/UsageMeter';
 import { StatsGrid, StatCard, StatusBadge, TimeFilter } from '@/components/admin';
 import DashboardShell from '@/components/layout/DashboardShell';
-import { formatWeight } from '@/lib/utils';
+
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
@@ -395,7 +395,6 @@ return (
                 <tr>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Rota</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase">Produto</th>
-                  <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Tipo</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Status</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Valor</th>
                   <th className="px-4 py-3 text-left text-xs font-bold text-slate-500 dark:text-slate-400 uppercase w-[1%] whitespace-nowrap">Data</th>
@@ -429,17 +428,12 @@ return (
                       </td>
                       <td className="px-4 py-3">
                         <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">{f.product || 'Carga Geral'}</div>
-                        <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 mt-px">
-                          <span>{formatWeight(f.weight)}</span>
-                          {f.distance_km && <span>• {f.distance_km} km</span>}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-700 text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase">
-                          {f.cargo_type_name || (f.cargo_type_id ? 'Geral' : '—')}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
+                          <div className="flex items-center gap-2 text-[10px] text-slate-400 dark:text-slate-500 mt-px">
+                            <span>{Math.round(Number(f.weight)).toLocaleString('pt-BR')} kg</span>
+                            {f.distance_km && <span>• {Math.round(Number(f.distance_km)).toLocaleString('pt-BR')} km</span>}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
                         <StatusBadge status={isExpired(f.expires_at) ? 'expired' : (statusBadgeMap[f.status] ?? 'active')} />
                       </td>
                       <td className="px-4 py-3">
