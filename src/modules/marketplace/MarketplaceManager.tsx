@@ -130,12 +130,14 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
     }
   };
 
+  const getEffectiveStatus = (item: ListingItem) => item.expires_at && new Date(item.expires_at) < new Date() ? 'expired' : item.status;
+
   const stats = useMemo(() => {
     const total = items.length;
-    const active = items.filter(i => i.status === 'active').length;
+    const active = items.filter(i => getEffectiveStatus(i) === 'active').length;
     const sold = items.filter(i => i.status === 'sold').length;
-    const paused = items.filter(i => i.status === 'paused').length;
-    const expired = items.filter(i => i.status === 'expired').length;
+    const paused = items.filter(i => getEffectiveStatus(i) === 'paused').length;
+    const expired = items.filter(i => getEffectiveStatus(i) === 'expired').length;
     const totalViews = items.reduce((acc, i) => acc + (i.views_count || 0), 0);
     const totalLeads = items.reduce((acc, i) => acc + (i.contact_requests_count || 0), 0);
     return { total, active, sold, paused, expired, totalViews, totalLeads };
@@ -144,7 +146,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
   const filteredItems = useMemo(() => {
     let result = items;
     if (activeTab !== 'all') {
-      result = result.filter(i => i.status === activeTab);
+      result = result.filter(i => getEffectiveStatus(i) === activeTab);
     }
     if (searchTerm.trim()) {
       const term = searchTerm.toLowerCase();
@@ -515,7 +517,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
           </div>
           <div className="flex gap-1 overflow-x-auto">
             {STATUS_TABS.map((tab) => {
-              const count = tab.key === 'all' ? items.length : items.filter(i => i.status === tab.key).length;
+              const count = tab.key === 'all' ? items.length : items.filter(i => getEffectiveStatus(i) === tab.key).length;
               return (
                 <button
                   key={tab.key}
@@ -556,6 +558,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
               const imageUrl = item.main_image || item.images?.[0];
               const isProcessing = processingId === `boost-${item.id}`;
               const daysLeft = getDaysUntilExpiry(item.expires_at);
+              const effectiveStatus = getEffectiveStatus(item);
 
               return (
                 <div key={item.id} className={`bg-white dark:bg-slate-800 rounded-3xl overflow-hidden border shadow-sm group hover:shadow-lg transition-all flex flex-col ${
@@ -603,8 +606,8 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
                   {/* Conteúdo */}
                   <div className="p-4 pt-3 flex flex-col flex-1">
                     <div className="flex justify-between items-center mb-2">
-                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${STATUS_MAP[item.status]?.color || 'bg-slate-100 text-slate-500'}`}>
-                        {STATUS_MAP[item.status]?.label || item.status}
+                      <span className={`px-2 py-0.5 rounded-md text-[9px] font-bold uppercase ${STATUS_MAP[effectiveStatus]?.color || 'bg-slate-100 text-slate-500'}`}>
+                        {STATUS_MAP[effectiveStatus]?.label || effectiveStatus}
                       </span>
                       <span className="text-[9px] text-slate-400 flex items-center gap-1">
                         <Calendar size={9} />
@@ -647,7 +650,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
                       >
                         <Edit3 size={12} /> Editar
                       </button>
-                      {item.status === 'active' && (
+                      {effectiveStatus === 'active' && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleMarkAsSold(item); }}
                           className="flex-1 flex items-center justify-center gap-1 p-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-all font-bold text-[9px] uppercase"
@@ -656,7 +659,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
                           <CheckCircle size={12} /> Vendido
                         </button>
                       )}
-                      {((item.status === 'active') || (item.status === 'paused' && (!item.expires_at || new Date(item.expires_at) >= new Date()))) && (
+                      {((effectiveStatus === 'active') || (effectiveStatus === 'paused' && (!item.expires_at || new Date(item.expires_at) >= new Date()))) && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleTogglePause(item); }}
                           className="flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-yellow-100 dark:hover:bg-yellow-900/30 hover:text-yellow-600 transition-all"
@@ -665,7 +668,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
                           {item.status === 'paused' ? <Eye size={14} /> : <EyeOff size={14} />}
                         </button>
                       )}
-                      {item.status !== 'expired' && (
+                      {effectiveStatus !== 'expired' && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleShare(item); }}
                           className="flex items-center justify-center p-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 hover:text-green-600 transition-all"
@@ -685,7 +688,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
 
                     {/* Actions extras */}
                     <div className="flex gap-1.5 mt-2">
-                      {item.is_featured !== 1 && item.status === 'active' && (
+                      {item.is_featured !== 1 && effectiveStatus === 'active' && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handlePromote(item); }}
                           disabled={isProcessing}
@@ -698,7 +701,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
                           )} Destacar
                         </button>
                       )}
-                      {(item.status === 'active' || item.status === 'paused' || item.status === 'expired') && (
+                      {(effectiveStatus === 'active' || effectiveStatus === 'paused' || effectiveStatus === 'expired') && (
                         <button
                           onClick={(e) => { e.stopPropagation(); handleExtend(item); }}
                           disabled={processingId === `extend-${item.id}`}

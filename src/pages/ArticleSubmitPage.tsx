@@ -29,6 +29,7 @@ const ArticleSubmitPage = () => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [imageUrl, setImageUrl] = useState('');
   const [isPaid, setIsPaid] = useState(false);
+  const [isAiGenerated, setIsAiGenerated] = useState<boolean | null>(null);
   const [paidPlan, setPaidPlan] = useState<'standard' | 'premium'>('standard');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -96,6 +97,7 @@ const ArticleSubmitPage = () => {
         setImageUrl(article.image_url || '');
         setCategoryId(article.category_id || '');
         setIsPaid(!!article.is_paid);
+        setIsAiGenerated(article.is_ai_generated ? true : false);
         setPaidPlan(article.paid_plan || 'standard');
       } else {
         setError(res.data?.message || 'Erro ao carregar artigo');
@@ -167,6 +169,11 @@ const ArticleSubmitPage = () => {
       return;
     }
 
+    if (isAiGenerated === null) {
+      setError('Informe se o artigo foi gerado com auxílio de inteligência artificial');
+      return;
+    }
+
     try {
       setLoading(true);
 
@@ -176,6 +183,7 @@ const ArticleSubmitPage = () => {
         content,
         image_url: imageUrl || null,
         category_id: categoryId || null,
+        is_ai_generated: isAiGenerated === true,
         as_draft: asDraft
       };
 
@@ -192,7 +200,7 @@ const ArticleSubmitPage = () => {
       }
 
       if (res.data?.success) {
-        const articleId = res.data.data.article_id;
+        const articleId = res.data.data?.article_id;
 
         if (isPaid && articleId && !isEditing) {
           setLoading(false);
@@ -280,9 +288,13 @@ const ArticleSubmitPage = () => {
         setError(res.data?.message || 'Erro ao submeter artigo');
       }
     } catch (err: unknown) {
+      console.error('Erro ao submeter/editar artigo:', err);
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosErr = err as { response?: { data?: { message?: string } } };
-        setError(axiosErr.response?.data?.message || 'Erro ao submeter artigo');
+        const msg = axiosErr.response?.data?.message;
+        const status = (err as any).response?.status;
+        console.error('Status:', status, 'Mensagem:', msg);
+        setError(msg || `Erro ${status || 'desconhecido'}`);
       } else {
         setError('Erro ao submeter artigo');
       }
@@ -532,6 +544,61 @@ const ArticleSubmitPage = () => {
                   <span className={charCount > 50000 ? 'text-red-500' : 'text-green-600'}>
                     Máximo: 50.000 caracteres
                   </span>
+                </div>
+              </div>
+
+              {/* AI Generated — Obrigatório */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl p-6">
+                <div className="mb-4 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-xs text-red-800 dark:text-red-200 space-y-3">
+                  <div>
+                    <p className="font-bold">⚠️ Importante sobre Inteligência Artificial</p>
+                    <p>Conteúdos e artigos gerados exclusivamente por Inteligência Artificial podem enfrentar rejeição tanto por leitores quanto por mecanismos de busca, embora a tecnologia em si não seja o problema principal. O verdadeiro desafio está na <strong>baixa qualidade e na falta de originalidade</strong> que muitas vezes acompanham conteúdos automatizados.</p>
+                    <p><strong>Artigos que pareçam genéricos, superficiais ou sem valor real podem ser rejeitados pela curadoria da plataforma.</strong> Independente da ferramenta utilizada, prezamos por conteúdo original e de qualidade para nossa comunidade.</p>
+                  </div>
+                  <div className="border-t border-red-300 dark:border-red-700 pt-3">
+                    <p className="font-bold">⚠️ Plágio é proibido</p>
+                    <p>A reprodução de conteúdo de terceiros sem a devida atribuição ou autorização é expressamente proibida. Artigos plagiados serão <strong>rejeitados automaticamente</strong> e o autor poderá ter seu acesso de publicação removido. Todo conteúdo será verificado por ferramentas de detecção de plágio antes da aprovação.</p>
+                  </div>
+                </div>
+
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-3">
+                  Este artigo foi gerado com auxílio de inteligência artificial? *
+                </label>
+                <div className="space-y-3">
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    isAiGenerated === true
+                      ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                      : 'border-slate-200 dark:border-slate-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="isAiGenerated"
+                      checked={isAiGenerated === true}
+                      onChange={() => setIsAiGenerated(true)}
+                      className="mt-0.5 w-5 h-5 text-blue-600 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">Sim, utilizei IA para gerar este conteúdo</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Um aviso será exibido no final do artigo informando os leitores</p>
+                    </div>
+                  </label>
+                  <label className={`flex items-start gap-3 p-4 rounded-xl border-2 cursor-pointer transition-all ${
+                    isAiGenerated === false
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-slate-200 dark:border-slate-700'
+                  }`}>
+                    <input
+                      type="radio"
+                      name="isAiGenerated"
+                      checked={isAiGenerated === false}
+                      onChange={() => setIsAiGenerated(false)}
+                      className="mt-0.5 w-5 h-5 text-green-600 focus:ring-green-500"
+                    />
+                    <div className="flex-1">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">Não, este conteúdo foi escrito exclusivamente por humanos</p>
+                      <p className="text-xs text-slate-500 mt-0.5">Nenhum aviso adicional será exibido</p>
+                    </div>
+                  </label>
                 </div>
               </div>
 

@@ -5,7 +5,7 @@ import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import AdCard from '@/components/shared/AdCard';
 import { getImageUrl, timeAgo } from '@/lib/utils';
-import { Clock, User, BookOpen, Send, TrendingUp, Eye, ArrowRight } from 'lucide-react';
+import { Clock, User, BookOpen, Send, TrendingUp, Eye, ArrowRight, Bot } from 'lucide-react';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 
 interface Article {
@@ -24,6 +24,7 @@ interface Article {
   category_slug: string;
   featured: boolean;
   is_paid: boolean;
+  is_ai_generated: boolean | number;
   views_count: number;
   clicks_count: number;
   published_at: string;
@@ -83,13 +84,12 @@ const ArticlesPage = () => {
   };
 
   const ArticleCategoryBadge = ({ name, slug: catSlug }: { name: string; slug: string }) => (
-    <Link
-      to={`/artigos?categoria=${catSlug}`}
-      onClick={e => { e.preventDefault(); setActiveCategory(catSlug); }}
-      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider hover:underline"
+    <button
+      onClick={e => { e.stopPropagation(); e.preventDefault(); setActiveCategory(catSlug); }}
+      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider hover:underline text-left cursor-pointer"
     >
       {name}
-    </Link>
+    </button>
   );
 
   return (
@@ -282,6 +282,12 @@ const ArticlesPage = () => {
                               <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white bg-[#1f4ead]">
                                 {article.category_name || 'Artigo'}
                               </span>
+                              {!!article.is_ai_generated && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 flex items-center gap-0.5">
+                                  <Bot size={10} />
+                                  IA
+                                </span>
+                              )}
                             </div>
                             <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5 group-hover:text-[#1f4ead] transition-colors line-clamp-2 leading-snug">
                               {article.title}

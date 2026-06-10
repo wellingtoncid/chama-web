@@ -4,7 +4,7 @@ import { api } from '@/api/api';
 import { 
   FileText, Eye, X, AlertCircle, ChevronLeft, ChevronRight,
   Loader2, CheckCircle, XCircle, Trash2, Star, Search, Pencil,
-  DollarSign
+  DollarSign, Bot, Flag
 } from 'lucide-react';
 import { 
   PageShell, StatsGrid, StatCard,
@@ -29,8 +29,10 @@ interface Article {
   is_paid: boolean;
   paid_plan: string;
   paid_until: string;
+  is_ai_generated: boolean | number;
   rejection_reason: string;
   rejection_count: number;
+  plagiarism_strikes?: number;
   views_count: number;
   clicks_count: number;
   created_at: string;
@@ -46,6 +48,7 @@ export default function ArticlesAdminPage() {
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [rejectReason, setRejectReason] = useState('');
+  const [rejectType, setRejectType] = useState<'other' | 'plagiarism' | 'ai_generic'>('other');
   const [showViewModal, setShowViewModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
   const [stats, setStats] = useState({ total: 0, pending: 0, published: 0, rejected: 0, paid_pending: 0 });
@@ -128,7 +131,8 @@ export default function ArticlesAdminPage() {
     try {
       setActionLoading(true);
       const res = await api.put(`/articles/${selectedArticle.id}/reject`, {
-        reason: rejectReason.trim()
+        reason: rejectReason.trim(),
+        rejection_type: rejectType
       });
       
       if (res.data?.success) {
@@ -200,6 +204,30 @@ export default function ArticlesAdminPage() {
       setActionLoading(false);
     }
   };
+
+  const handleToggleAi = async (id: number, current: boolean | number) => {
+    try {
+      setActionLoading(true);
+      const res = await api.put(`/articles/${id}`, {
+        is_ai_generated: !current
+      });
+      if (res.data?.success) {
+        fetchArticles();
+      } else {
+        alert(res.data?.message || 'Erro ao atualizar');
+      }
+    } catch {
+      alert('Erro ao atualizar flag IA');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const rejectionPresets: { type: 'plagiarism' | 'ai_generic' | 'other'; label: string; reason: string }[] = [
+    { type: 'plagiarism', label: 'Plágio detectado', reason: 'Artigo contém conteúdo plagiado de terceiros' },
+    { type: 'ai_generic', label: 'Conteúdo IA genérico', reason: 'Artigo parece ser genérico, superficial ou sem valor real, possivelmente gerado por IA sem curadoria adequada' },
+    { type: 'other', label: 'Outro motivo', reason: '' },
+  ];
 
   const filteredArticles = useMemo(() => {
     return articles.filter(a =>
@@ -356,12 +384,26 @@ export default function ArticlesAdminPage() {
                               <Star size={10} className="fill-current" /> Destaque{row.featured_at ? ` ${new Date(row.featured_at).toLocaleDateString('pt-BR')}` : ''}
                             </span>
                           )}
+                          {!!row.is_ai_generated && (
+                            <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-blue-600 dark:text-blue-400">
+                              <Bot size={10} /> IA
+                            </span>
+                          )}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-5 py-4">
-                    <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{row.author_name}</p>
+                    <div>
+                      <p className="text-xs font-bold text-slate-700 dark:text-slate-300">{row.author_name}</p>
+                      {row.plagiarism_strikes !== undefined && row.plagiarism_strikes > 0 && (
+                        <span className={`text-[10px] font-bold mt-0.5 inline-flex items-center gap-0.5 ${
+                          row.plagiarism_strikes >= 3 ? 'text-red-500' : 'text-amber-500'
+                        }`}>
+                          <Flag size={10} /> {row.plagiarism_strikes}/3 strikes
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="px-5 py-4">
                     <div className="flex items-center gap-1.5">
@@ -405,6 +447,16 @@ export default function ArticlesAdminPage() {
                       >
                         <Pencil size={14} />
                       </Link>
+                      <button
+                        onClick={() => handleToggleAi(row.id, row.is_ai_generated)}
+                        disabled={actionLoading}
+                        title={row.is_ai_generated ? 'Remover marcação IA' : 'Marcar como gerado por IA'}
+                        className={`py-2 px-4 rounded-lg text-xs font-bold uppercase disabled:opacity-50 ${
+                          row.is_ai_generated ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/50' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 hover:text-blue-600 dark:hover:text-blue-400'
+                        }`}
+                      >
+                        <Bot size={14} className={row.is_ai_generated ? '' : ''} />
+                      </button>
                       {row.status === 'pending' && (
                         <>
                           <button
@@ -505,6 +557,11 @@ export default function ArticlesAdminPage() {
                     <Star size={12} className="fill-current" /> Destaque
                   </span>
                 )}
+                {!!selectedArticle.is_ai_generated && (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 font-bold">
+                    <Bot size={12} /> IA
+                  </span>
+                )}
                 {!!selectedArticle.is_paid && (
                   <div className="p-4 bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800 rounded-xl space-y-2">
                     <div className="flex items-center gap-2 text-purple-700 dark:text-purple-300">
@@ -576,16 +633,28 @@ export default function ArticlesAdminPage() {
                 </>
               )}
               {selectedArticle.status === 'published' && (
-                <button
-                  onClick={() => { handleToggleFeatured(selectedArticle.id, selectedArticle.featured); setShowViewModal(false); }}
-                  disabled={actionLoading}
-                  className={`py-2.5 px-5 rounded-xl text-xs font-bold uppercase disabled:opacity-50 flex items-center gap-2 ${
-                    selectedArticle.featured ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
-                  }`}
-                >
-                  <Star size={16} className={selectedArticle.featured ? 'fill-current' : ''} />
-                  {selectedArticle.featured ? 'Remover Destaque' : 'Destacar'}
-                </button>
+                <>
+                  <button
+                    onClick={() => { handleToggleAi(selectedArticle.id, selectedArticle.is_ai_generated); setShowViewModal(false); }}
+                    disabled={actionLoading}
+                    className={`py-2.5 px-5 rounded-xl text-xs font-bold uppercase disabled:opacity-50 flex items-center gap-2 ${
+                      selectedArticle.is_ai_generated ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 hover:bg-blue-200 dark:hover:bg-blue-900/50' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    <Bot size={16} />
+                    {selectedArticle.is_ai_generated ? 'Remover IA' : 'Marcar IA'}
+                  </button>
+                  <button
+                    onClick={() => { handleToggleFeatured(selectedArticle.id, selectedArticle.featured); setShowViewModal(false); }}
+                    disabled={actionLoading}
+                    className={`py-2.5 px-5 rounded-xl text-xs font-bold uppercase disabled:opacity-50 flex items-center gap-2 ${
+                      selectedArticle.featured ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    <Star size={16} className={selectedArticle.featured ? 'fill-current' : ''} />
+                    {selectedArticle.featured ? 'Remover Destaque' : 'Destacar'}
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -597,7 +666,7 @@ export default function ArticlesAdminPage() {
           <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-300">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold text-slate-800 dark:text-white">Rejeitar Artigo</h3>
-              <button onClick={() => { setShowRejectModal(false); setSelectedArticle(null); setRejectReason(''); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl">
+              <button onClick={() => { setShowRejectModal(false); setSelectedArticle(null); setRejectReason(''); setRejectType('other'); }} className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl">
                 <X size={20} className="text-slate-500 dark:text-slate-400" />
               </button>
             </div>
@@ -606,6 +675,25 @@ export default function ArticlesAdminPage() {
             </p>
             <div className="mb-4">
               <label className="text-[10px] font-bold uppercase text-slate-400 mb-2 block">Motivo da Rejeição *</label>
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {rejectionPresets.map(p => (
+                  <button
+                    key={p.type}
+                    type="button"
+                    onClick={() => {
+                      setRejectType(p.type);
+                      setRejectReason(p.reason);
+                    }}
+                    className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase border transition-colors ${
+                      rejectType === p.type
+                        ? 'bg-red-100 dark:bg-red-900/30 border-red-300 dark:border-red-700 text-red-700 dark:text-red-300'
+                        : 'bg-slate-50 dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-600'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
               <textarea
                 value={rejectReason}
                 onChange={(e) => setRejectReason(e.target.value)}
@@ -616,7 +704,7 @@ export default function ArticlesAdminPage() {
             </div>
             <div className="flex gap-3">
               <button
-                onClick={() => { setShowRejectModal(false); setSelectedArticle(null); setRejectReason(''); }}
+                onClick={() => { setShowRejectModal(false); setSelectedArticle(null); setRejectReason(''); setRejectType('other'); }}
                 className="flex-1 py-2.5 px-4 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold uppercase text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700"
               >
                 Cancelar

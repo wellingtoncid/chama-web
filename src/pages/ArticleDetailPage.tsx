@@ -6,7 +6,7 @@ import Footer from '@/components/shared/Footer';
 import AdCard from '@/components/shared/AdCard';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { UserHeadline } from '@/components/shared/UserHeadline';
-import { Clock, Eye, User, ArrowLeft, Share2, Calendar, PenLine, Puzzle, Trophy } from 'lucide-react';
+import { Clock, Eye, User, ArrowLeft, Share2, Calendar, PenLine, Puzzle, Trophy, Bot } from 'lucide-react';
 import { usePageMeta } from '@/hooks/usePageMeta';
 import { getImageUrl, nl2br } from '@/lib/utils';
 
@@ -31,6 +31,7 @@ interface Article {
   paid_plan: string;
   paid_banner_image: string;
   paid_banner_url: string;
+  is_ai_generated: boolean | number;
   views_count: number;
   clicks_count: number;
   published_at: string;
@@ -326,6 +327,20 @@ const ArticleDetailPage = () => {
             dangerouslySetInnerHTML={{ __html: nl2br(article.content) }}
           />
 
+          {!!article.is_ai_generated && (
+            <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex items-start gap-3">
+              <Bot size={20} className="text-blue-500 mt-0.5 shrink-0" />
+              <div>
+                <p className="text-sm font-bold text-blue-700 dark:text-blue-300">
+                  Este artigo foi gerado com auxílio de inteligência artificial
+                </p>
+                <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                  O conteúdo foi produzido com tecnologia de IA e revisado pela nossa equipe.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* ── Tabs: Relacionados | Top 3 | Do Autor ── */}
           {(related.length > 0 || popular.length > 0 || authorArticles.length > 0) && (
             <section className="mt-14 pt-10 border-t border-slate-200 dark:border-slate-800">
@@ -378,7 +393,7 @@ const ArticleDetailPage = () => {
               )}
 
               <div className="space-y-6">
-                {(bottomTab === 'related' ? related : bottomTab === 'popular' ? popular : authorArticles).map(item => (
+                {(bottomTab === 'related' ? related : bottomTab === 'popular' ? popular.slice(0, 3) : authorArticles).map(item => (
                   <Link
                     key={item.id}
                     to={`/artigos/${item.slug}`}
