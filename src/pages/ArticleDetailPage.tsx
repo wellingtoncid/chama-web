@@ -32,6 +32,7 @@ interface Article {
   paid_banner_image: string;
   paid_banner_url: string;
   is_ai_generated: boolean | number;
+  tags?: any[];
   views_count: number;
   clicks_count: number;
   published_at: string;
@@ -326,6 +327,16 @@ const ArticleDetailPage = () => {
               prose-pre:bg-slate-900 dark:prose-pre:bg-slate-950 prose-pre:rounded-xl prose-pre:p-5 prose-pre:my-6 prose-pre:overflow-x-auto"
             dangerouslySetInnerHTML={{ __html: nl2br(article.content) }}
           />
+
+          {Array.isArray(article.tags) && article.tags.length > 0 && (
+            <div className="mt-6 flex flex-wrap gap-2">
+              {article.tags.map(tag => (
+                <span key={tag} className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-full text-xs font-medium">
+                  #{typeof tag === 'string' ? tag : tag.label || tag.value}
+                </span>
+              ))}
+            </div>
+          )}
 
           {!!article.is_ai_generated && (
             <div className="mt-8 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex items-start gap-3">

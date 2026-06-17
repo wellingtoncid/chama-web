@@ -5,7 +5,7 @@ import {
   Loader2, Star, DollarSign, Edit3,
   MessageSquare,
   CreditCard, Gift, Globe, Eye, EyeOff, Package, Award, Wrench, GripVertical, AlertCircle, ShieldCheck, Search, Plus, X,
-  Truck, CheckCircle2
+  Truck, CheckCircle2, BookOpen, Hash
 } from 'lucide-react';
 import { PageShell } from '@/components/admin';
 
@@ -71,6 +71,7 @@ export default function SettingsView() {
     certification_types: [],
     cargo_types: [],
     article_categories: [],
+    article_tags: [],
   });
   const [editingList, setEditingList] = useState<string | null>(null);
   const [listInput, setListInput] = useState('');
@@ -126,6 +127,9 @@ export default function SettingsView() {
       }
       if (res.data?.data?.article_categories) {
         setListSettings(prev => ({ ...prev, article_categories: JSON.parse(res.data.data.article_categories) }));
+      }
+      if (res.data?.data?.article_tags) {
+        setListSettings(prev => ({ ...prev, article_tags: JSON.parse(res.data.data.article_tags) }));
       }
     } catch (error) {
       console.error("Erro ao carregar dados:", error);
@@ -268,6 +272,7 @@ export default function SettingsView() {
         syncListToCrud('body_types', listSettings.body_types),
         syncListToCrud('equipment_types', listSettings.equipment_types),
         syncListToCrud('certification_types', listSettings.certification_types),
+        syncListToCrud('article_tags', listSettings.article_tags),
         syncCargoTypes(listSettings.cargo_types),
         syncArticleCategories(listSettings.article_categories),
       ]);
@@ -341,6 +346,7 @@ export default function SettingsView() {
               { key: 'certification_types', label: 'Certificações', icon: <Award size={20} />, list: listSettings.certification_types },
               { key: 'cargo_types', label: 'Tipos de Carga', icon: <Package size={20} />, list: listSettings.cargo_types },
               { key: 'article_categories', label: 'Categorias de Artigos', icon: <BookOpen size={20} />, list: listSettings.article_categories },
+              { key: 'article_tags', label: 'Tags de Artigos', icon: <Hash size={20} />, list: listSettings.article_tags },
             ].map((category) => (
               <div key={category.key} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3 mb-4">

@@ -39,6 +39,8 @@ const ArticleSubmitPage = () => {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [loadingEdit, setLoadingEdit] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [tags, setTags] = useState<string[]>([]);
+  const [availableTags, setAvailableTags] = useState<{value: string; label: string}[]>([]);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -46,6 +48,7 @@ const ArticleSubmitPage = () => {
     } else if (user) {
       checkAuthorStatus();
       fetchCategories();
+      fetchTags();
       if (editId) loadArticle(editId);
     }
   }, [user, authLoading, navigate, editId]);
@@ -74,6 +77,17 @@ const ArticleSubmitPage = () => {
     }
   };
 
+  const fetchTags = async () => {
+    try {
+      const res = await api.get('/article-tags');
+      if (res.data?.success) {
+        setAvailableTags(res.data.data || []);
+      }
+    } catch (err) {
+      console.error('Error fetching tags:', err);
+    }
+  };
+
   const fetchCategories = async () => {
     try {
       const res = await api.get('/article-categories');
@@ -99,6 +113,7 @@ const ArticleSubmitPage = () => {
         setIsPaid(!!article.is_paid);
         setIsAiGenerated(article.is_ai_generated ? true : false);
         setPaidPlan(article.paid_plan || 'standard');
+        setTags(article.tags || []);
       } else {
         setError(res.data?.message || 'Erro ao carregar artigo');
       }
@@ -183,6 +198,7 @@ const ArticleSubmitPage = () => {
         content,
         image_url: imageUrl || null,
         category_id: categoryId || null,
+        tags: tags.length > 0 ? tags : null,
         is_ai_generated: isAiGenerated === true,
         as_draft: asDraft
       };
@@ -512,6 +528,32 @@ const ArticleSubmitPage = () => {
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
+              </div>
+
+              {/* Tags */}
+              <div className="bg-white dark:bg-slate-900 rounded-xl p-6">
+                <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">
+                  Tags
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {availableTags.map(tag => (
+                    <button
+                      key={tag.value}
+                      type="button"
+                      onClick={() => setTags(prev => prev.includes(tag.value) ? prev.filter(t => t !== tag.value) : [...prev, tag.value])}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                        tags.includes(tag.value)
+                          ? 'bg-[#1f4ead] text-white'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 border border-slate-200 dark:border-slate-700'
+                      }`}
+                    >
+                      {tags.includes(tag.value) ? '#' : ''}{tag.label}
+                    </button>
+                  ))}
+                  {availableTags.length === 0 && (
+                    <p className="text-sm text-slate-400">Nenhuma tag disponível</p>
+                  )}
+                </div>
               </div>
 
               {/* Content */}
