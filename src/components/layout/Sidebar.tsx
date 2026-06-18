@@ -29,7 +29,7 @@ const Sidebar = ({ user }: { user: any }) => {
         setActiveModules(active);
       }
     } catch (e) {
-      console.error('Erro ao carregar módulos:', e);
+      // Silently fail (401 = token expired)
     }
   }, []);
 

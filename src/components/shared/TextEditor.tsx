@@ -17,7 +17,7 @@ export default function TextEditor({ value, onChange, placeholder, rows = 20 }: 
   const [tab, setTab] = useState<'wysiwyg' | 'html'>('wysiwyg');
   const lastSyncedRef = useRef(value);
   const plainTextRef = useRef('');
-  const pasteTimerRef = useRef<ReturnType<typeof setTimeout>>();
+  const pasteTimerRef = useRef<ReturnType<typeof setTimeout>>(undefined);
   const [showPasteOpt, setShowPasteOpt] = useState(false);
 
   useLayoutEffect(() => {

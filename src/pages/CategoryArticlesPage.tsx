@@ -1,23 +1,21 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useState, useEffect, useMemo } from 'react';
+import { Link, useParams } from 'react-router-dom';
 import { api } from '@/api/api';
 import Header from '@/components/shared/Header';
 import Footer from '@/components/shared/Footer';
 import AdCard from '@/components/shared/AdCard';
 import { getImageUrl, timeAgo } from '@/lib/utils';
-import { Clock, User, BookOpen, Send, Bot } from 'lucide-react';
+import { Clock, User } from 'lucide-react';
 import { Breadcrumb } from '@/components/shared/Breadcrumb';
 import { MaisLidosSection } from '@/components/articles/MaisLidosSection';
 import { MaisRecentesSection } from '@/components/articles/MaisRecentesSection';
 import { ColunistasSection } from '@/components/articles/ColunistasSection';
-import CategorySection from '@/components/articles/CategorySection';
 
 interface Article {
   id: number;
   title: string;
   slug: string;
   excerpt: string;
-  content: string;
   image_url?: string;
   author_id: number;
   author_name: string;
@@ -41,84 +39,68 @@ interface Category {
   name: string;
   slug: string;
   color: string;
-  show_in_filters?: number;
 }
 
-const ArticlesPage = () => {
+const CategoryArticlesPage = () => {
+  const { slug } = useParams<{ slug: string }>();
   const [allArticles, setAllArticles] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [activeCategory, setActiveCategory] = useState<string>('');
   const [loading, setLoading] = useState(true);
-  const [mostRead, setMostRead] = useState<Article[]>([]);
-  const [latest, setLatest] = useState<Article[]>([]);
-  const [colunistas, setColunistas] = useState<Article[]>([]);
+
+  const categoryName = allArticles.length > 0 ? allArticles[0].category_name : '';
+
+  const mostRead = useMemo(() =>
+    [...allArticles].sort((a, b) => b.views_count - a.views_count).slice(0, 5),
+    [allArticles]
+  );
+
+  const latest = useMemo(() =>
+    [...allArticles].sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime()).slice(0, 5),
+    [allArticles]
+  );
+
+  const colunistas = useMemo(() => {
+    const seen = new Set<number>();
+    return allArticles
+      .filter(a => {
+        if (seen.has(a.author_id)) return false;
+        seen.add(a.author_id);
+        return true;
+      })
+      .slice(0, 5);
+  }, [allArticles]);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [slug]);
 
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [articlesRes, categoriesRes, homeRes] = await Promise.all([
-        api.get('/articles'),
-        api.get('/article-categories'),
-        api.get('/articles/home'),
-      ]);
+      const query = slug === 'publieditorial' ? '/articles?paid=1&limit=50' : `/articles?category_slug=${slug}&limit=50`;
+      const articlesRes = await api.get(query);
       if (articlesRes.data?.success) {
         setAllArticles(articlesRes.data.data.articles || []);
       }
-      if (categoriesRes.data?.success) {
-        setCategories(categoriesRes.data.data.categories || []);
-      }
-      if (homeRes.data?.success) {
-        setMostRead(homeRes.data.data.most_read || []);
-        setLatest(homeRes.data.data.latest || []);
-        setColunistas(homeRes.data.data.colunistas || []);
-      }
     } catch (error) {
-      console.error('Error fetching articles:', error);
+      console.error('Error fetching category articles:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filtered = !activeCategory
-    ? allArticles
-    : allArticles.filter(a => a.category_slug === activeCategory);
-
-  const capaDoDia = filtered[0] || null;
-  const heroSecondary = filtered.slice(1, 3);
-  const heroCompact = filtered.slice(3, 8);
-  const gridArticles = filtered.slice(8);
-  const paidArticles = allArticles.filter(a => a.is_paid);
-
-  const groupedByCategory = categories
-    .filter(cat => allArticles.some(a => a.category_slug === cat.slug))
-    .map(cat => ({
-      category: cat,
-      articles: allArticles.filter(a => a.category_slug === cat.slug),
-    }));
-
-  if (paidArticles.length > 0) {
-    groupedByCategory.push({
-      category: { id: -1, name: 'Publieditorial', slug: 'publieditorial', color: '#7c3aed', show_in_filters: 0 },
-      articles: paidArticles,
-    });
-  }
+  const capaDoDia = allArticles[0] || null;
+  const heroSecondary = allArticles.slice(1, 3);
+  const heroCompact = allArticles.slice(3, 8);
 
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     return date.toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' });
   };
 
-  const ArticleCategoryBadge = ({ name, slug: catSlug }: { name: string; slug: string }) => (
-    <button
-      onClick={e => { e.stopPropagation(); e.preventDefault(); setActiveCategory(catSlug); }}
-      className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider hover:underline text-left cursor-pointer"
-    >
+  const ArticleCategoryBadge = ({ name }: { name: string; slug: string }) => (
+    <span className="text-[11px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
       {name}
-    </button>
+    </span>
   );
 
   return (
@@ -130,35 +112,15 @@ const ArticlesPage = () => {
 
           <Breadcrumb items={[
             { label: 'Home', href: '/' },
-            { label: 'Artigos' },
+            { label: 'Artigos', href: '/artigos' },
+            { label: categoryName || slug || '' },
           ]} linkClassName="hover:text-[#1f4ead]" className="mb-6" />
 
           <header className="mb-10">
             <h1 className="text-5xl md:text-7xl font-black text-slate-900 dark:text-white tracking-tighter uppercase italic leading-[0.85] mb-4">
-              Artigos & <span className="text-[#1f4ead]">Conteúdo</span>
+              {categoryName || slug}
             </h1>
-            <p className="text-slate-500 dark:text-slate-400 font-medium max-w-2xl">
-              Dicas, notícias e insights sobre o mercado de transporte e logística
-            </p>
           </header>
-
-          <div className="mb-8">
-            <div className="flex flex-wrap gap-2">
-              {categories.filter(c => c.show_in_filters !== 0).map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setActiveCategory(activeCategory === cat.slug ? '' : cat.slug)}
-                  className={`px-4 py-2 rounded-full text-sm font-bold transition-all ${
-                    activeCategory === cat.slug
-                      ? 'bg-[#1f4ead] text-white'
-                      : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700'
-                  }`}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {loading ? (
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -172,30 +134,18 @@ const ArticlesPage = () => {
                 </div>
               ))}
             </div>
-          ) : filtered.length === 0 ? (
-            <>
-              <section className="mb-12">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                  <div className="md:col-span-1">
-                    <MaisLidosSection articles={mostRead} />
-                  </div>
-                  <div className="md:col-span-1">
-                    <MaisRecentesSection articles={latest} />
-                  </div>
-                  <div className="md:col-span-1">
-                    <ColunistasSection articles={colunistas} />
-                  </div>
-                </div>
-              </section>
-              <div className="mb-8 max-w-4xl mx-auto">
-                <AdCard position="infeed_wide" variant="ecommerce" />
-              </div>
-              <div className="text-center py-12">
-                <p className="text-slate-500 dark:text-slate-400">
-                  Nenhum artigo encontrado nesta categoria.
-                </p>
-              </div>
-            </>
+          ) : allArticles.length === 0 ? (
+            <div className="text-center py-20">
+              <p className="text-slate-500 dark:text-slate-400 mb-4">
+                Nenhum artigo encontrado nesta categoria.
+              </p>
+              <Link
+                to="/artigos"
+                className="text-sm font-bold text-[#1f4ead] hover:underline"
+              >
+                Ver todos os artigos →
+              </Link>
+            </div>
           ) : (
             <>
               <section className="mb-12">
@@ -310,84 +260,6 @@ const ArticlesPage = () => {
                 </div>
               </section>
 
-              {gridArticles.length > 0 && (
-                <div className="mb-8">
-                  <h2 className="text-lg font-black text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-4">
-                    Mais Artigos
-                  </h2>
-                  <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-5">
-                    {gridArticles.map(article => (
-                      <Link key={article.id} to={`/artigos/${article.slug}`} className="group">
-                        <article className="bg-white dark:bg-slate-900 rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all h-full flex flex-col">
-                          <div className="h-36 bg-slate-200 dark:bg-slate-800 overflow-hidden">
-                            {article.image_url ? (
-                              <img src={getImageUrl(article.image_url)} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                            ) : (
-                              <div className="w-full h-full flex items-center justify-center">
-                                <span className="text-3xl">📄</span>
-                              </div>
-                            )}
-                          </div>
-                          <div className="p-3 flex-1 flex flex-col">
-                            <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-white bg-[#1f4ead]">
-                                {article.category_name || 'Artigo'}
-                              </span>
-                              {!!article.is_ai_generated && (
-                                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/50 flex items-center gap-0.5">
-                                  <Bot size={10} />
-                                  IA
-                                </span>
-                              )}
-                              {Array.isArray(article.tags) && article.tags.slice(0, 2).map((tag: any) => (
-                                <span key={typeof tag === 'string' ? tag : tag.value} className="text-[10px] text-slate-400 dark:text-slate-500">
-                                  #{typeof tag === 'string' ? tag : tag.label || tag.value}
-                                </span>
-                              ))}
-                            </div>
-                            <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-1.5 group-hover:text-[#1f4ead] transition-colors line-clamp-2 leading-snug">
-                              {article.title}
-                            </h3>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mb-2 flex-1 leading-relaxed">
-                              {article.excerpt}
-                            </p>
-                            <div className="flex items-center justify-between text-[10px] text-slate-400">
-                              <div className="flex items-center gap-1">
-                                <User size={10} />
-                                <span>{article.author_name}</span>
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock size={10} />
-                                <span>{formatDate(article.published_at)}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </article>
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="mb-8 max-w-4xl mx-auto">
-                <AdCard position="infeed_wide" variant="ecommerce" />
-              </div>
-
-              {Array.from(
-                { length: Math.ceil(groupedByCategory.length / 3) },
-                (_, i) => (
-                  <div key={i} className="grid md:grid-cols-3 gap-6 mb-8">
-                    {groupedByCategory.slice(i * 3, i * 3 + 3).map(({ category, articles }) => (
-                      <CategorySection
-                        key={category.id}
-                        category={category}
-                        articles={articles}
-                      />
-                    ))}
-                  </div>
-                )
-              )}
-
               <div className="mb-8 max-w-4xl mx-auto">
                 <AdCard position="infeed_wide" variant="ecommerce" />
               </div>
@@ -399,16 +271,12 @@ const ArticlesPage = () => {
             <p className="text-white/80 mb-4">
               Compartilhe seu conhecimento com a comunidade de transporte e logística.
             </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link to="/artigos/ser-autor" className="inline-flex items-center gap-2 bg-white text-orange-600 px-6 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors">
-                <BookOpen size={20} />
-                Tornar-se Autor
-              </Link>
-              <Link to="/artigos/submeter" className="inline-flex items-center gap-2 bg-orange-700 text-white px-6 py-3 rounded-xl font-bold hover:bg-orange-800 transition-colors">
-                <Send size={20} />
-                Enviar Artigo
-              </Link>
-            </div>
+            <Link
+              to="/artigos/ser-autor"
+              className="inline-flex items-center gap-2 bg-white text-orange-600 px-6 py-3 rounded-xl font-bold hover:bg-orange-50 transition-colors"
+            >
+              Tornar-se Autor
+            </Link>
           </div>
 
         </div>
@@ -419,4 +287,4 @@ const ArticlesPage = () => {
   );
 };
 
-export default ArticlesPage;
+export default CategoryArticlesPage;

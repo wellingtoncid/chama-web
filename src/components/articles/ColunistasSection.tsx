@@ -1,15 +1,13 @@
 import { Link } from 'react-router-dom';
 import { getImageUrl, timeAgo } from '@/lib/utils';
+import { Clock } from 'lucide-react';
 
 interface Article {
   id: number;
   title: string;
   slug: string;
-  author_id: number;
   author_name: string;
   author_avatar: string;
-  author_slug?: string;
-  author_headline?: string;
   published_at: string;
 }
 
@@ -46,18 +44,15 @@ export const ColunistasSection = ({ articles }: Props) => {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#1f4ead] transition-colors line-clamp-2 leading-snug">
+              <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">
+                {article.author_name}
+              </span>
+              <h4 className="text-sm font-bold text-slate-900 dark:text-white group-hover:text-[#1f4ead] transition-colors line-clamp-2 leading-snug mt-0.5">
                 {article.title}
               </h4>
-              <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
-                <span className="font-medium text-slate-500 dark:text-slate-400">
-                  {article.author_name}
-                </span>
-                {article.author_headline && (
-                  <span className="truncate text-slate-400">
-                    {article.author_headline}
-                  </span>
-                )}
+              <div className="flex items-center gap-1 text-[11px] text-slate-400 mt-1">
+                <Clock size={11} />
+                <span>{timeAgo(article.published_at)}</span>
               </div>
             </div>
           </Link>

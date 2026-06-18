@@ -28,15 +28,17 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
         setActiveModules(active);
       }
     } catch (e) {
-      console.error('Erro ao carregar módulos:', e);
+      // Silently fail (401 = token expired)
     }
   }, []);
 
   useEffect(() => {
+    if (!user) return;
     fetchUserModules();
-  }, [fetchUserModules]);
+  }, [fetchUserModules, user]);
 
   useEffect(() => {
+    if (!user) return;
     const fetchAuthorStatus = async () => {
       try {
         const res = await api.get('/article-author-status');
@@ -48,7 +50,7 @@ const MenuDrawer: React.FC<MenuDrawerProps> = ({ isOpen, onClose, user }) => {
       }
     };
     fetchAuthorStatus();
-  }, []);
+  }, [user]);
 
   const role = String(user?.role || '').toLowerCase();
   const isInternal = isInternalRole(role);

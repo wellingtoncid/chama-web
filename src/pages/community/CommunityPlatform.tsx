@@ -121,7 +121,6 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
     setCategoryFilter('all');
   };
 
-  if (loading) {
   const AlertToast = () => {
     if (!alertMsg) return null;
     const colors = {
@@ -137,7 +136,8 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
     );
   };
 
-  return (
+  if (loading) {
+    return (
       <DashboardShell title="Comunidades" description="Carregando...">
         <div className="space-y-4 animate-pulse">
           <div className="h-14 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700" />
@@ -311,6 +311,6 @@ export default function CommunityPlatform({ user }: CommunityPlatformProps) {
           ))}
         </div>
       )}
-    </div>
+    </DashboardShell>
   );
 }

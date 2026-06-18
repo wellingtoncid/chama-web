@@ -66,7 +66,7 @@ export default function ReportPage() {
     }
   };
 
-  const itemTitle = item?.title || item?.name || item?.product || item?.origem || slug || 'Item';
+  const itemTitle = (item?.title || item?.name || item?.product || item?.origem || slug || 'Item') as string;
   const itemUrl = type === 'frete' ? `/frete/${slug}` : `/anuncio/${slug}`;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {

@@ -62,6 +62,12 @@ export default function SettingsView() {
     review_auto_approve_threshold: '4',
     review_auto_reject_bad_words: false,
     report_auto_dismiss_duplicate: false,
+    vehicle_types: [] as string[],
+    body_types: [] as string[],
+    equipment_types: [] as string[],
+    certification_types: [] as string[],
+    cargo_types: [] as string[],
+    article_categories: [] as string[],
   });
 
   const [listSettings, setListSettings] = useState<Record<string, (string | { value: string; label: string })[]>>({

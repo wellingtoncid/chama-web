@@ -221,7 +221,7 @@ const ArticleDetailPage = () => {
             <div className="flex flex-wrap items-center gap-2 mb-4">
               {article.category_name && (
                 <Link
-                  to={`/artigos?categoria=${article.category_slug}`}
+                  to={`/artigos/${article.category_slug}`}
                   className="px-3 py-1 rounded text-sm font-bold text-white bg-[#1f4ead] hover:bg-[#1a3d8a] transition-colors"
                 >
                   {article.category_name}

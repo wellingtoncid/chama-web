@@ -29,13 +29,15 @@ const MatchingDriversPage = lazy(() => import('../pages/freights/MatchingDrivers
 const AdvertiserPortal = lazy(() => import('../pages/advertiser/AdvertiserPortal'));
 const ListingFormPage = lazy(() => import('../pages/marketplace/ListingFormPage'));
 const ArticlesPage = lazy(() => import('../pages/ArticlesPage'));
-const ArticleDetailPage = lazy(() => import('../pages/ArticleDetailPage'));
+const CategoryOrArticlePage = lazy(() => import('../pages/CategoryOrArticlePage'));
 const ArticleSubmitPage = lazy(() => import('../pages/ArticleSubmitPage'));
 const AuthorRequestPage = lazy(() => import('../pages/AuthorRequestPage'));
 const CostCalculatorPage = lazy(() => import('../pages/calculadora/CostCalculatorPage'));
 const AboutPage = lazy(() => import('../pages/public/AboutPage'));
 const PrivacyPage = lazy(() => import('../pages/public/PrivacyPage'));
 const TermsPage = lazy(() => import('../pages/public/TermsPage'));
+const NotFoundPage = lazy(() => import('../pages/errors/NotFoundPage'));
+const ServerErrorPage = lazy(() => import('../pages/errors/ServerErrorPage'));
 const ChatPage = lazy(() => import('../pages/chat/ChatPage'));
 const PaymentSuccess = lazy(() => import('../pages/checkout/PaymentSuccess'));
 const PaymentFailure = lazy(() => import('../pages/checkout/PaymentFailure'));
@@ -98,7 +100,7 @@ export default function AppRoutes() {
 
       {/* --- ARTIGOS (PÚBLICOS) --- */}
       <Route path="/artigos" element={<ArticlesPage />} />
-      <Route path="/artigos/:slug" element={<ArticleDetailPage />} />
+      <Route path="/artigos/:slug" element={<CategoryOrArticlePage />} />
       <Route path="/artigos/submeter" element={<ArticleSubmitPage />} />
       <Route path="/artigos/ser-autor" element={<AuthorRequestPage />} />
 
@@ -138,8 +140,9 @@ export default function AppRoutes() {
             <Route path="/payment/failure" element={<PaymentFailure />} />
           </Route>
 
-      {/* FALLBACK */}
-      <Route path="*" element={<Navigate to={user ? "/dashboard" : "/"} replace />} />
+      {/* FALLBACK - 404 */}
+      <Route path="/500" element={<ServerErrorPage />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
     </Suspense></>
   );

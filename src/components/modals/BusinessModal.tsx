@@ -10,7 +10,7 @@ interface BusinessModalProps {
   initialSubject?: string; // Ex: "Anúncio", "Marketplace", "Cadastro Empresa"
 }
 
-export const BusinessModal = ({ isOpen, onClose, initialSubject }: BusinessModalProps) => {
+export const BusinessModal = ({ isOpen, onClose, onSuccess, initialSubject }: BusinessModalProps) => {
   const [isSending, setIsSending] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [formData, setFormData] = useState({ title: '', contact: '', description: initialSubject || '' });

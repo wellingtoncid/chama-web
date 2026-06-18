@@ -31,11 +31,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      console.error('401 Error - URL:', error.config?.url);
-      // NÃO faz logout automático - apenas loga o erro
-      // localStorage.removeItem('@ChamaFrete:token');
-      // localStorage.removeItem('@ChamaFrete:user');
-      // window.location.href = '/login';
+      const silentRoutes = ['/user/modules', '/article-author-status', '/user/usage'];
+      const url = error.config?.url || '';
+      if (!silentRoutes.some(r => url.includes(r))) {
+        console.warn('API 401 -', url);
+      }
     }
     return Promise.reject(error);
   }

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Wallet, ArrowUpRight, ArrowDownLeft, QrCode, Clock, AlertCircle } from 'lucide-react';
+import { Wallet, ArrowUpRight, ArrowDownLeft, QrCode, Clock, AlertCircle, Loader2 } from 'lucide-react';
 import { api } from '../../api/api';
 import { Button } from '../../components/ui/Button';
 

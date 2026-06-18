@@ -50,6 +50,12 @@ interface ListingData {
     document: boolean;
     instagram: boolean;
   };
+  subcategory?: string;
+  accepting_offers?: number | string;
+  accepting_trade?: number | string;
+  contact_preference?: string;
+  seller_city?: string;
+  seller_state?: string;
 }
 
 export default function ListingDetails() {

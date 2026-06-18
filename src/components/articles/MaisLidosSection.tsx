@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
-import { getImageUrl } from '@/lib/utils';
-import { Eye } from 'lucide-react';
+import { getImageUrl, timeAgo } from '@/lib/utils';
+import { Clock } from 'lucide-react';
 
 interface Article {
   id: number;
@@ -59,8 +59,8 @@ export const MaisLidosSection = ({ articles }: Props) => {
               <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-1">
                 <span>{article.author_name}</span>
                 <span className="flex items-center gap-0.5">
-                  <Eye size={11} />
-                  {article.views_count}
+                  <Clock size={11} />
+                  {timeAgo(article.published_at)}
                 </span>
               </div>
             </div>

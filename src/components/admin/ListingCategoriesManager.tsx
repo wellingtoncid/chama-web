@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Fragment } from 'react';
 import { api } from '@/api/api';
 import Swal from 'sweetalert2';
 import { PageShell } from '@/components/admin';
@@ -258,7 +258,7 @@ export default function ListingCategoriesManager() {
           </thead>
           <tbody className="divide-y divide-slate-100">
             {parentCategories.map((parent) => (
-              <>
+              <Fragment key={parent.id}>
                 {/* Parent row */}
                 <tr key={parent.id} className={`${!parent.is_active ? 'opacity-50' : ''}`}>
                   <td className="px-5 py-4">
@@ -381,7 +381,7 @@ export default function ListingCategoriesManager() {
                     </td>
                   </tr>
                 ))}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
