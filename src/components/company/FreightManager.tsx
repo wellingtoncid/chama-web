@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   PlusCircle, Package, Loader2, Zap, Trash2, Edit3,
   CheckCircle2, Search,
@@ -13,10 +13,12 @@ import { UpgradeModal, useUsageCheck } from '../shared/UpgradeModal';
 import { UsageMeter } from '../shared/UsageMeter';
 import { StatsGrid, StatCard, StatusBadge, TimeFilter } from '@/components/admin';
 import DashboardShell from '@/components/layout/DashboardShell';
+import { PromotionModal } from '@/components/shared/PromotionModal';
 
 
 export default function FreightManager({ user }: any) {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [myFreights, setMyFreights] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showCheckout, setShowCheckout] = useState(false);
@@ -29,6 +31,7 @@ export default function FreightManager({ user }: any) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [timeFilter, setTimeFilter] = useState<'today' | '7days' | '30days' | 'thisMonth' | 'custom' | 'all'>('all');
+  const [promoteData, setPromoteData] = useState<{ type: 'freight' | 'listing'; id: number; price?: number } | null>(null);
   
   // Estado para métricas específicas deste módulo
   const [stats, setStats] = useState({
@@ -39,6 +42,17 @@ export default function FreightManager({ user }: any) {
 
   // Hook de verificação de uso
   const freightUsage = useUsageCheck('freights', 'publish');
+
+  useEffect(() => {
+    const promote = searchParams.get('promote');
+    if (promote) {
+      const [type, idStr] = promote.split(':');
+      if (type === 'freight' && idStr) {
+        setPromoteData({ type: 'freight', id: parseInt(idStr) });
+      }
+      setSearchParams({}, { replace: true });
+    }
+  }, []);
 
   // Carrega módulos do usuário
   useEffect(() => {
@@ -523,6 +537,14 @@ return (
         limit={pricingData?.limit || 0}
         pricePerUse={pricingData?.pricePerUse || 0}
         priceMonthly={pricingData?.priceMonthly || 0}
+      />
+
+      {/* MODAL DE PROMOÇÃO WHATSAPP */}
+      <PromotionModal
+        isOpen={promoteData !== null}
+        onClose={() => setPromoteData(null)}
+        referenceType="freight"
+        referenceId={promoteData?.id || 0}
       />
     </DashboardShell>
   );

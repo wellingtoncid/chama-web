@@ -401,13 +401,14 @@ export default function ListingFormPage() {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         showAlert('Anúncio atualizado com sucesso!', 'success');
-        setTimeout(() => navigate(-1), 1200);
+        setTimeout(() => navigate('/dashboard/vendas'), 1200);
       } else {
-        await api.post('/create-listing', data, {
+        const res = await api.post('/create-listing', data, {
           headers: { 'Content-Type': 'multipart/form-data' }
         });
         showAlert('Anúncio publicado com sucesso!', 'success');
-        setTimeout(() => navigate(-1), 1200);
+        const listingId = res.data?.data?.id;
+        setTimeout(() => navigate(listingId ? `/dashboard/vendas?promote=listing:${listingId}` : '/dashboard/vendas'), 1200);
       }
     } catch (error: any) { // eslint-disable-line @typescript-eslint/no-explicit-any
       const status = error.response?.status;

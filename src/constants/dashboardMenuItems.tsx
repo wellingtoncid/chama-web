@@ -3,7 +3,7 @@ import {
   User, CreditCard,
   Wallet, Users, PlusCircle, Tag, HelpCircle, FileText,
   Shield, LayoutGrid, Star, Flag, BookOpen, UserPlus, Settings, Mail, Headphones, ShieldCheck,
-  UsersRound, Calculator
+  UsersRound, Calculator, MessageCircle
 } from 'lucide-react';
 
 export interface MenuItem {
@@ -77,6 +77,7 @@ export function buildMenuSections(
         { label: 'Denúncias', icon: <Flag size={20} />, path: '/dashboard/admin/denuncias', visible: isInternal },
         { label: 'Afiliados', icon: <Star size={20} className="fill-amber-400 text-amber-500" />, path: '/dashboard/admin/afiliados', visible: isSuperAdmin },
         { label: 'Configurações', icon: <Settings size={20} />, path: '/dashboard/admin/configuracoes', visible: isInternal },
+        { label: 'Promoções WhatsApp', icon: <MessageCircle size={20} />, path: '/dashboard/admin/promocoes-whatsapp', visible: isInternal },
         { label: 'Auditoria do Sistema', icon: <Shield size={20} />, path: '/dashboard/admin/auditoria', visible: isInternal },
       ],
     },

@@ -5,22 +5,22 @@ const benefits = [
   { 
     icon: DollarSign, 
     title: "Negocie Direto", 
-    description: "Sem intermediários retendo seu dinheiro. Combine e receba direto com a empresa." 
+    description: "Sem intermediários retendo seu dinheiro. Combine e receba direto com a empresa. Menos tempo perdido, mais lucro no bolso." 
   },
   { 
     icon: Route, 
-    title: "Cargas de Retorno", 
-    description: "Otimize sua rota. Encontre fretes para voltar para casa com o baú cheio." 
+    title: "Mais Cargas", 
+    description: "Otimize sua rota e o seu tempo. Encontre mais fretes para ter o caminhão e o bolso cheio." 
   },
   { 
     icon: Bell, 
-    title: "Alertas no Zap", 
-    description: "Faça parte da comunidade para ser o primeiro a saber quando surgir um frete na sua cidade." 
+    title: "Sempre Alerta", 
+    description: "Faça parte da plataforma e da comunidade para saber quando surgir um frete por onde você estiver." 
   },
   { 
     icon: Zap, 
     title: "Agilidade Total", 
-    description: "Filtre por tipo de carroceria, peso e destino em poucos segundos." 
+    description: "Use o Radar Smart, filtre por tipo de carroceria, peso e destino em poucos segundos." 
   },
 ];
 
@@ -39,7 +39,7 @@ const ForDrivers = () => {
             <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 px-4 py-2 rounded-full">
               <Star className="w-4 h-4 text-orange-500 fill-orange-500" />
               <span className="text-[10px] font-black uppercase tracking-[0.2em] text-orange-500">
-                O melhor amigo do estradeiro
+                O melhor amigo de quem vive o transporte
               </span>
             </div>
             
@@ -49,7 +49,7 @@ const ForDrivers = () => {
             </h2>
 
             <p className="text-slate-400 text-lg max-w-md font-medium leading-relaxed">
-              O Chama Frete foi feito por quem entende a estrada e a cidade. Aqui você manda no seu tempo e escolhe as melhores oportunidades.
+              O Chama Frete foi feito por quem entende da vida no transporte e no mundo logístico. Aqui você manda no seu tempo e escolhe as melhores oportunidades.
             </p>
 
             <div className="grid sm:grid-cols-2 gap-4">

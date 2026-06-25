@@ -14,7 +14,7 @@ const ForCompanies = () => {
         <div className="max-w-4xl mb-20">
           <div className="flex items-center gap-3 text-[#1f4ead] dark:text-blue-500 mb-6">
             <div className="h-[2px] w-12 bg-[#1f4ead] dark:bg-blue-500" />
-            <span className="text-xs font-[1000] uppercase tracking-[0.3em]">B2B Logística Inteligente</span>
+            <span className="text-xs font-[1000] uppercase tracking-[0.3em]">Logística Inteligente</span>
           </div>
           <h2 className="text-6xl md:text-8xl font-[1000] tracking-tighter text-slate-900 dark:text-white leading-[0.8] uppercase italic mb-8">
             CONTROLE A <br /> 
@@ -38,7 +38,7 @@ const ForCompanies = () => {
                 </div>
                 <h3 className="text-4xl font-black text-white uppercase italic leading-none">Central de <br /> Operações</h3>
                 <p className="text-slate-400 font-medium">
-                  Chega de planilhas e mensagens perdidas. Faça contato com motoristas em tempo real e o match certo do veículo que sua empresa precisa e feche o melhor negócio com um clique.
+                  Chega de planilhas e mensagens perdidas. Faça contato com motoristas em tempo real e o match certo do veículo que sua empresa precisa e feche o melhor negócio com poucos cliques.
                 </p>
                 <div className="space-y-3">
                   {['Listagem de contatos', 'Filtro por Tipo de Veículo', 'Chat de Negociação Integrado'].map((item, i) => (
@@ -58,7 +58,7 @@ const ForCompanies = () => {
                       <div className="h-2 w-16 bg-blue-500/40 rounded" />
                       <div className="h-1.5 w-12 bg-slate-600 rounded" />
                     </div>
-                    <div className="text-blue-400 font-black text-xs">Contato ABC</div>
+                    <div className="text-blue-400 font-black text-xs">+ Contato</div>
                   </div>
                 ))}
               </div>
@@ -71,9 +71,9 @@ const ForCompanies = () => {
               <MessageSquare size={32} />
             </div>
             <div>
-              <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic leading-none mb-4 group-hover:text-white transition-colors">Visibilidade <br /> WhatsApp</h3>
+              <h3 className="text-3xl font-black text-slate-900 dark:text-white uppercase italic leading-none mb-4 group-hover:text-white transition-colors">Visibilidade <br /> na Comunidade</h3>
               <p className="text-slate-500 dark:text-slate-400 font-medium group-hover:text-white/80 transition-colors">
-                Anuncie sua carga automaticamente em nossa plataforma e seja visto por toda comunidade com mais de 50 mil profissionais.
+                Anuncie sua carga automaticamente em nossa plataforma e seja visto por toda comunidade com mais de 50 mil profissionais em todo o Brasil e Mercosul.
               </p>
             </div>
           </div>
@@ -82,7 +82,7 @@ const ForCompanies = () => {
           <div className="bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-[2.5rem] p-10 flex flex-col justify-between hover:shadow-xl transition-all">
             <ShieldCheck size={48} className="text-[#1f4ead] mb-8" />
             <div>
-              <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic mb-2">Segurança de Acesso</h4>
+              <h4 className="text-2xl font-black text-slate-900 dark:text-white uppercase italic mb-2">Mais Segurança de Acesso ao seu contato</h4>
               <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">
                 Seus dados e fretes protegidos. Apenas motoristas com perfil validado e logado acessam as informações de contato.
               </p>

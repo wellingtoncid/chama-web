@@ -19,7 +19,7 @@ export default function ArticlesSection() {
           </h2>
 
           <p className="text-slate-400 text-lg max-w-2xl mx-auto mb-10 font-medium">
-            Dicas, guias e novidades do mundo do transporte e logística. Conteúdo relevante para motoristas e empresas.
+            Notícias, artigos, dicas, guias e novidades do mundo do transporte e logística. Conteúdo relevante para motoristas e empresas.
           </p>
 
           <Link

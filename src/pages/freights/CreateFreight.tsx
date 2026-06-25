@@ -196,7 +196,8 @@ export default function CreateFreight() {
       };
       const response = await api.post(`/${endpoint}`, payload);
       showAlert(response.data.message || (formData.id ? 'Salvo!' : 'Publicado!'), 'success');
-      setTimeout(() => navigate('/dashboard/logistica'), 1200);
+      const freightId = response.data?.data?.id || formData.id;
+      setTimeout(() => navigate(freightId ? `/dashboard/logistica?promote=freight:${freightId}` : '/dashboard/logistica'), 1200);
     } catch (error: any) {
       const msg = error.response?.data?.message || "Erro ao processar requisição.";
       showAlert(msg, 'error');

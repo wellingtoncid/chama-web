@@ -47,11 +47,11 @@ const CTA = () => {
 
             <h2 className="text-5xl md:text-8xl font-[1000] text-white tracking-tighter italic uppercase leading-[0.8] mb-8">
               Onde o mercado <br />
-              <span className="text-blue-500">se movimenta.</span>
+              <span className="text-blue-500">se movimenta</span>
             </h2>
             
             <p className="text-slate-400 text-lg md:text-2xl max-w-3xl font-medium italic mb-12">
-              Não somos apenas uma plataforma, somos a infraestrutura que conecta sua operação ao motorista, seu produto ao marketplace e sua marca à maior audiência do setor.
+              Não somos apenas uma plataforma, somos a infraestrutura que conecta sua operação ao motorista, seu produto ao mercado e sua marca à maior audiência do setor. O setor de transporte e logística é um dos pilares da economia, movimentando cerca de 116 bilhões de dólares, aproximadamente 20% do PIB. O Chama Frete é a ponte que conecta empresas, transportadoras e motoristas, garantindo eficiência, segurança e confiabilidade.
             </p>
 
             <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl justify-center">

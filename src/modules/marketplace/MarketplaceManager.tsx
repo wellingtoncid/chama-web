@@ -9,6 +9,7 @@ import CheckoutModalMarketplace from '../../components/company/CheckoutModalMark
 import { UsageMeter } from '../../components/shared/UsageMeter';
 import DashboardShell from '../../components/layout/DashboardShell';
 import { StatsGrid, StatCard } from '../../components/admin';
+import { PromotionModal } from '../../components/shared/PromotionModal';
 
 
 interface ListingItem {
@@ -76,6 +77,7 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
 
   const [showCheckoutModal, setShowCheckoutModal] = useState(false);
   const [selectedListingId, setSelectedListingId] = useState<number | null>(null);
+  const [promoteData, setPromoteData] = useState<{ type: 'freight' | 'listing'; id: number; price?: number } | null>(null);
 
   const [activeTab, setActiveTab] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -111,6 +113,15 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
 
     if (searchParams.get('showAffiliateModal') === 'true') {
       setShowAffiliateInterest(true);
+      navigate('/dashboard/vendas', { replace: true });
+    }
+
+    const promote = searchParams.get('promote');
+    if (promote) {
+      const [type, idStr] = promote.split(':');
+      if (type === 'listing' && idStr) {
+        setPromoteData({ type: 'listing', id: parseInt(idStr) });
+      }
       navigate('/dashboard/vendas', { replace: true });
     }
   }, [user.id]);
@@ -746,6 +757,14 @@ const MarketplaceManager = ({ user }: { user: { id: number } }) => {
           }}
         />
       )}
+
+      {/* WhatsApp Promotion Modal */}
+      <PromotionModal
+        isOpen={promoteData !== null}
+        onClose={() => setPromoteData(null)}
+        referenceType="listing"
+        referenceId={promoteData?.id || 0}
+      />
 
     </DashboardShell>
   );

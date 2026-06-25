@@ -64,13 +64,13 @@ const CommunityGroups = () => {
         <div className="text-center max-w-2xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full px-4 py-1.5 text-xs font-black uppercase tracking-wider mb-4">
             <MessageCircle className="w-4 h-4" />
-            Comunidades
+            Comunidade em grupos exclusivos de WhatsApp
           </div>
           <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-4 tracking-tight uppercase italic">
-            Grupos por <span className="text-blue-600">Região</span>
+            Grupos por diversas <span className="text-blue-600">Regiões</span>
           </h2>
           <p className="text-slate-500 dark:text-slate-400">
-            Receba cargas exclusivas direto no seu celular.
+            Faça parte da comunidade! Sozinho você vai mais rápido mas juntos vamos mais longe.
           </p>
         </div>
 
@@ -101,7 +101,7 @@ const CommunityGroups = () => {
             className="text-blue-600 dark:text-blue-400 font-bold uppercase text-sm tracking-wider hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-xl px-8 py-6 transition-all"
             onClick={() => navigate('/comunidade')}
           >
-            Ver todas as comunidades
+            Ver mais
             <ArrowRight className="w-4 h-4 ml-2" />
           </Button>
         </div>

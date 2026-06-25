@@ -17,15 +17,15 @@ const steps = [
   },
   {
     icon: ShieldCheck,
-    title: "Segurança Jurídica",
-    description: "Documentação digital, histórico de pontualidade e negociações transparentes para ambas as partes.",
+    title: "Amamos Segurança",
+    description: "Todos os usuários têm a opção extra de verificação de identidade, garantindo mais segurança para ambas as partes.",
     color: "text-green-600 dark:text-green-400",
     bg: "bg-green-50 dark:bg-green-900/20"
   },
   {
     icon: Zap,
     title: "Agilidade no Fluxo",
-    description: "Do anúncio ao carregamento em tempo recorde. Tecnologia focada na velocidade do trecho.",
+    description: "Do anúncio ao carregamento em tempo recorde. Tecnologia focada na velocidade que o transporte merece.",
     color: "text-slate-900 dark:text-white",
     bg: "bg-slate-100 dark:bg-slate-800"
   },
@@ -52,12 +52,12 @@ const HowItWorks = () => {
 
             <h2 className="text-4xl md:text-6xl font-[1000] text-slate-900 dark:text-white tracking-tighter italic uppercase leading-[0.9]">
               Muito além de um <br />
-              <span className="text-[#1f4ead] dark:text-blue-500">aplicativo de fretes.</span>
+              <span className="text-[#1f4ead] dark:text-blue-500">aplicativo de fretes</span>
             </h2>
           </div>
           <div className="max-w-sm">
             <p className="text-slate-500 dark:text-slate-400 font-bold leading-relaxed border-l-2 border-slate-100 dark:border-slate-800 pl-6">
-              Integramos tecnologia de ponta com a realidade de quem vive na estrada, eliminando a burocracia e acelerando o fechamento de cargas.
+              Integramos tecnologia de ponta com a realidade de quem vive do transporte, eliminando a burocracia e acelerando o fechamento de cargas.
             </p>
           </div>
         </div>
